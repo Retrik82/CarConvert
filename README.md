@@ -202,4 +202,3 @@ VITE_API_URL=http://localhost:3002
 
 - Frontend: React, Vite, TailwindCSS, Axios
 - Backend: FastAPI, Uvicorn, python-dotenv, Pillow, requests
-- AI: OpenRouter `google/gemini-3.1-flash-image-preview`
