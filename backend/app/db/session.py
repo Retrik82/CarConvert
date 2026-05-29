@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import ssl
 from collections.abc import AsyncGenerator
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -12,6 +13,9 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 _SSL_QUERY_KEYS = frozenset({"sslmode", "sslcert", "sslkey", "sslrootcert", "sslcrl"})
+
+_db_ready = asyncio.Event()
+_init_lock = asyncio.Lock()
 
 
 def normalize_database_url(url: str) -> str:
@@ -32,15 +36,28 @@ def normalize_database_url(url: str) -> str:
 
 def _connect_args(url: str) -> dict:
     normalized = normalize_database_url(url)
-    if normalized.startswith("postgresql"):
-        # Render Postgres requires SSL
-        return {"ssl": True}
-    return {}
+    if not normalized.startswith("postgresql"):
+        return {}
+
+    # Render Postgres requires TLS
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    return {"ssl": ctx, "timeout": 60}
+
+
+def _db_target_label(url: str) -> str:
+    parsed = urlparse(normalize_database_url(url))
+    host = parsed.hostname or "?"
+    port = parsed.port or 5432
+    db = (parsed.path or "/").lstrip("/") or "?"
+    return f"{host}:{port}/{db}"
 
 
 engine = create_async_engine(
     normalize_database_url(settings.database_url),
     echo=False,
+    pool_pre_ping=True,
     connect_args=_connect_args(settings.database_url),
 )
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -49,24 +66,39 @@ AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_co
 async def init_db() -> None:
     import app.db.models  # noqa: F401 — register models with Base.metadata
 
-    last_error: Exception | None = None
-    for attempt in range(1, 6):
-        try:
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            logger.info("Database tables ready")
-            return
-        except Exception as exc:
-            last_error = exc
-            logger.warning("Database init attempt %s/5 failed: %s", attempt, exc)
-            if attempt < 5:
-                await asyncio.sleep(3)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-    assert last_error is not None
-    raise last_error
+
+async def ensure_db_ready() -> None:
+    """Create tables on first DB use; retries while Postgres is still starting on Render."""
+    if _db_ready.is_set():
+        return
+
+    async with _init_lock:
+        if _db_ready.is_set():
+            return
+
+        logger.info("Connecting to database %s", _db_target_label(settings.database_url))
+        last_error: Exception | None = None
+        for attempt in range(1, 21):
+            try:
+                await init_db()
+                _db_ready.set()
+                logger.info("Database tables ready")
+                return
+            except Exception as exc:
+                last_error = exc
+                logger.warning("Database connect attempt %s/20 failed: %s", attempt, exc)
+                if attempt < 20:
+                    await asyncio.sleep(3)
+
+        assert last_error is not None
+        raise last_error
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    await ensure_db_ready()
     async with AsyncSessionLocal() as session:
         try:
             yield session

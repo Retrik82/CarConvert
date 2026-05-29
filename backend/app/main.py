@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import auth, health, legacy, photo, session
 from app.config import get_settings
-from app.db.session import init_db
 from app.models.schemas import EditResponse
 from app.utils.logging import setup_logging
 from app.websocket import camera_stream
@@ -35,16 +34,8 @@ async def lifespan(_: FastAPI):
     if settings.jwt_secret == "change_me_to_random_32_char_string_minimum":
         logger.warning("JWT_SECRET is using default value — change it in production.")
     db_url = settings.database_url
-    logger.info(
-        "Starting API (db=%s)",
-        "postgres" if db_url.startswith(("postgres", "postgresql")) else "sqlite",
-    )
-    try:
-        await init_db()
-    except Exception:
-        logger.exception("Database init failed — check DATABASE_URL and Postgres status on Render")
-        raise
-    logger.info("Database initialized")
+    db_kind = "postgres" if db_url.startswith(("postgres", "postgresql")) else "sqlite"
+    logger.info("API listening (db=%s, tables init on first request)", db_kind)
     yield
 
 
