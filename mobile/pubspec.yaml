@@ -1,0 +1,29 @@
+name: carconvert
+description: AI automotive photography assistant with realtime hints and desert background replacement.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  camera: ^0.11.1
+  web_socket_channel: ^3.0.2
+  http: ^1.2.2
+  image: ^4.5.4
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.3
+  permission_handler: ^11.4.0
+  path_provider: ^2.1.5
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,204 +1,454 @@
-# CarConvert - AI замена фона авто
+# CarConvert — AI-ассистент автомобильной съёмки
 
-Локальный проект без Docker: загружаешь фото машины, задаешь prompt нового фона, получаешь отредактированное фото с сохранением автомобиля.
+Мобильное приложение (Flutter) + общий backend (FastAPI) для:
 
-## Что нужно заранее
+- **Realtime AI-подсказок ДО съёмки** (rekaai/reka-edge через OpenRouter)
+- **Автоматической замены фона на пустыню ПОСЛЕ съёмки** (google/gemini-3.1-flash-image-preview)
+- **Авторизации пользователей** (SQLite + JWT)
 
-- Python 3.10+
-- Node.js 18+
-- npm 9+
-- Ключ OpenRouter
+React web-клиент (`client/`) продолжает работать через legacy endpoint `POST /api/edit` без изменений.
 
-## Структура
+---
+
+## Структура проекта
 
 ```txt
 CarConvert/
-  client/
-  server/
-  render.yaml
+  backend/          # FastAPI — общий API для web и mobile
+  mobile/           # Flutter app (Android / iOS)
+  client/           # React web (без изменений)
+  server/           # Старый backend (deprecated, используй backend/)
+  render.yaml       # Deploy на Render
 ```
 
-## Deploy на Render
+---
 
-Проект подготовлен под `Blueprint` (файл `render.yaml` в корне).
+## Что нужно заранее
 
-Что будет создано:
+| Компонент | Версия |
+|-----------|--------|
+| Python | 3.10+ |
+| Node.js | 18+ (только для web client) |
+| Flutter SDK | 3.7+ |
+| Android Studio | для SDK и эмулятора |
+| OpenRouter API key | [openrouter.ai/keys](https://openrouter.ai/settings/keys) |
 
-- `carconvert-api` (Web Service, FastAPI)
-- `carconvert-web` (Static Site, React/Vite)
+---
 
-Шаги:
+# Часть 1 — Запуск Backend
 
-1. Запушь репозиторий на GitHub/GitLab.
-2. В Render нажми **New +** -> **Blueprint**.
-3. Выбери репозиторий с этим проектом.
-4. Render автоматически прочитает `render.yaml` и создаст 2 сервиса.
-5. В `carconvert-api` добавь переменные окружения:
-   - `OPENROUTER_API_KEY` = твой реальный ключ
-   - `CORS_ORIGINS` = URL фронтенда на Render (например `https://carconvert-web.onrender.com`)
-6. В `carconvert-web` проверь `VITE_API_URL`:
-   - должен указывать на backend URL (например `https://carconvert-api.onrender.com`)
-7. Перезапусти деплой `carconvert-web`, если менял `VITE_API_URL`.
+### 1. Перейди в папку backend
 
-Проверка после деплоя:
-
-- `https://<api-service>.onrender.com/health` -> `{"status":"ok"}`
-- Открой `https://<web-service>.onrender.com` и проверь генерацию изображения
-
-## 1) Запуск Backend (FastAPI)
-
-Открой терминал в папке `server`:
-
-```bash
-cd server
+```powershell
+cd D:\projects\CarConvert\backend
 ```
 
-Создай виртуальное окружение:
+### 2. Создай виртуальное окружение
 
-```bash
+```powershell
 python -m venv venv
-```
-
-Активируй окружение:
-
-Windows (PowerShell):
-
-```bash
 venv\Scripts\activate
-```
-
-Mac/Linux:
-
-```bash
-source venv/bin/activate
-```
-
-Установи зависимости:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Создай файл `server/.env` (или скопируй из `server/.env.example`) и заполни:
+### 3. Создай файл `.env`
+
+Скопируй `backend/.env.example` → `backend/.env` и заполни:
 
 ```env
-OPENROUTER_API_KEY=your_real_openrouter_key
+OPENROUTER_API_KEY=sk-or-v1-ВАШ_КЛЮЧ
 PORT=3001
+CORS_ORIGINS=*
+DATABASE_URL=sqlite+aiosqlite:///./data/carconvert.db
+JWT_SECRET=случайная_строка_минимум_32_символа
+JWT_ACCESS_EXPIRE_MIN=30
+JWT_REFRESH_EXPIRE_DAYS=30
+HINT_MODEL=rekaai/reka-edge
+PROCESS_MODEL=google/gemini-3.1-flash-image-preview
+HINT_TIMEOUT_SEC=15
+PROCESS_TIMEOUT_SEC=120
+MAX_PREVIEW_BYTES=512000
+UPLOAD_DIR=./data/uploads
 ```
 
-Запусти сервер:
+### 4. Запусти сервер
 
-```bash
-uvicorn main:app --reload --port 3001
+```powershell
+uvicorn main:app --reload --host 0.0.0.0 --port 3001
 ```
 
-Важно: эту команду нужно запускать именно из папки `server`.
+> `--host 0.0.0.0` обязателен, если телефон подключается по Wi-Fi (не localhost).
 
-Если запускаешь из корня проекта `CarConvert`, используй:
+### 5. Проверь
 
-```bash
-uvicorn main:app --reload --port 3001
+Открой в браузере: `http://localhost:3001/health`  
+Ожидаемый ответ: `{"status":"ok"}`
+
+---
+
+# Часть 2 — Установка на Android-телефон
+
+## Вариант A: Физический телефон + Wi-Fi (рекомендуется)
+
+### Шаг 1 — Подготовь телефон
+
+1. **Настройки → О телефоне →** нажми 7 раз на «Номер сборки» (включится режим разработчика)
+2. **Настройки → Для разработчиков →** включи **Отладку по USB**
+3. Подключи телефон USB-кабелем к компьютеру
+4. На телефоне подтверди «Разрешить отладку по USB»
+
+### Шаг 2 — Узнай IP компьютера в локальной сети
+
+```powershell
+ipconfig
 ```
 
-(в корне есть прокси-файл `main.py`, который подключает `server.main`).
+Найди строку **IPv4 Address** для Wi-Fi адаптера, например: `192.168.1.105`
 
-Проверка backend:
+> Компьютер и телефон должны быть в **одной Wi-Fi сети**.
 
-- Health: `http://localhost:3001/health`
-- Должен вернуть: `{"status":"ok"}`
+### Шаг 3 — Проверь, что backend доступен с телефона
 
-## 2) Запуск Frontend (React + Vite)
+Backend должен быть запущен с `--host 0.0.0.0`.
 
-Открой второй терминал в папке `client`:
+На телефоне открой браузер и перейди:
+```
+http://192.168.1.105:3001/health
+```
+(замени IP на свой)
 
-```bash
-cd client
+Если видишь `{"status":"ok"}` — всё работает.
+
+### Шаг 4 — Разреши HTTP в Windows Firewall (если не открывается)
+
+```powershell
+netsh advfirewall firewall add rule name="CarConvert API" dir=in action=allow protocol=TCP localport=3001
 ```
 
-Установи зависимости:
+### Шаг 5 — Установи Flutter-приложение на телефон
 
-```bash
-npm install
+```powershell
+cd D:\projects\CarConvert\mobile
+flutter pub get
+flutter devices
 ```
 
-Создай `client/.env` (или скопируй из `client/.env.example`):
+Убедись, что телефон виден в списке устройств, затем:
 
-```env
-VITE_API_URL=http://localhost:3001
+```powershell
+flutter run --dart-define=API_BASE_URL=http://192.168.1.105:3001
 ```
 
-Запусти фронт:
+(замени IP на свой)
 
-```bash
-npm run dev
+Flutter соберёт APK и установит его на телефон. Первый запуск может занять 3–5 минут.
+
+---
+
+## Вариант B: USB + adb reverse (без Wi-Fi)
+
+Если не хочешь возиться с IP и firewall:
+
+```powershell
+adb reverse tcp:3001 tcp:3001
+cd D:\projects\CarConvert\mobile
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:3001
 ```
 
-Открой в браузере:
+`adb reverse` пробрасывает порт телефона на localhost компьютера. Backend можно запускать с `--host 127.0.0.1`.
 
-- `http://localhost:5173`
+> Команда `adb reverse` сбрасывается после перезагрузки телефона — запускай её снова.
 
-## 3) Проверка работы приложения
+---
 
-1. Загрузи изображение (`jpg/jpeg/png/webp`, до 10MB).
-2. Введи prompt для нового фона.
-3. Нажми `Generate`.
-4. Дождись результата и сравни `Before/After`.
-5. Скачай результат кнопкой `Download result`.
+## Вариант C: Android Emulator
 
-## API (backend)
+```powershell
+cd D:\projects\CarConvert\mobile
+flutter emulators
+flutter emulators --launch <emulator_id>
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3001
+```
 
-### `POST /api/edit`
+`10.0.2.2` — специальный адрес эмулятора для доступа к localhost хост-машины.
 
-Формат: `multipart/form-data`
+---
 
-- `image`: файл (`jpg`, `jpeg`, `png`, `webp`, максимум 10MB)
-- `prompt`: текст промпта
+## Вариант D: Сборка APK для ручной установки
 
-Успешный ответ:
+```powershell
+cd D:\projects\CarConvert\mobile
+flutter build apk --dart-define=API_BASE_URL=http://192.168.1.105:3001
+```
 
+APK будет здесь:
+```
+mobile\build\app\outputs\flutter-apk\app-release.apk
+```
+
+Скопируй файл на телефон и установи. Разреши установку из неизвестных источников, если система попросит.
+
+> **Важно:** IP backend зашивается при сборке через `--dart-define`. Если сменишь IP — пересобери APK.
+
+---
+
+# Часть 3 — Проверка работы приложения
+
+### 1. Регистрация / вход
+
+1. Открой приложение CarConvert
+2. Нажми **«Создать аккаунт»**
+3. Введи имя, email, пароль (мин. 6 символов)
+4. Пройди onboarding (3 экрана)
+
+### 2. Realtime AI-подсказки (главная функция)
+
+1. Вкладка **«Камера»**
+2. Разреши доступ к камере
+3. Наведи камеру на машину (или фото машины на экране)
+4. Через 1–2 секунды появятся подсказки:
+   - текст внизу («Сместись левее», «Идеально» и т.д.)
+   - анимированные стрелки
+   - рамка кадра (зелёная = идеальный кадр)
+5. Статус «AI активен» вверху подтверждает WebSocket-соединение
+
+### 3. Съёмка и обработка
+
+1. Когда кадр хороший — нажми **белую кнопку съёмки**
+2. Экран «Создаём пустынный фон» — жди 10–20 секунд
+3. Результат: свайп влево для сравнения до/после
+4. Кнопка **скачивания** сохраняет фото на телефон
+
+### 4. История
+
+Вкладка **«История»** — список всех обработок вашего аккаунта.
+
+### 5. Профиль
+
+Вкладка **«Профиль»** — данные аккаунта и кнопка **«Выйти»**.
+
+---
+
+# Часть 4 — API Reference
+
+## Auth (public)
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/auth/register` | `{email, password, display_name}` |
+| POST | `/auth/login` | `{email, password}` |
+| POST | `/auth/refresh` | `{refresh_token}` |
+| POST | `/auth/logout` | `{refresh_token}` + Bearer |
+| GET | `/auth/me` | Bearer token |
+
+## Camera session (Bearer)
+
+| Method | Path | Response |
+|--------|------|----------|
+| POST | `/session/start` | `{session_id, expires_at}` |
+
+## WebSocket (realtime hints)
+
+```
+WS /camera/stream?session_id={uuid}&token={access_token}
+```
+
+Client → Server:
+```json
+{"type":"frame","image_base64":"...","mime_type":"image/jpeg","timestamp":1710000000}
+```
+
+Server → Client:
 ```json
 {
-  "success": true,
-  "image_base64": "...",
-  "mime_type": "image/png",
-  "message": "Image generated successfully.",
-  "error": null
+  "type":"hint",
+  "hint":"move_left",
+  "message":"Сместись левее",
+  "confidence":0.92,
+  "scores":{"centering":0.81,"distance":0.74,"angle":0.88},
+  "overlay":{"arrow":"left","color":"yellow"}
 }
 ```
 
-## Частые проблемы
+## Photo processing (Bearer)
 
-### Порт `3001` занят
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/photo/process` | multipart: `image` + optional `session_id` |
+| GET | `/photo/result/{job_id}` | polling статуса |
+| GET | `/photos/history` | история пользователя |
 
-Проверь процесс:
+## Legacy web (public, без auth)
 
-```bash
-netstat -ano | findstr :3001
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/edit` | multipart: `image` + `prompt` |
+| GET | `/health` | health check |
+
+---
+
+# Часть 5 — Запуск Web-клиента (React)
+
+Web-клиент не менялся и работает через старый endpoint:
+
+```powershell
+# Терминал 1 — backend (уже запущен)
+cd D:\projects\CarConvert\backend
+venv\Scripts\uvicorn main:app --reload --port 3001
+
+# Терминал 2 — frontend
+cd D:\projects\CarConvert\client
+npm install
+# client/.env: VITE_API_URL=http://localhost:3001
+npm run dev
 ```
 
-Останови процесс:
+Открой `http://localhost:5173`
 
-```bash
-taskkill /PID <PID> /F
+---
+
+# Часть 6 — Частые проблемы
+
+### «Не удаётся подключиться к серверу» на телефоне
+
+- Backend запущен с `--host 0.0.0.0`?
+- IP в `--dart-define=API_BASE_URL` правильный?
+- Телефон и ПК в одной Wi-Fi сети?
+- Firewall пропускает порт 3001?
+- Попробуй `adb reverse tcp:3001 tcp:3001` + `API_BASE_URL=http://127.0.0.1:3001`
+
+### «OPENROUTER_API_KEY is not configured»
+
+Проверь `backend/.env` — ключ должен быть реальным, не `your_key_here`. Перезапусти backend.
+
+### Подсказки не появляются
+
+- Проверь WebSocket: статус должен быть «AI активен»
+- Убедись, что OpenRouter ключ имеет доступ к `rekaai/reka-edge`
+- Наведи камеру на объект, похожий на машину
+
+### Обработка фото зависла
+
+- Gemini-обработка занимает 10–20 секунд — это нормально
+- Проверь баланс OpenRouter
+- Смотри логи backend в терминале
+
+### `flutter devices` не видит телефон
+
+- Включена отладка по USB?
+- Установлены драйверы (для Samsung/Xiaomi — их USB-драйвер)?
+- Попробуй: `adb kill-server` → `adb start-server` → `adb devices`
+
+### Developer Mode для symlinks (Windows)
+
+Если `flutter pub get` просит Developer Mode:
+```
+start ms-settings:developers
+```
+Включи **Режим разработчика**.
+
+### bcrypt / auth ошибки
+
+```powershell
+cd backend
+venv\Scripts\pip install bcrypt==4.0.1
 ```
 
-Или запусти backend на другом порту и обнови `client/.env`:
+---
 
-```env
-VITE_API_URL=http://localhost:3002
+# Часть 7 — Deploy на Render + установка на телефон
+
+Схема: **API на Render** → **APK на телефоне** с тем же URL. Wi-Fi и домашний ПК для работы приложения не нужны.
+
+## Шаг 1 — Задеплой backend на Render
+
+1. Запушь репозиторий на GitHub.
+2. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → выбери репозиторий CarConvert.
+3. Render подхватит `render.yaml` и создаст:
+   - `carconvert-api` — FastAPI (Python)
+   - `carconvert-web` — React (статика, опционально)
+4. В сервисе **carconvert-api** → **Environment** добавь вручную:
+   - `OPENROUTER_API_KEY` — ключ с [openrouter.ai](https://openrouter.ai/settings/keys)
+5. Дождись зелёного статуса **Live**. Проверь в браузере:
+   ```
+   https://carconvert-api.onrender.com/health
+   ```
+   Ответ: `{"status":"ok"}`
+
+> **Free tier:** сервис «засыпает» после ~15 мин без запросов. Первый запрос после сна может занять 30–60 сек — это нормально.  
+> **Данные:** аккаунты хранятся в Render Postgres (создаётся из `render.yaml`). Загруженные фото на диске контейнера могут пропасть после redeploy — история в БД останется, но повторно открыть старый результат может не получиться. `JWT_SECRET` Render сгенерирует сам.
+
+Если имя сервиса API на Render не `carconvert-api`, измени URL в:
+- `render.yaml` → `VITE_API_URL` (для web)
+- `mobile/dart_defines.prod.json` → `API_BASE_URL`
+
+## Шаг 2 — Собери APK для телефона
+
+На компьютере с Flutter:
+
+```powershell
+cd D:\projects\CarConvert\mobile
+flutter pub get
+.\scripts\build_apk_prod.ps1
 ```
 
-### Ошибка `OPENROUTER_API_KEY is not configured`
+Или вручную:
 
-Проверь, что в `server/.env` стоит реальный ключ, не `your_key_here`.
+```powershell
+flutter build apk --release --dart-define-from-file=dart_defines.prod.json
+```
 
-### Frontend не видит backend
+APK:
 
-- Убедись, что backend запущен
-- Проверь `VITE_API_URL` в `client/.env`
-- Перезапусти `npm run dev` после изменения `.env`
+```
+mobile\build\app\outputs\flutter-apk\app-release.apk
+```
 
-## Стек
+## Шаг 3 — Установи на Android
 
-- Frontend: React, Vite, TailwindCSS, Axios
-- Backend: FastAPI, Uvicorn, python-dotenv, Pillow, requests
+1. Скопируй `app-release.apk` на телефон (USB, Telegram, Google Drive и т.д.).
+2. Открой файл на телефоне → **Установить**.
+3. Разреши установку из неизвестных источников, если Android попросит.
+4. Открой **CarConvert** → регистрация → камера и съёмка.
+
+Приложение ходит на `https://carconvert-api.onrender.com` (зашито в `dart_defines.prod.json` при сборке).
+
+## Шаг 4 — Локальная разработка (по желанию)
+
+Скопируй `mobile/dart_defines.local.json.example` → `dart_defines.local.json`, укажи IP ПК в Wi-Fi:
+
+```powershell
+flutter run --dart-define-from-file=dart_defines.local.json
+```
+
+## Частые проблемы (Render + телефон)
+
+| Симптом | Решение |
+|---------|---------|
+| «Не удаётся подключиться» | Проверь `/health` в браузере телефона. Подожди 1 мин после долгого простоя (cold start). |
+| 500 / OPENROUTER | Задай `OPENROUTER_API_KEY` в Render → Environment → **Save** → redeploy. |
+| WebSocket «Отключено» | Убедись, что API Live; перелогинься в приложении. |
+| Сменил URL API на Render | Обнови `dart_defines.prod.json` и **пересобери** APK. |
+
+---
+
+# Стек
+
+| Слой | Технологии |
+|------|-----------|
+| Mobile | Flutter, camera, web_socket_channel, flutter_secure_storage |
+| Backend | FastAPI, SQLAlchemy, aiosqlite, httpx, python-jose, bcrypt |
+| AI | OpenRouter → rekaai/reka-edge (hints), google/gemini-3.1-flash-image-preview (desert bg) |
+| Web | React, Vite, Tailwind (legacy client/) |
+| DB | SQLite (dev/MVP), готово к миграции на PostgreSQL |
+
+---
+
+# AI-модели (не менять)
+
+| Задача | Модель |
+|--------|--------|
+| Realtime подсказки | `rekaai/reka-edge` |
+| Замена фона на пустыню | `google/gemini-3.1-flash-image-preview` |
+
+Ключ OpenRouter хранится **только на backend**. В Flutter-коде ключей нет.

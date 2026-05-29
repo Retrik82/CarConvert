@@ -104,9 +104,6 @@ export default function App() {
         <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
           <div>
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">Car Background Replacer</h1>
-            <p className="text-sm text-slate-300">
-              Keep the exact car and generate a new photorealistic background.
-            </p>
           </div>
         </div>
 
