@@ -1,9 +1,4 @@
-databases:
-  - name: carconvert-db
-    plan: free
-    databaseName: carconvert
-    user: carconvert
-
+# Free tier: SQLite in /tmp (auth works reliably). For Postgres, see README Part 7.
 services:
   - type: web
     name: carconvert-api
@@ -23,9 +18,7 @@ services:
       - key: CORS_ORIGINS
         value: "*"
       - key: DATABASE_URL
-        fromDatabase:
-          name: carconvert-db
-          property: connectionString
+        value: sqlite+aiosqlite:////tmp/carconvert/carconvert.db
       - key: UPLOAD_DIR
         value: /tmp/carconvert/uploads
 

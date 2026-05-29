@@ -47,7 +47,7 @@ class AuthService {
     }));
   }
 
-  static const _apiTimeout = Duration(seconds: 90);
+  static const _apiTimeout = Duration(seconds: 45);
 
   Future<http.Response> _postJson(String path, Map<String, dynamic> body) async {
     try {
@@ -65,8 +65,8 @@ class AuthService {
           msg.contains('Failed host lookup') ||
           msg.contains('TimeoutException')) {
         throw Exception(
-          'Сервер недоступен. Откройте в браузере ${Env.apiBaseUrl}/health '
-          'и подождите до 1 мин (Render просыпается).',
+          'Сервер не отвечает. Откройте ${Env.apiBaseUrl}/health в браузере '
+          '(подождите до 1 мин). Если /health/db не открывается — проверьте DATABASE_URL на Render.',
         );
       }
       rethrow;

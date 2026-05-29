@@ -17,11 +17,12 @@ settings = get_settings()
 
 
 def _ensure_sqlite_parent_dir() -> None:
-    if not settings.database_url.startswith("sqlite"):
+    url = settings.database_url
+    if "sqlite" not in url:
         return
     from sqlalchemy.engine import make_url
 
-    db_path = make_url(settings.database_url).database
+    db_path = make_url(url).database
     if db_path:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
 
