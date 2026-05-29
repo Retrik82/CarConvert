@@ -43,7 +43,12 @@ class AuthService {
             headers: {'Authorization': 'Bearer $_accessToken'},
           )
           .timeout(_apiTimeout);
-      if (response.statusCode == 200) return true;
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        _user = User.fromJson(json);
+        await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
+        return true;
+      }
       if (response.statusCode == 401) {
         if (await refreshAccessToken()) return validateSession();
         await logout();
@@ -56,18 +61,30 @@ class AuthService {
     return false;
   }
 
+  Future<User> refreshCurrentUser() async {
+    if (_accessToken == null) throw Exception('Not logged in');
+    final response = await http
+        .get(
+          Uri.parse('${Env.apiBaseUrl}/auth/me'),
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        )
+        .timeout(_apiTimeout);
+    if (response.statusCode >= 400) {
+      throw Exception(_extractError(response.body));
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    _user = User.fromJson(json);
+    await _storage.write(key: _userKey, value: jsonEncode(_user!.toJson()));
+    return _user!;
+  }
+
   Future<void> _persist(AuthTokens tokens) async {
     _accessToken = tokens.accessToken;
     _refreshToken = tokens.refreshToken;
     _user = tokens.user;
     await _storage.write(key: _accessKey, value: tokens.accessToken);
     await _storage.write(key: _refreshKey, value: tokens.refreshToken);
-    await _storage.write(key: _userKey, value: jsonEncode({
-      'id': tokens.user.id,
-      'email': tokens.user.email,
-      'display_name': tokens.user.displayName,
-      'created_at': tokens.user.createdAt.toIso8601String(),
-    }));
+    await _storage.write(key: _userKey, value: jsonEncode(tokens.user.toJson()));
   }
 
   static const _apiTimeout = Duration(seconds: 45);

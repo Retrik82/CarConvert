@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.db.models.app_config import INITIAL_USER_BALANCE
 from app.db.models.user import RefreshToken, User
 
 settings = get_settings()
@@ -66,6 +67,8 @@ async def create_user(db: AsyncSession, email: str, password: str, display_name:
         email=email.lower(),
         password_hash=hash_password(password),
         display_name=display_name,
+        balance=INITIAL_USER_BALANCE,
+        is_admin=False,
     )
     db.add(user)
     await db.flush()

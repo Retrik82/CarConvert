@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.user import User
 from app.db.session import get_db
 from app.services.auth_service import decode_access_token, get_user_by_id
-from app.utils.agent_debug_log import agent_log
 
 security = HTTPBearer(auto_error=False)
 
@@ -18,24 +17,8 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
     user_id = decode_access_token(credentials.credentials)
     if not user_id:
-        agent_log(
-            location="deps.py:get_current_user",
-            message="token_decode_failed",
-            data={"has_credentials": True},
-            hypothesis_id="C",
-        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token.")
     user = await get_user_by_id(db, user_id)
-    agent_log(
-        location="deps.py:get_current_user",
-        message="auth_lookup",
-        data={
-            "user_id_prefix": user_id[:8] if user_id else None,
-            "user_found": user is not None,
-            "is_active": bool(user.is_active) if user else None,
-        },
-        hypothesis_id="C,D",
-    )
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive.")
     return user
@@ -49,3 +32,9 @@ async def get_current_user_from_token(token: str, db: AsyncSession) -> User | No
     if not user or not user.is_active:
         return None
     return user
+
+
+async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    return current_user

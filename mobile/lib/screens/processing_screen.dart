@@ -3,17 +3,20 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import 'result_screen.dart';
 
 class ProcessingScreen extends StatefulWidget {
   final Uint8List imageBytes;
   final String? sessionId;
+  final VoidCallback? onCharged;
 
   const ProcessingScreen({
     super.key,
     required this.imageBytes,
     this.sessionId,
+    this.onCharged,
   });
 
   @override
@@ -41,6 +44,8 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         'capture.jpg',
         sessionId: widget.sessionId,
       );
+      await AuthService.instance.refreshCurrentUser();
+      widget.onCharged?.call();
       _jobId = job.jobId;
       setState(() => _status = 'AI обрабатывает фото (10–20 сек)...');
       _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());

@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Literal
 
+from decimal import Decimal
+
 from pydantic import BaseModel, EmailStr, Field
 
 HintType = Literal[
@@ -24,9 +26,19 @@ class UserOut(BaseModel):
     id: str
     email: str
     display_name: str
+    balance: Decimal
+    is_admin: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class GenerationPriceOut(BaseModel):
+    price_usd: Decimal
+
+
+class UpdateGenerationPriceRequest(BaseModel):
+    price_usd: Decimal = Field(gt=0, le=1000)
 
 
 class RegisterRequest(BaseModel):
@@ -36,7 +48,7 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=1, max_length=255)
     password: str
 
 

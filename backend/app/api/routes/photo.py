@@ -10,9 +10,9 @@ from app.config import get_settings
 from app.db.models.user import User
 from app.db.session import get_db
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
+from app.services.billing_service import InsufficientBalanceError, charge_for_generation
 from app.services.job_service import create_photo_job, get_user_job, list_user_history, run_photo_job
 from app.services.session_service import get_active_session
-from app.utils.agent_debug_log import agent_log
 from app.utils.image_utils import normalize_content_type, read_file_as_base64, validate_image_upload
 
 router = APIRouter(prefix="/photo", tags=["photo"])
@@ -37,27 +37,21 @@ async def process_photo(
 
     image_bytes = await image.read()
     filename = image.filename or "photo.jpg"
-    content_type_raw = image.content_type
-    content_type_used = normalize_content_type(filename, content_type_raw)
-    agent_log(
-        location="photo.py:process_photo",
-        message="upload_received",
-        data={
-            "filename": filename,
-            "content_type_raw": content_type_raw,
-            "content_type_used": content_type_used,
-            "bytes_len": len(image_bytes),
-            "user_id_prefix": current_user.id[:8],
-        },
-        hypothesis_id="A,B",
-        run_id="post-fix",
-    )
+    content_type_used = normalize_content_type(filename, image.content_type)
     try:
         validate_image_upload(filename, content_type_used, image_bytes)
     except ValueError as exc:
         message = str(exc)
         status = 413 if "10MB" in message else 415 if "Unsupported" in message else 400
         raise HTTPException(status_code=status, detail=message) from exc
+
+    try:
+        await charge_for_generation(db, current_user)
+    except InsufficientBalanceError as exc:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient balance. Required: ${exc.price:.2f}, available: ${exc.balance:.2f}.",
+        ) from exc
 
     job = await create_photo_job(
         db,

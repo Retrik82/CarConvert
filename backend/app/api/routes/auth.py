@@ -15,6 +15,7 @@ from app.services.auth_service import (
     validate_refresh_token,
     verify_password,
 )
+from app.services.seed_service import get_user_by_login
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,7 +30,10 @@ def _auth_response(user: User, access: str, refresh: str) -> AuthResponse:
 
 @router.post("/register", response_model=AuthResponse)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)) -> AuthResponse:
-    existing = await get_user_by_email(db, payload.email)
+    email = payload.email.lower()
+    if email == "admin" or email == "admin@admin.com":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This email is reserved.")
+    existing = await get_user_by_email(db, email)
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered.")
     user = await create_user(db, payload.email, payload.password, payload.display_name)
@@ -42,7 +46,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 @router.post("/login", response_model=AuthResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> AuthResponse:
-    user = await get_user_by_email(db, payload.email)
+    user = await get_user_by_login(db, payload.email)
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password.")
     access = create_access_token(user.id)

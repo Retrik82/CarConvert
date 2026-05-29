@@ -12,11 +12,14 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/websocket_service.dart';
 import '../utils/frame_crop.dart';
+import '../utils/money_format.dart';
 import '../widgets/hint_overlay.dart';
 import 'processing_screen.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final VoidCallback? onBalanceChanged;
+
+  const CameraScreen({super.key, this.onBalanceChanged});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -33,11 +36,22 @@ class _CameraScreenState extends State<CameraScreen> {
   StreamSubscription? _hintSub;
   StreamSubscription? _statusSub;
   bool _streaming = false;
+  double _generationPrice = 0.10;
 
   @override
   void initState() {
     super.initState();
     _init();
+    _loadBilling();
+  }
+
+  Future<void> _loadBilling() async {
+    try {
+      await AuthService.instance.refreshCurrentUser();
+      _generationPrice = await ApiService.instance.getGenerationPrice();
+      widget.onBalanceChanged?.call();
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   Future<void> _init() async {
@@ -107,6 +121,22 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _capture() async {
     if (_controller == null || _capturing) return;
+
+    final user = AuthService.instance.currentUser;
+    if (user != null && user.balance < _generationPrice) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Недостаточно средств. Нужно ${MoneyFormat.usd(_generationPrice)}, '
+              'на балансе ${MoneyFormat.usd(user.balance)}',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _capturing = true);
     _streaming = false;
     _frameTimer?.cancel();
@@ -122,9 +152,10 @@ class _CameraScreenState extends State<CameraScreen> {
           builder: (_) => ProcessingScreen(
             imageBytes: bytes,
             sessionId: _sessionId,
+            onCharged: _loadBilling,
           ),
         ),
-      );
+      ).then((_) => _loadBilling());
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка съёмки: $e')));
@@ -150,6 +181,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     final ready = _controller?.value.isInitialized ?? false;
+    final user = AuthService.instance.currentUser;
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -160,6 +192,34 @@ class _CameraScreenState extends State<CameraScreen> {
           else
             const Center(child: CircularProgressIndicator(color: Colors.amber)),
           CameraHintOverlay(hint: _hint, status: _status),
+          if (user != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet, color: Colors.amber, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      MoneyFormat.usd(user.balance),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    Text(
+                      MoneyFormat.pricePerGeneration(_generationPrice),
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Positioned(
             bottom: 36,
             left: 0,

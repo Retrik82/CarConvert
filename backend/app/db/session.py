@@ -50,6 +50,26 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_migrate_schema)
+
+    async with AsyncSessionLocal() as session:
+        from app.services.seed_service import seed_defaults
+
+        await seed_defaults(session)
+        await session.commit()
+
+
+def _migrate_schema(sync_conn) -> None:
+    """Add new columns to existing SQLite/Postgres tables without Alembic."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(sync_conn)
+    if "users" in inspector.get_table_names():
+        user_cols = {col["name"] for col in inspector.get_columns("users")}
+        if "balance" not in user_cols:
+            sync_conn.execute(text("ALTER TABLE users ADD COLUMN balance NUMERIC(10, 2) DEFAULT 10.00"))
+        if "is_admin" not in user_cols:
+            sync_conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
 
 
 async def ensure_db_ready(*, max_attempts: int = 8, delay_sec: float = 2.0) -> None:
