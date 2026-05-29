@@ -26,9 +26,13 @@ class _CarConvertAppState extends State<CarConvertApp> {
 
   Future<void> _bootstrap() async {
     await AuthService.instance.loadStoredSession();
+    var loggedIn = AuthService.instance.isLoggedIn;
+    if (loggedIn) {
+      loggedIn = await AuthService.instance.validateSession();
+    }
     final onboarding = await PrefsService.isOnboardingDone();
     setState(() {
-      _loggedIn = AuthService.instance.isLoggedIn;
+      _loggedIn = loggedIn;
       _onboardingDone = onboarding;
       _loading = false;
     });

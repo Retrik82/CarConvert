@@ -33,6 +33,29 @@ class AuthService {
     }
   }
 
+  /// Returns false if the server rejected the stored session (e.g. DB reset on Render).
+  Future<bool> validateSession() async {
+    if (_accessToken == null) return false;
+    try {
+      final response = await http
+          .get(
+            Uri.parse('${Env.apiBaseUrl}/auth/me'),
+            headers: {'Authorization': 'Bearer $_accessToken'},
+          )
+          .timeout(_apiTimeout);
+      if (response.statusCode == 200) return true;
+      if (response.statusCode == 401) {
+        if (await refreshAccessToken()) return validateSession();
+        await logout();
+        return false;
+      }
+    } catch (_) {
+      // Offline: keep cached session until the next successful check.
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _persist(AuthTokens tokens) async {
     _accessToken = tokens.accessToken;
     _refreshToken = tokens.refreshToken;
