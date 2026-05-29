@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.models.schemas import EditResponse
 from app.services.ai.desert_processor import edit_car_background_custom
-from app.utils.image_utils import to_data_url, validate_image_upload
+from app.utils.image_utils import normalize_content_type, to_data_url, validate_image_upload
 
 router = APIRouter(tags=["legacy"])
 settings = get_settings()
@@ -24,8 +24,10 @@ async def edit_image(image: UploadFile = File(...), prompt: str = Form(...)) -> 
 
     try:
         image_bytes = await image.read()
-        validate_image_upload(image.filename or "", image.content_type or "", image_bytes)
-        source_data_url = to_data_url(image_bytes, image.content_type or "image/jpeg")
+        filename = image.filename or "photo.jpg"
+        content_type = normalize_content_type(filename, image.content_type)
+        validate_image_upload(filename, content_type, image_bytes)
+        source_data_url = to_data_url(image_bytes, content_type)
         generated_base64, mime_type = await edit_car_background_custom(user_prompt, source_data_url, api_key)
     except ValueError as exc:
         message = str(exc)

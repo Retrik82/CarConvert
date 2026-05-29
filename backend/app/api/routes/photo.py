@@ -12,7 +12,8 @@ from app.db.session import get_db
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
 from app.services.job_service import create_photo_job, get_user_job, list_user_history, run_photo_job
 from app.services.session_service import get_active_session
-from app.utils.image_utils import read_file_as_base64, validate_image_upload
+from app.utils.agent_debug_log import agent_log
+from app.utils.image_utils import normalize_content_type, read_file_as_base64, validate_image_upload
 
 router = APIRouter(prefix="/photo", tags=["photo"])
 history_router = APIRouter(prefix="/photos", tags=["photos"])
@@ -35,8 +36,24 @@ async def process_photo(
             raise HTTPException(status_code=400, detail="Invalid or expired camera session.")
 
     image_bytes = await image.read()
+    filename = image.filename or "photo.jpg"
+    content_type_raw = image.content_type
+    content_type_used = normalize_content_type(filename, content_type_raw)
+    agent_log(
+        location="photo.py:process_photo",
+        message="upload_received",
+        data={
+            "filename": filename,
+            "content_type_raw": content_type_raw,
+            "content_type_used": content_type_used,
+            "bytes_len": len(image_bytes),
+            "user_id_prefix": current_user.id[:8],
+        },
+        hypothesis_id="A,B",
+        run_id="post-fix",
+    )
     try:
-        validate_image_upload(image.filename or "photo.jpg", image.content_type or "image/jpeg", image_bytes)
+        validate_image_upload(filename, content_type_used, image_bytes)
     except ValueError as exc:
         message = str(exc)
         status = 413 if "10MB" in message else 415 if "Unsupported" in message else 400
@@ -46,7 +63,7 @@ async def process_photo(
         db,
         current_user.id,
         image_bytes,
-        image.content_type or "image/jpeg",
+        content_type_used,
         session_id,
     )
     await db.commit()

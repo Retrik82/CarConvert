@@ -1,4 +1,10 @@
-# Free tier: SQLite in /tmp (auth works reliably). For Postgres, see README Part 7.
+# Postgres keeps users/history across redeploys. SQLite in /tmp was wiped on every deploy.
+databases:
+  - name: carconvert-db
+    databaseName: carconvert
+    user: carconvert
+    plan: free
+
 services:
   - type: web
     name: carconvert-api
@@ -18,7 +24,9 @@ services:
       - key: CORS_ORIGINS
         value: "*"
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:////tmp/carconvert/carconvert.db
+        fromDatabase:
+          name: carconvert-db
+          property: connectionString
       - key: UPLOAD_DIR
         value: /tmp/carconvert/uploads
 

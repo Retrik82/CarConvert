@@ -12,6 +12,26 @@ ALLOWED_MIME_TYPES = {
 }
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
+_EXT_TO_MIME = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "webp": "image/webp",
+}
+
+
+def normalize_content_type(filename: str, content_type: str | None) -> str:
+    """Map multipart quirks (octet-stream, charset suffix) to allowed image MIME types."""
+    raw = (content_type or "").split(";")[0].strip().lower()
+    if raw in ALLOWED_MIME_TYPES:
+        return raw
+    extension = filename.split(".")[-1].lower() if "." in filename else ""
+    if extension in _EXT_TO_MIME:
+        return _EXT_TO_MIME[extension]
+    if raw in ("", "application/octet-stream", "binary/octet-stream"):
+        return "image/jpeg"
+    return raw
+
 
 def validate_image_upload(filename: str, content_type: str, image_bytes: bytes) -> None:
     if not filename:
@@ -21,7 +41,8 @@ def validate_image_upload(filename: str, content_type: str, image_bytes: bytes) 
     if extension not in ALLOWED_EXTENSIONS:
         raise ValueError("Unsupported file extension. Use jpg, jpeg, png, or webp.")
 
-    if content_type not in ALLOWED_MIME_TYPES:
+    normalized = normalize_content_type(filename, content_type)
+    if normalized not in ALLOWED_MIME_TYPES:
         raise ValueError("Unsupported content type. Use JPG, PNG, or WEBP.")
 
     if len(image_bytes) == 0:
