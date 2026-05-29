@@ -47,16 +47,38 @@ class AuthService {
     }));
   }
 
+  static const _apiTimeout = Duration(seconds: 90);
+
+  Future<http.Response> _postJson(String path, Map<String, dynamic> body) async {
+    try {
+      return await http
+          .post(
+            Uri.parse('${Env.apiBaseUrl}$path'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(_apiTimeout);
+    } on Exception catch (e) {
+      final msg = e.toString();
+      if (msg.contains('connection abort') ||
+          msg.contains('Connection refused') ||
+          msg.contains('Failed host lookup') ||
+          msg.contains('TimeoutException')) {
+        throw Exception(
+          'Сервер недоступен. Откройте в браузере ${Env.apiBaseUrl}/health '
+          'и подождите до 1 мин (Render просыпается).',
+        );
+      }
+      rethrow;
+    }
+  }
+
   Future<AuthTokens> register(String email, String password, String name) async {
-    final response = await http.post(
-      Uri.parse('${Env.apiBaseUrl}/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'display_name': name,
-      }),
-    );
+    final response = await _postJson('/auth/register', {
+      'email': email,
+      'password': password,
+      'display_name': name,
+    });
     if (response.statusCode >= 400) {
       throw Exception(_extractError(response.body));
     }
@@ -66,11 +88,10 @@ class AuthService {
   }
 
   Future<AuthTokens> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('${Env.apiBaseUrl}/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    final response = await _postJson('/auth/login', {
+      'email': email,
+      'password': password,
+    });
     if (response.statusCode >= 400) {
       throw Exception(_extractError(response.body));
     }
@@ -81,11 +102,9 @@ class AuthService {
 
   Future<bool> refreshAccessToken() async {
     if (_refreshToken == null) return false;
-    final response = await http.post(
-      Uri.parse('${Env.apiBaseUrl}/auth/refresh'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'refresh_token': _refreshToken}),
-    );
+    final response = await _postJson('/auth/refresh', {
+      'refresh_token': _refreshToken!,
+    });
     if (response.statusCode >= 400) return false;
     final tokens = AuthTokens.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
     await _persist(tokens);
