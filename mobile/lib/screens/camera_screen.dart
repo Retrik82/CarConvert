@@ -11,6 +11,7 @@ import '../models/hint_response.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/websocket_service.dart';
+import '../utils/frame_crop.dart';
 import '../widgets/hint_overlay.dart';
 import 'processing_screen.dart';
 
@@ -112,7 +113,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
     try {
       final file = await _controller!.takePicture();
-      final bytes = await file.readAsBytes();
+      final rawBytes = await file.readAsBytes();
+      final bytes = cropToFrameGuide(rawBytes);
       if (!mounted) return;
       Navigator.push(
         context,

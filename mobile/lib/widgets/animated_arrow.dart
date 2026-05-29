@@ -59,16 +59,22 @@ class _AnimatedArrowState extends State<AnimatedArrow>
     return AnimatedBuilder(
       animation: _offsetAnim,
       builder: (context, child) {
-        Offset translate = Offset.zero;
+        final Offset translate;
         switch (widget.direction) {
           case 'left':
             translate = Offset(-_offsetAnim.value, 0);
+            break;
           case 'right':
             translate = Offset(_offsetAnim.value, 0);
+            break;
           case 'up':
             translate = Offset(0, -_offsetAnim.value);
+            break;
           case 'down':
             translate = Offset(0, _offsetAnim.value);
+            break;
+          default:
+            translate = Offset.zero;
         }
         return Transform.translate(
           offset: translate,

@@ -33,6 +33,9 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
 
   Future<void> _start() async {
     try {
+      setState(() => _status = 'Подключаемся к серверу...');
+      await ApiService.instance.wakeServer();
+      setState(() => _status = 'Загрузка фото...');
       final job = await ApiService.instance.processPhoto(
         widget.imageBytes,
         'capture.jpg',

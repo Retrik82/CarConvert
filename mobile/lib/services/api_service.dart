@@ -45,27 +45,47 @@ class ApiService {
     return json['session_id'] as String;
   }
 
+  Future<void> wakeServer({int attempts = 3}) async {
+    final uri = Uri.parse('${Env.apiBaseUrl}/health');
+    for (var i = 0; i < attempts; i++) {
+      try {
+        final response = await http.get(uri).timeout(const Duration(seconds: 45));
+        if (response.statusCode == 200) return;
+      } catch (_) {}
+      await Future<void>.delayed(Duration(seconds: 2 * (i + 1)));
+    }
+  }
+
   Future<ProcessJob> processPhoto(Uint8List bytes, String filename, {String? sessionId}) async {
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('${Env.apiBaseUrl}/photo/process'),
-    );
-    final token = AuthService.instance.accessToken;
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    Object? lastError;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await wakeServer();
+      try {
+        final request = http.MultipartRequest(
+          'POST',
+          Uri.parse('${Env.apiBaseUrl}/photo/process'),
+        );
+        final token = AuthService.instance.accessToken;
+        if (token != null) request.headers['Authorization'] = 'Bearer $token';
 
-    request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: filename));
-    if (sessionId != null) request.fields['session_id'] = sessionId;
+        request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: filename));
+        if (sessionId != null) request.fields['session_id'] = sessionId;
 
-    final streamed = await request.send().timeout(const Duration(seconds: 180));
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode == 401) {
-      final refreshed = await AuthService.instance.refreshAccessToken();
-      if (refreshed) return processPhoto(bytes, filename, sessionId: sessionId);
+        final streamed = await request.send().timeout(const Duration(seconds: 90));
+        final response = await http.Response.fromStream(streamed);
+        if (response.statusCode == 401) {
+          final refreshed = await AuthService.instance.refreshAccessToken();
+          if (refreshed) return processPhoto(bytes, filename, sessionId: sessionId);
+        }
+        if (response.statusCode >= 400) {
+          throw Exception('Process failed: ${response.body}');
+        }
+        return ProcessJob.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      } catch (e) {
+        lastError = e;
+      }
     }
-    if (response.statusCode >= 400) {
-      throw Exception('Process failed: ${response.body}');
-    }
-    return ProcessJob.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    throw Exception('Не удалось отправить фото на сервер: $lastError');
   }
 
   Future<PhotoResult> getResult(String jobId) async {

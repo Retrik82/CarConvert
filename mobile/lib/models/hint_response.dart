@@ -47,11 +47,18 @@ class HintResponse {
     required this.overlay,
   });
 
+  static double _normalizeConfidence(num? value) {
+    if (value == null) return 0.5;
+    var confidence = value.toDouble();
+    if (confidence > 1.0) confidence /= 100.0;
+    return confidence.clamp(0.0, 1.0);
+  }
+
   factory HintResponse.fromJson(Map<String, dynamic> json) {
     return HintResponse(
       hint: json['hint'] as String? ?? 'align_car',
       message: json['message'] as String? ?? 'Наведи камеру',
-      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.5,
+      confidence: _normalizeConfidence(json['confidence'] as num?),
       scores: HintScores.fromJson(json['scores'] as Map<String, dynamic>?),
       overlay: HintOverlay.fromJson(json['overlay'] as Map<String, dynamic>?),
     );

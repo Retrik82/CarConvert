@@ -51,6 +51,30 @@ def parse_data_url(data_url: str) -> Tuple[str, str]:
     return mime_type, payload
 
 
+# Must match mobile/lib/overlays/frame_guide_painter.dart guide rect ratios.
+FRAME_CROP_LEFT = 0.08
+FRAME_CROP_TOP = 0.22
+FRAME_CROP_WIDTH = 0.84
+FRAME_CROP_HEIGHT = 0.48
+
+
+def crop_to_frame_guide(image_bytes: bytes) -> bytes:
+    """Crop image to the on-screen guide frame (car composition area)."""
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        img = img.convert("RGB")
+        width, height = img.size
+        left = int(width * FRAME_CROP_LEFT)
+        top = int(height * FRAME_CROP_TOP)
+        crop_width = max(1, int(width * FRAME_CROP_WIDTH))
+        crop_height = max(1, int(height * FRAME_CROP_HEIGHT))
+        right = min(width, left + crop_width)
+        bottom = min(height, top + crop_height)
+        cropped = img.crop((left, top, right, bottom))
+        buffer = io.BytesIO()
+        cropped.save(buffer, format="JPEG", quality=92, optimize=True)
+        return buffer.getvalue()
+
+
 def resize_for_preview(image_bytes: bytes, max_edge: int = 512) -> tuple[bytes, str]:
     with Image.open(io.BytesIO(image_bytes)) as img:
         img = img.convert("RGB")

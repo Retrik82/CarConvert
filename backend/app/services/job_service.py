@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.models.photo_job import PhotoJob
 from app.services.ai.desert_processor import process_desert_background
-from app.utils.image_utils import to_data_url
+from app.utils.image_utils import crop_to_frame_guide, to_data_url
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -82,6 +82,12 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                 mime_type = "image/png"
             elif job.original_path.endswith(".webp"):
                 mime_type = "image/webp"
+
+            try:
+                image_bytes = crop_to_frame_guide(image_bytes)
+                mime_type = "image/jpeg"
+            except Exception as exc:
+                logger.warning("Frame crop skipped for job %s: %s", job_id, exc)
 
             data_url = to_data_url(image_bytes, mime_type)
             result_b64, result_mime = await process_desert_background(data_url, api_key)

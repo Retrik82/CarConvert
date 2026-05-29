@@ -97,12 +97,15 @@ class OpenRouterClient:
         messages: list[dict[str, Any]],
         timeout: float,
         max_tokens: int = 512,
+        response_format: dict[str, str] | None = None,
     ) -> dict[str, Any]:
-        payload = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
         }
+        if response_format:
+            payload["response_format"] = response_format
         last_error: Exception | None = None
         for attempt in range(3):
             try:
@@ -134,8 +137,11 @@ class OpenRouterClient:
         messages: list[dict[str, Any]],
         timeout: float,
         max_tokens: int = 512,
+        response_format: dict[str, str] | None = None,
     ) -> str:
-        body = await self.chat_completion(model, messages, timeout, max_tokens)
+        body = await self.chat_completion(
+            model, messages, timeout, max_tokens, response_format=response_format
+        )
         choices = body.get("choices", [])
         if not choices:
             raise ValueError("OpenRouter returned no choices.")
