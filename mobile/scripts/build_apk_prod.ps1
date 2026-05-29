@@ -1,21 +1,20 @@
-# Сборка release APK для телефона с API на Render.
-# Перед запуском: flutter pub get
-# После сборки: mobile\build\app\outputs\flutter-apk\app-release.apk
+# Build release APK for phone (API URL from dart_defines.prod.json).
+# Output: mobile\build\app\outputs\flutter-apk\app-release.apk
 
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
 
 $definesFile = Join-Path $PWD "dart_defines.prod.json"
 if (-not (Test-Path $definesFile)) {
-    Write-Error "Не найден $definesFile"
+    Write-Error "Missing $definesFile"
 }
 
-Write-Host "API URL из dart_defines.prod.json"
+Write-Host "Building APK (API_BASE_URL from dart_defines.prod.json)..."
 flutter build apk --release --dart-define-from-file=dart_defines.prod.json
 
 $apk = "build\app\outputs\flutter-apk\app-release.apk"
 if (Test-Path $apk) {
     Write-Host ""
-    Write-Host "Готово: $((Resolve-Path $apk).Path)"
-    Write-Host "Скопируйте APK на телефон и установите."
+    Write-Host "Done: $((Resolve-Path $apk).Path)"
+    Write-Host "Copy app-release.apk to your phone and install it."
 }
