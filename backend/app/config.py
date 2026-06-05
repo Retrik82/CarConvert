@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -6,6 +7,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SQLITE_URL = f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'carconvert.db'}"
+RENDER_SQLITE_URL = "sqlite+aiosqlite:////tmp/carconvert/carconvert.db"
+
+
+def _default_database_url() -> str:
+    if os.getenv("RENDER"):
+        return RENDER_SQLITE_URL
+    return DEFAULT_SQLITE_URL
 
 
 class Settings(BaseSettings):
@@ -18,16 +26,16 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     port: int = 3001
     cors_origins: str = "http://localhost:5173,*"
-    database_url: str = DEFAULT_SQLITE_URL
+    database_url: str = _default_database_url()
 
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: object) -> str:
         if value is None:
-            return DEFAULT_SQLITE_URL
+            return _default_database_url()
         url = str(value).strip()
         if not url:
-            return DEFAULT_SQLITE_URL
+            return _default_database_url()
         return url
     jwt_secret: str = "change_me_to_random_32_char_string_minimum"
     jwt_access_expire_min: int = 15

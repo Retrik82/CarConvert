@@ -383,6 +383,7 @@ venv\Scripts\pip install bcrypt==4.0.1
    - добавь `OPENROUTER_API_KEY` — ключ с [openrouter.ai](https://openrouter.ai/settings/keys)
    - убедись, что `DATABASE_URL` = `sqlite+aiosqlite:////tmp/carconvert/carconvert.db` (не ссылка на Postgres)
    - если сервис уже был с Postgres — удали старую привязку к БД, сохрани env и сделай **Manual Deploy → Clear build cache & deploy**
+   - **Settings → Start Command** должен совпадать с `render.yaml` (если в логах всё ещё старый `uvicorn main:app` без `Import OK` — обнови вручную в Dashboard)
 5. Дождись зелёного статуса **Live**. Проверь в браузере:
    ```
    https://carconvert-api.onrender.com/health
