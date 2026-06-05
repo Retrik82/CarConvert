@@ -18,8 +18,13 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,*"
     database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'carconvert.db'}"
     jwt_secret: str = "change_me_to_random_32_char_string_minimum"
-    jwt_access_expire_min: int = 30
+    jwt_access_expire_min: int = 15
     jwt_refresh_expire_days: int = 30
+    auth_rate_limit_login_max: int = 10
+    auth_rate_limit_login_window_sec: int = 60
+    auth_rate_limit_refresh_max: int = 30
+    auth_rate_limit_refresh_window_sec: int = 60
+    password_reset_expire_hours: int = 24
     hint_model: str = "rekaai/reka-edge"
     process_model: str = "google/gemini-3.1-flash-image-preview"
     hint_timeout_sec: int = 15

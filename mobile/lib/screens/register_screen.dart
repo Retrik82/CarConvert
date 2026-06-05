@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
+import '../utils/error_utils.dart';
+import '../utils/validators.dart';
+import '../widgets/form_fields.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onRegistered;
@@ -12,13 +15,17 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
   bool _loading = false;
   String? _error;
 
   Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _loading = true;
       _error = null;
@@ -31,73 +38,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       if (mounted) widget.onRegistered();
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: const Text('Регистрация'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            TextField(
-              controller: _name,
-              style: const TextStyle(color: Colors.white),
-              decoration: _input('Имя'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: Colors.white),
-              decoration: _input('Email'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _password,
-              obscureText: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: _input('Пароль (мин. 6 символов)'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _loading ? null : _register,
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: Colors.black,
-                minimumSize: const Size.fromHeight(52),
-              ),
-              child: _loading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Зарегистрироваться'),
-            ),
-          ],
-        ),
-      ),
-    );
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
+    super.dispose();
   }
 
-  InputDecoration _input(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white54),
-      filled: true,
-      fillColor: const Color(0xFF161B22),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Register')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              appTextField(
+                controller: _name,
+                label: 'Name',
+                validator: (v) => Validators.required(v, 'Name'),
+              ),
+              const SizedBox(height: 16),
+              appTextField(
+                controller: _email,
+                label: 'Email',
+                keyboardType: TextInputType.emailAddress,
+                validator: Validators.email,
+              ),
+              const SizedBox(height: 16),
+              appTextField(
+                controller: _password,
+                label: 'Password',
+                obscureText: true,
+                validator: Validators.password,
+              ),
+              const SizedBox(height: 16),
+              appTextField(
+                controller: _confirmPassword,
+                label: 'Confirm password',
+                obscureText: true,
+                validator: (v) => Validators.confirmPassword(v, _password.text),
+              ),
+              if (_error != null) appFormMessage(_error!, isError: true),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _loading ? null : _register,
+                  child: _loading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Register'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

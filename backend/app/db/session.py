@@ -70,6 +70,24 @@ def _migrate_schema(sync_conn) -> None:
             sync_conn.execute(text("ALTER TABLE users ADD COLUMN balance NUMERIC(10, 2) DEFAULT 10.00"))
         if "is_admin" not in user_cols:
             sync_conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+        if "role" not in user_cols:
+            sync_conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'user'"))
+            sync_conn.execute(text("UPDATE users SET role = 'admin' WHERE is_admin = 1"))
+        if "email_verified" not in user_cols:
+            sync_conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 0"))
+            sync_conn.execute(text("UPDATE users SET email_verified = 1 WHERE is_admin = 1"))
+
+    if "refresh_tokens" in inspector.get_table_names():
+        rt_cols = {col["name"] for col in inspector.get_columns("refresh_tokens")}
+        for col, ddl in (
+            ("revoked_at", "ALTER TABLE refresh_tokens ADD COLUMN revoked_at TIMESTAMP"),
+            ("device_id", "ALTER TABLE refresh_tokens ADD COLUMN device_id VARCHAR(128)"),
+            ("device_name", "ALTER TABLE refresh_tokens ADD COLUMN device_name VARCHAR(255)"),
+            ("user_agent", "ALTER TABLE refresh_tokens ADD COLUMN user_agent VARCHAR(512)"),
+            ("last_used_at", "ALTER TABLE refresh_tokens ADD COLUMN last_used_at TIMESTAMP"),
+        ):
+            if col not in rt_cols:
+                sync_conn.execute(text(ddl))
 
 
 async def ensure_db_ready(*, max_attempts: int = 8, delay_sec: float = 2.0) -> None:

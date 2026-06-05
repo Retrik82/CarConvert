@@ -18,6 +18,8 @@ class ApiService {
     final headers = <String, String>{};
     if (json) headers['Content-Type'] = 'application/json';
     if (token != null) headers['Authorization'] = 'Bearer $token';
+    final sessionId = AuthService.instance.sessionId;
+    if (sessionId != null) headers['X-Session-Id'] = sessionId;
     return headers;
   }
 
@@ -65,28 +67,25 @@ class ApiService {
     for (var attempt = 0; attempt < 2; attempt++) {
       if (attempt > 0) await wakeServer();
       try {
-        final request = http.MultipartRequest(
-          'POST',
-          Uri.parse('${Env.apiBaseUrl}/photo/process'),
-        );
-        final token = AuthService.instance.accessToken;
-        if (token != null) request.headers['Authorization'] = 'Bearer $token';
+        final response = await _authorized(() async {
+          final request = http.MultipartRequest(
+            'POST',
+            Uri.parse('${Env.apiBaseUrl}/photo/process'),
+          );
+          final headers = await _headers(json: false);
+          request.headers.addAll(headers);
 
-        request.files.add(http.MultipartFile.fromBytes(
-          'image',
-          bytes,
-          filename: filename,
-          contentType: MediaType('image', 'jpeg'),
-        ));
-        if (sessionId != null) request.fields['session_id'] = sessionId;
+          request.files.add(http.MultipartFile.fromBytes(
+            'image',
+            bytes,
+            filename: filename,
+            contentType: MediaType('image', 'jpeg'),
+          ));
+          if (sessionId != null) request.fields['session_id'] = sessionId;
 
-        final streamed = await request.send().timeout(const Duration(seconds: 90));
-        final response = await http.Response.fromStream(streamed);
-        if (response.statusCode == 401) {
-          final refreshed = await AuthService.instance.refreshAccessToken();
-          if (refreshed) return processPhoto(bytes, filename, sessionId: sessionId);
-          await AuthService.instance.logout();
-        }
+          final streamed = await request.send().timeout(const Duration(seconds: 90));
+          return http.Response.fromStream(streamed);
+        });
         if (response.statusCode >= 400) {
           throw Exception('Process failed: ${response.body}');
         }

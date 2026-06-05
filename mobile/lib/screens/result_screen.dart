@@ -2,14 +2,17 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 
-class ResultScreen extends StatelessWidget {
+import '../services/car_service.dart';
+import '../widgets/before_after_slider.dart';
+import 'capture_screen.dart';
+
+class ResultScreen extends StatefulWidget {
   final Uint8List originalBytes;
   final String resultBase64;
   final String mimeType;
   final String jobId;
+  final String? carId;
 
   const ResultScreen({
     super.key,
@@ -17,85 +20,150 @@ class ResultScreen extends StatelessWidget {
     required this.resultBase64,
     required this.mimeType,
     required this.jobId,
+    this.carId,
   });
 
-  Future<void> _save(BuildContext context) async {
+  @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
+  bool _saved = false;
+  bool _saving = false;
+  String? _savedCarId;
+
+  Uint8List get _resultBytes => base64Decode(widget.resultBase64);
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final ext = mimeType.contains('png') ? 'png' : 'jpg';
-      final file = File('${dir.path}/carconvert_$jobId.$ext');
-      await file.writeAsBytes(base64Decode(resultBase64));
-      if (context.mounted) {
+      final car = await CarService.instance.addRender(
+        carId: widget.carId,
+        jobId: widget.jobId,
+        originalBytes: widget.originalBytes,
+        renderedBytes: _resultBytes,
+        renderedExt: widget.mimeType.contains('png') ? 'png' : 'jpg',
+      );
+      setState(() {
+        _saved = true;
+        _savedCarId = car.id;
+      });
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Сохранено: ${file.path}')),
+          const SnackBar(content: Text('Render saved to My Cars')),
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e')),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final resultBytes = base64Decode(resultBase64);
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: const Text('Результат'),
+  Future<void> _delete() async {
+    final message = _saved
+        ? 'This will remove the saved render from My Cars.'
+        : 'This will discard the current result.';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete render?'),
+        content: Text(message),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () => _save(context),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: PageView(
-              children: [
-                _ImagePage(label: 'До', bytes: originalBytes),
-                _ImagePage(label: 'После', bytes: resultBytes),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Свайп влево — сравнить до/после',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
         ],
       ),
     );
+    if (confirmed != true || !mounted) return;
+
+    if (_saved) {
+      final carId = widget.carId ?? _savedCarId;
+      if (carId != null) {
+        final car = CarService.instance.getById(carId);
+        final matching = car?.renders.where((r) => r.jobId == widget.jobId);
+        if (matching != null && matching.isNotEmpty) {
+          await CarService.instance.deleteRender(carId, matching.first.id);
+        }
+      }
+    }
+
+    if (mounted) Navigator.pop(context);
   }
-}
 
-class _ImagePage extends StatelessWidget {
-  final String label;
-  final Uint8List bytes;
-
-  const _ImagePage({required this.label, required this.bytes});
+  void _reRender() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CaptureScreen(carId: widget.carId),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(label, style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        Expanded(
-          child: InteractiveViewer(
-            child: Image.memory(bytes, fit: BoxFit.contain),
+    final hasOriginal = widget.originalBytes.isNotEmpty;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Render Result')),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: hasOriginal
+                  ? BeforeAfterSlider(
+                      beforeBytes: widget.originalBytes,
+                      afterBytes: _resultBytes,
+                    )
+                  : InteractiveViewer(
+                      child: Image.memory(_resultBytes, fit: BoxFit.contain),
+                    ),
+            ),
           ),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _saving || _saved ? null : _save,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(_saved ? Icons.check : Icons.save),
+                    label: Text(_saved ? 'Saved' : 'Save'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _delete,
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Delete'),
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _reRender,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Re-render'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_shell.dart';
+import 'screens/admin_shell.dart';
 import 'screens/login_screen.dart';
-import 'screens/onboarding_screen.dart';
+import 'screens/user_shell.dart';
 import 'services/auth_service.dart';
-import 'services/prefs_service.dart';
+import 'services/car_service.dart';
+import 'theme/app_theme.dart';
+import 'widgets/app_logo.dart';
 
-class CarConvertApp extends StatefulWidget {
-  const CarConvertApp({super.key});
+enum AppDestination { login, userHome, adminHome }
+
+class SplashScreen extends StatefulWidget {
+  final void Function(AppDestination destination) onReady;
+
+  const SplashScreen({super.key, required this.onReady});
 
   @override
-  State<CarConvertApp> createState() => _CarConvertAppState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _CarConvertAppState extends State<CarConvertApp> {
-  bool _loading = true;
-  bool _loggedIn = false;
-  bool _onboardingDone = false;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -27,57 +29,107 @@ class _CarConvertAppState extends State<CarConvertApp> {
   Future<void> _bootstrap() async {
     await AuthService.instance.loadStoredSession();
     var loggedIn = AuthService.instance.isLoggedIn;
+
     if (loggedIn) {
       loggedIn = await AuthService.instance.validateSession();
     }
-    final onboarding = await PrefsService.isOnboardingDone();
-    setState(() {
-      _loggedIn = loggedIn;
-      _onboardingDone = onboarding;
-      _loading = false;
-    });
+
+    if (loggedIn) {
+      await CarService.instance.load();
+    }
+
+    if (!mounted) return;
+
+    if (!loggedIn) {
+      widget.onReady(AppDestination.login);
+      return;
+    }
+
+    final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
+    widget.onReady(isAdmin ? AppDestination.adminHome : AppDestination.userHome);
   }
 
-  void _onAuthSuccess() {
-    setState(() => _loggedIn = true);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const AppLogo(showTagline: true),
+            const SizedBox(height: 48),
+            const SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RenderWheelsApp extends StatefulWidget {
+  const RenderWheelsApp({super.key});
+
+  @override
+  State<RenderWheelsApp> createState() => _RenderWheelsAppState();
+}
+
+class _RenderWheelsAppState extends State<RenderWheelsApp> {
+  AppDestination? _destination;
+
+  @override
+  void initState() {
+    super.initState();
+    AuthService.instance.addListener(_onAuthStateChanged);
   }
 
-  void _onOnboardingComplete() {
-    setState(() => _onboardingDone = true);
+  @override
+  void dispose() {
+    AuthService.instance.removeListener(_onAuthStateChanged);
+    super.dispose();
+  }
+
+  void _onAuthStateChanged(bool loggedIn) {
+    if (!loggedIn && mounted && _destination != null && _destination != AppDestination.login) {
+      setState(() => _destination = AppDestination.login);
+    }
+  }
+
+  void _onSplashReady(AppDestination destination) {
+    setState(() => _destination = destination);
+  }
+
+  void _onAuthSuccess() async {
+    await CarService.instance.load();
+    final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
+    setState(() => _destination = isAdmin ? AppDestination.adminHome : AppDestination.userHome);
   }
 
   void _onLogout() {
-    setState(() {
-      _loggedIn = false;
-      _onboardingDone = true;
-    });
+    setState(() => _destination = AppDestination.login);
   }
 
   @override
   Widget build(BuildContext context) {
     Widget home;
-    if (_loading) {
-      home = const Scaffold(
-        backgroundColor: Color(0xFF0D1117),
-        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
-      );
-    } else if (!_loggedIn) {
-      home = LoginScreen(onLoggedIn: _onAuthSuccess);
-    } else if (!_onboardingDone) {
-      home = OnboardingScreen(onComplete: _onOnboardingComplete);
-    } else {
-      home = HomeShell(onLogout: _onLogout);
+    switch (_destination) {
+      case null:
+        home = SplashScreen(onReady: _onSplashReady);
+      case AppDestination.login:
+        home = LoginScreen(onLoggedIn: _onAuthSuccess);
+      case AppDestination.userHome:
+        home = UserShell(onLogout: _onLogout);
+      case AppDestination.adminHome:
+        home = AdminShell(onLogout: _onLogout);
     }
 
     return MaterialApp(
-      title: 'CarConvert',
+      title: 'RenderWheels',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0D1117),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber, brightness: Brightness.dark),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.theme,
       home: home,
     );
   }

@@ -27,10 +27,32 @@ class UserOut(BaseModel):
     email: str
     display_name: str
     balance: Decimal
+    role: str = "user"
     is_admin: bool
+    email_verified: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class DeviceMeta(BaseModel):
+    device_id: str | None = Field(default=None, max_length=128)
+    device_name: str | None = Field(default=None, max_length=255)
+
+
+class SessionOut(BaseModel):
+    id: str
+    device_id: str | None
+    device_name: str | None
+    user_agent: str | None
+    created_at: datetime
+    last_used_at: datetime | None
+    expires_at: datetime
+    is_current: bool = False
+
+
+class SessionsResponse(BaseModel):
+    sessions: list[SessionOut]
 
 
 class GenerationPriceOut(BaseModel):
@@ -41,15 +63,28 @@ class UpdateGenerationPriceRequest(BaseModel):
     price_usd: Decimal = Field(gt=0, le=1000)
 
 
-class RegisterRequest(BaseModel):
+class RegisterRequest(DeviceMeta):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
     display_name: str = Field(min_length=1, max_length=120)
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(DeviceMeta):
     email: str = Field(min_length=1, max_length=255)
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class LogoutAllRequest(BaseModel):
+    keep_current_session: bool = True
 
 
 class RefreshRequest(BaseModel):
@@ -60,6 +95,7 @@ class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    session_id: str | None = None
     user: UserOut
 
 

@@ -9,7 +9,12 @@ const double frameCropWidth = 0.84;
 const double frameCropHeight = 0.48;
 
 Uint8List cropToFrameGuide(Uint8List bytes, {int quality = 92}) {
-  final decoded = img.decodeImage(bytes);
+  img.Image? decoded;
+  try {
+    decoded = img.decodeImage(bytes);
+  } catch (_) {
+    return bytes;
+  }
   if (decoded == null) return bytes;
 
   final left = (decoded.width * frameCropLeft).round();

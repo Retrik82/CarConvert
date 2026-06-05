@@ -63,7 +63,8 @@ class WebSocketService {
   }
 
   void dispose() {
-    disconnect();
+    _subscription?.cancel();
+    _channel?.sink.close();
     _hintController.close();
     _statusController.close();
   }

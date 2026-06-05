@@ -61,8 +61,10 @@ PORT=3001
 CORS_ORIGINS=*
 DATABASE_URL=sqlite+aiosqlite:///./data/carconvert.db
 JWT_SECRET=случайная_строка_минимум_32_символа
-JWT_ACCESS_EXPIRE_MIN=30
+JWT_ACCESS_EXPIRE_MIN=15
 JWT_REFRESH_EXPIRE_DAYS=30
+AUTH_RATE_LIMIT_LOGIN_MAX=10
+AUTH_RATE_LIMIT_REFRESH_MAX=30
 HINT_MODEL=rekaai/reka-edge
 PROCESS_MODEL=google/gemini-3.1-flash-image-preview
 HINT_TIMEOUT_SEC=15
@@ -231,15 +233,25 @@ mobile\build\app\outputs\flutter-apk\app-release.apk
 
 # Часть 4 — API Reference
 
-## Auth (public)
+## Auth
 
-| Method | Path | Body |
-|--------|------|------|
-| POST | `/auth/register` | `{email, password, display_name}` |
-| POST | `/auth/login` | `{email, password}` |
-| POST | `/auth/refresh` | `{refresh_token}` |
-| POST | `/auth/logout` | `{refresh_token}` + Bearer |
-| GET | `/auth/me` | Bearer token |
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/auth/register` | `{email, password, display_name, device_id?, device_name?}` → tokens + `session_id` |
+| POST | `/auth/login` | same device fields |
+| POST | `/auth/refresh` | `{refresh_token}` — rotates refresh token (old token invalidated) |
+| POST | `/auth/logout` | `{refresh_token}` only (no Bearer required) |
+| POST | `/auth/logout-all` | Bearer — revoke all devices; optional `keep_current_session` + header `X-Session-Id` |
+| GET | `/auth/me` | Bearer access token |
+| GET | `/auth/sessions` | Bearer — list active devices/sessions |
+| DELETE | `/auth/sessions/{id}` | Bearer — revoke one device |
+| POST | `/auth/forgot-password` | `{email}` |
+| POST | `/auth/reset-password` | `{token, new_password}` |
+| POST | `/auth/verify-email` | Bearer |
+
+Roles: `user`, `admin`, `moderator` (JWT claim `role`). Admin routes require `admin`.
+
+Mobile: access token in RAM only; refresh token in Keychain / EncryptedSharedPreferences (`flutter_secure_storage`). Header: `Authorization: Bearer <access>`.
 
 ## Camera session (Bearer)
 

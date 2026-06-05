@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/prefs_service.dart';
+import '../theme/app_theme.dart';
 import '../utils/money_format.dart';
-import 'login_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -18,6 +23,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   double? _generationPrice;
   bool _loading = true;
+  String? _avatarPath;
+  String? _displayName;
 
   @override
   void initState() {
@@ -29,6 +36,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await AuthService.instance.refreshCurrentUser();
       _generationPrice = await ApiService.instance.getGenerationPrice();
+      final user = AuthService.instance.currentUser;
+      if (user != null) {
+        final override = await PrefsService.getProfileOverride(user.id);
+        _avatarPath = override?['avatar_path'];
+        _displayName = override?['display_name'] ?? user.displayName;
+      }
     } catch (_) {}
     if (mounted) {
       setState(() => _loading = false);
@@ -36,81 +49,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openEdit() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditProfileScreen(onSaved: _load)),
+    );
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = AuthService.instance.currentUser;
+    final name = _displayName ?? user?.displayName ?? '';
+    final created = user?.createdAt;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: const Text('Профиль'),
+        title: const Text('Profile'),
         actions: [
+          IconButton(onPressed: _openEdit, icon: const Icon(Icons.edit_outlined)),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppTheme.spacingScreenH),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 36,
-              backgroundColor: Colors.amber.withValues(alpha: 0.2),
-              child: Text(
-                (user?.displayName.isNotEmpty == true ? user!.displayName[0] : '?').toUpperCase(),
-                style: const TextStyle(color: Colors.amber, fontSize: 28, fontWeight: FontWeight.bold),
+            Center(
+              child: CircleAvatar(
+                radius: 48,
+                backgroundColor: AppTheme.surfaceMuted,
+                backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
+                    ? FileImage(File(_avatarPath!))
+                    : null,
+                child: _avatarPath == null || !File(_avatarPath!).existsSync()
+                    ? Text(
+                        (name.isNotEmpty ? name[0] : '?').toUpperCase(),
+                        style: AppTheme.textStyle(fontSize: 32, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                      )
+                    : null,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              user?.displayName ?? '',
-              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            const SizedBox(height: AppTheme.spacingElement),
+            Center(
+              child: Text(
+                name,
+                style: AppTheme.textStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(user?.email ?? '', style: const TextStyle(color: Colors.white54)),
-            if (user?.isAdmin == true) ...[
+            Center(
+              child: Text(
+                user?.email ?? '',
+                style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+              ),
+            ),
+            if (created != null) ...[
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+              Center(
+                child: Text(
+                  'Member since ${DateFormat('MMM d, yyyy').format(created.toLocal())}',
+                  style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textTertiary),
                 ),
-                child: const Text('Администратор', style: TextStyle(color: Colors.amber, fontSize: 12)),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.spacingSection),
             _infoCard(
-              icon: Icons.account_balance_wallet,
-              title: 'Баланс',
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Balance',
               value: _loading ? '...' : MoneyFormat.usd(user?.balance ?? 0),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingElement),
             _infoCard(
               icon: Icons.monetization_on_outlined,
-              title: 'Цена генерации',
+              title: 'Render price',
               value: _loading ? '...' : MoneyFormat.pricePerGeneration(_generationPrice ?? 0.10),
             ),
+            const SizedBox(height: AppTheme.spacingElement),
+            _paymentPlaceholder(),
             const Spacer(),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () async {
                   await AuthService.instance.logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => LoginScreen(onLoggedIn: widget.onLogout)),
-                      (_) => false,
-                    );
-                  }
+                  widget.onLogout();
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  foregroundColor: AppTheme.error,
+                  side: const BorderSide(color: AppTheme.error),
                 ),
-                child: const Text('Выйти'),
+                child: const Text('Logout'),
               ),
             ),
           ],
@@ -122,24 +151,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _infoCard({required IconData icon, required String title, required String value}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      padding: const EdgeInsets.all(AppTheme.spacingElement),
+      decoration: AppTheme.cardDecoration(),
       child: Row(
         children: [
-          Icon(icon, color: Colors.amber),
-          const SizedBox(width: 12),
+          Icon(icon, color: AppTheme.textPrimary, size: 22),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white54, fontSize: 13)),
-                const SizedBox(height: 2),
-                Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _paymentPlaceholder() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacingElement),
+      decoration: AppTheme.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.payment_outlined, color: AppTheme.textPrimary, size: 22),
+              const SizedBox(width: 14),
+              Text(
+                'Payment method',
+                style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Coming soon',
+            style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Top-up and card payments will be available in a future update.',
+            style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textTertiary),
           ),
         ],
       ),
