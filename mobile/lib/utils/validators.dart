@@ -8,6 +8,20 @@ class Validators {
     return null;
   }
 
+  /// Login accepts email or username (e.g. admin).
+  static String? loginIdentifier(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return 'Email or username is required';
+    if (_emailRegex.hasMatch(trimmed)) return null;
+    if (RegExp(r'^[\w.-]+$').hasMatch(trimmed)) return null;
+    return 'Invalid email or username';
+  }
+
+  static String? loginPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Password is required';
+    return null;
+  }
+
   static String? password(String? value, {int minLength = 8}) {
     final text = value ?? '';
     if (text.isEmpty) return 'Password is required';

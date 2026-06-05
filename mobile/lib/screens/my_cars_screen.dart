@@ -6,12 +6,11 @@ import 'package:intl/intl.dart';
 import '../models/car.dart';
 import '../services/car_service.dart';
 import '../theme/app_theme.dart';
+import 'capture_screen.dart';
 import 'car_detail_screen.dart';
 
 class MyCarsScreen extends StatefulWidget {
-  final VoidCallback onCapture;
-
-  const MyCarsScreen({super.key, required this.onCapture});
+  const MyCarsScreen({super.key});
 
   @override
   State<MyCarsScreen> createState() => _MyCarsScreenState();
@@ -36,6 +35,13 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
     });
   }
 
+  void _openCapture(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CaptureScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,7 +52,7 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: widget.onCapture,
+        onPressed: () => _openCapture(context),
         icon: const Icon(Icons.camera_alt_outlined),
         label: const Text('Capture'),
       ),
@@ -67,7 +73,7 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                         ),
                         const SizedBox(height: AppTheme.spacingSection),
                         FilledButton.icon(
-                          onPressed: widget.onCapture,
+                          onPressed: () => _openCapture(context),
                           icon: const Icon(Icons.camera_alt_outlined),
                           label: const Text('Take your first photo'),
                         ),

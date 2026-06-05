@@ -26,12 +26,14 @@ class CaptureScreen extends StatefulWidget {
   final VoidCallback? onBalanceChanged;
   final String? carId;
   final bool isActive;
+  final CaptureMode initialMode;
 
   const CaptureScreen({
     super.key,
     this.onBalanceChanged,
     this.carId,
     this.isActive = true,
+    this.initialMode = CaptureMode.camera,
   });
 
   @override
@@ -57,7 +59,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
   @override
   void initState() {
     super.initState();
-    _initCamera();
+    _mode = widget.initialMode;
+    if (_mode == CaptureMode.camera) {
+      _initCamera();
+    }
     _loadBilling();
   }
 
@@ -262,13 +267,20 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
   }
 
+  Future<void> _ensureCamera() async {
+    if (_controller != null) return;
+    await _initCamera();
+  }
+
   void _switchMode(CaptureMode mode) {
     if (_mode == mode) return;
     setState(() {
       _mode = mode;
       _galleryPreview = null;
       if (mode == CaptureMode.camera) {
-        _startFrameLoop();
+        _ensureCamera().then((_) {
+          if (mounted) _startFrameLoop();
+        });
       } else {
         _stopFrameLoop();
       }
@@ -289,6 +301,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
   Widget build(BuildContext context) {
     final ready = _controller?.value.isInitialized ?? false;
     final user = AuthService.instance.currentUser;
+
+    final canPop = Navigator.canPop(context);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -344,6 +358,15 @@ class _CaptureScreenState extends State<CaptureScreen> {
                     ),
                   ],
                 ),
+              ),
+            ),
+          if (canPop)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 4,
+              left: 4,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
           Positioned(

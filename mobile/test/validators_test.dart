@@ -19,6 +19,33 @@ void main() {
     });
   });
 
+  group('Validators.loginIdentifier', () {
+    test('returns error for empty value', () {
+      expect(Validators.loginIdentifier(''), 'Email or username is required');
+      expect(Validators.loginIdentifier(null), 'Email or username is required');
+    });
+
+    test('returns null for email or username', () {
+      expect(Validators.loginIdentifier('user@example.com'), isNull);
+      expect(Validators.loginIdentifier('admin'), isNull);
+    });
+
+    test('returns error for invalid format', () {
+      expect(Validators.loginIdentifier('bad login'), 'Invalid email or username');
+    });
+  });
+
+  group('Validators.loginPassword', () {
+    test('returns error for empty password', () {
+      expect(Validators.loginPassword(''), 'Password is required');
+      expect(Validators.loginPassword(null), 'Password is required');
+    });
+
+    test('allows short passwords', () {
+      expect(Validators.loginPassword('admin82'), isNull);
+    });
+  });
+
   group('Validators.password', () {
     test('returns error for empty password', () {
       expect(Validators.password(''), 'Password is required');

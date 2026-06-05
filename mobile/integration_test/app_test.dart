@@ -12,7 +12,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 5));
 
     final onLogin = find.text('Login');
-    final onCapture = find.text('Capture');
-    expect(onLogin.evaluate().isNotEmpty || onCapture.evaluate().isNotEmpty, isTrue);
+    final onHome = find.text('Take Photo');
+    expect(onLogin.evaluate().isNotEmpty || onHome.evaluate().isNotEmpty, isTrue);
   });
 }

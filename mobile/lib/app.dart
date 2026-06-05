@@ -102,8 +102,9 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
     setState(() => _destination = destination);
   }
 
-  void _onAuthSuccess() async {
+  Future<void> _onAuthSuccess() async {
     await CarService.instance.load();
+    if (!mounted) return;
     final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
     setState(() => _destination = isAdmin ? AppDestination.adminHome : AppDestination.userHome);
   }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import 'capture_screen.dart';
 import 'my_cars_screen.dart';
 import 'profile_screen.dart';
+import 'welcome_screen.dart';
 
 class UserShell extends StatefulWidget {
   final VoidCallback onLogout;
@@ -19,13 +19,11 @@ class _UserShellState extends State<UserShell> {
 
   void _onUserUpdated() => setState(() {});
 
-  void _goToCapture() => setState(() => _index = 0);
-
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      CaptureScreen(isActive: _index == 0, onBalanceChanged: _onUserUpdated),
-      MyCarsScreen(onCapture: _goToCapture),
+      WelcomeScreen(onBalanceChanged: _onUserUpdated),
+      const MyCarsScreen(),
       ProfileScreen(onLogout: widget.onLogout, onUserUpdated: _onUserUpdated),
     ];
 
@@ -36,7 +34,7 @@ class _UserShellState extends State<UserShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.camera_alt_outlined), selectedIcon: Icon(Icons.camera_alt), label: 'Capture'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car), label: 'My Cars'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
