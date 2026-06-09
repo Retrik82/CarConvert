@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from app.api.routes import settings as settings_routes
 from app.config import get_settings
 from app.models.schemas import EditResponse
 from app.utils.logging import setup_logging
+from app.utils.storage import check_upload_dir_writable
 from app.websocket import camera_stream
 
 logger = logging.getLogger(__name__)
@@ -31,12 +33,18 @@ def _ensure_sqlite_parent_dir() -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     setup_logging()
-    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     _ensure_sqlite_parent_dir()
     if settings.jwt_secret == "change_me_to_random_32_char_string_minimum":
         logger.warning("JWT_SECRET is using default value — change it in production.")
     db_url = settings.database_url
+    if os.getenv("RENDER") and "sqlite" in db_url:
+        logger.warning("DATABASE_URL points to SQLite on Render — use Postgres from render.yaml.")
     db_kind = "postgres" if db_url.startswith(("postgres", "postgresql")) else "sqlite"
+    storage_ok, storage_error = check_upload_dir_writable(settings.upload_dir)
+    if storage_ok:
+        logger.info("Upload storage ready at %s", settings.upload_dir)
+    else:
+        logger.error("Upload storage not writable at %s: %s", settings.upload_dir, storage_error)
     logger.info("API listening (db=%s, tables init on first request)", db_kind)
     yield
 

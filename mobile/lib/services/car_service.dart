@@ -31,6 +31,12 @@ class CarService {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  Future<void> clear() async {
+    _cars = [];
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_storageKey);
+  }
+
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(

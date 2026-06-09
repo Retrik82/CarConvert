@@ -4,10 +4,33 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'capture_screen.dart';
 
+Future<void> _confirmLogout(BuildContext context, VoidCallback onLogout) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Выйти из аккаунта?'),
+      content: const Text('Вы сможете войти снова в любое время.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+          child: const Text('Выйти'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+
+  await AuthService.instance.logout();
+  onLogout();
+}
+
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback? onBalanceChanged;
+  final VoidCallback? onLogout;
 
-  const WelcomeScreen({super.key, this.onBalanceChanged});
+  const WelcomeScreen({super.key, this.onBalanceChanged, this.onLogout});
 
   void _openCapture(BuildContext context, CaptureMode mode) {
     Navigator.push(
@@ -28,6 +51,34 @@ class WelcomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
+      appBar: onLogout != null
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              actions: [
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.account_circle_outlined),
+                  onSelected: (value) {
+                    if (value == 'logout' && onLogout != null) {
+                      _confirmLogout(context, onLogout!);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, color: AppTheme.error, size: 20),
+                          const SizedBox(width: 12),
+                          Text('Выйти', style: TextStyle(color: AppTheme.error)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingScreenH),

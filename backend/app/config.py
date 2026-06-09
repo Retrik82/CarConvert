@@ -1,4 +1,3 @@
-import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -7,12 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SQLITE_URL = f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'carconvert.db'}"
-RENDER_SQLITE_URL = "sqlite+aiosqlite:////tmp/carconvert/carconvert.db"
 
 
 def _default_database_url() -> str:
-    if os.getenv("RENDER"):
-        return RENDER_SQLITE_URL
     return DEFAULT_SQLITE_URL
 
 
@@ -50,6 +46,7 @@ class Settings(BaseSettings):
     hint_timeout_sec: int = 15
     process_timeout_sec: int = 120
     max_preview_bytes: int = 512_000
+    # Local dev: ./data/uploads — Render production: /var/data/uploads (persistent disk)
     upload_dir: str = str(BASE_DIR / "data" / "uploads")
 
     @property

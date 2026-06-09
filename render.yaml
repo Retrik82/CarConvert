@@ -1,13 +1,22 @@
-# SQLite in /tmp for MVP deploy. Data resets on redeploy; switch to Postgres later for persistence.
+# Production: PostgreSQL (persistent data) + Persistent Disk (photo uploads).
+databases:
+  - name: carconvert-db
+    plan: basic-256mb
+    diskSizeGB: 5
+
 services:
   - type: web
     name: carconvert-api
     runtime: python
     rootDir: backend
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: python -c "from main import app; print('Import OK:', app.title)" && uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    disk:
+      name: carconvert-uploads
+      mountPath: /var/data/uploads
+      sizeGB: 5
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
@@ -18,9 +27,11 @@ services:
       - key: CORS_ORIGINS
         value: "*"
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:////tmp/carconvert/carconvert.db
+        fromDatabase:
+          name: carconvert-db
+          property: connectionString
       - key: UPLOAD_DIR
-        value: /tmp/carconvert/uploads
+        value: /var/data/uploads
 
   - type: web
     name: carconvert-web

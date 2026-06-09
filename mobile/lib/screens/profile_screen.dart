@@ -57,6 +57,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _load();
   }
 
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Выйти из аккаунта?'),
+        content: const Text('Вы сможете войти снова в любое время.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Выйти'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await AuthService.instance.logout();
+    widget.onLogout();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = AuthService.instance.currentUser;
@@ -65,13 +87,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Профиль'),
         actions: [
           IconButton(onPressed: _openEdit, icon: const Icon(Icons.edit_outlined)),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _logout,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Выйти',
+          ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacingScreenH),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,21 +154,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: AppTheme.spacingElement),
             _paymentPlaceholder(),
-            const Spacer(),
+            const SizedBox(height: AppTheme.spacingSection),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () async {
-                  await AuthService.instance.logout();
-                  widget.onLogout();
-                },
+                onPressed: _logout,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.error,
                   side: const BorderSide(color: AppTheme.error),
                 ),
-                child: const Text('Logout'),
+                child: const Text('Выйти из аккаунта'),
               ),
             ),
+            const SizedBox(height: AppTheme.spacingElement),
           ],
         ),
       ),

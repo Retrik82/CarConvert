@@ -3,7 +3,11 @@ import asyncio
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from app.config import get_settings
 from app.db.session import _db_ready, ensure_db_ready
+from app.utils.storage import check_upload_dir_writable
+
+settings = get_settings()
 
 router = APIRouter(tags=["health"])
 
@@ -37,3 +41,20 @@ async def health_db():
             status_code=503,
             content={"status": "error", "database": "failed", "detail": str(exc)},
         )
+
+
+@router.get("/health/storage")
+async def health_storage():
+    """Check that the upload directory exists and is writable."""
+    ok, error = check_upload_dir_writable(settings.upload_dir)
+    if ok:
+        return {"status": "ok", "storage": "writable", "path": settings.upload_dir}
+    return JSONResponse(
+        status_code=503,
+        content={
+            "status": "error",
+            "storage": "not_writable",
+            "path": settings.upload_dir,
+            "detail": error,
+        },
+    )

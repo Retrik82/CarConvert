@@ -1,8 +1,13 @@
 # CarConvert Backend
 
-FastAPI backend с SQLite, JWT auth, WebSocket realtime hints и async photo processing.
+FastAPI backend с JWT auth, WebSocket realtime hints и async photo processing.
 
-## Быстрый старт
+| Среда | БД | Фото |
+|-------|-----|------|
+| Локально | SQLite (`data/carconvert.db`) | `data/uploads/` |
+| Production (Render) | PostgreSQL (`carconvert-db`) | Persistent Disk `/var/data/uploads` |
+
+## Быстрый старт (локально)
 
 ```powershell
 cd backend

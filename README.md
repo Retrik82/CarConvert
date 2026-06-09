@@ -4,7 +4,7 @@
 
 - **Realtime AI-подсказок ДО съёмки** (rekaai/reka-edge через OpenRouter)
 - **Автоматической замены фона на пустыню ПОСЛЕ съёмки** (google/gemini-3.1-flash-image-preview)
-- **Авторизации пользователей** (SQLite + JWT)
+- **Авторизации пользователей** (PostgreSQL на production, SQLite локально + JWT)
 
 React web-клиент (`client/`) продолжает работать через legacy endpoint `POST /api/edit` без изменений.
 
@@ -377,22 +377,24 @@ venv\Scripts\pip install bcrypt==4.0.1
 1. Запушь репозиторий на GitHub.
 2. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → выбери репозиторий CarConvert.
 3. Render подхватит `render.yaml` и создаст:
-   - `carconvert-api` — FastAPI (Python)
+   - `carconvert-db` — PostgreSQL (постоянные аккаунты и история)
+   - `carconvert-api` — FastAPI (Starter + persistent disk для фото)
    - `carconvert-web` — React (статика, опционально)
 4. В сервисе **carconvert-api** → **Environment**:
    - добавь `OPENROUTER_API_KEY` — ключ с [openrouter.ai](https://openrouter.ai/settings/keys)
-   - убедись, что `DATABASE_URL` = `sqlite+aiosqlite:////tmp/carconvert/carconvert.db` (не ссылка на Postgres)
-   - если сервис уже был с Postgres — удали старую привязку к БД, сохрани env и сделай **Manual Deploy → Clear build cache & deploy**
+   - `DATABASE_URL` и `UPLOAD_DIR` подставляются из `render.yaml` автоматически
+   - если сервис уже существовал со старым SQLite — **Manual Deploy → Clear build cache & deploy**
    - **Settings → Start Command** должен совпадать с `render.yaml` (если в логах всё ещё старый `uvicorn main:app` без `Import OK` — обнови вручную в Dashboard)
 5. Дождись зелёного статуса **Live**. Проверь в браузере:
    ```
    https://carconvert-api.onrender.com/health
    https://carconvert-api.onrender.com/health/db
+   https://carconvert-api.onrender.com/health/storage
    ```
-   Ожидаемо: `{"status":"ok"}` и `{"status":"ok","database":"connected"}`
+   Ожидаемо: `{"status":"ok"}`, `{"status":"ok","database":"connected"}`, `{"status":"ok","storage":"writable"}`
 
-> **Free tier:** сервис «засыпает» после ~15 мин без запросов. Первый запрос после сна может занять 30–60 сек — это нормально.  
-> **Данные (SQLite в `/tmp`):** аккаунты, история и загруженные фото живут в `/tmp/carconvert/` и **сбрасываются при каждом redeploy**. Для постоянного хранения позже можно вернуть Postgres в `render.yaml`. `JWT_SECRET` Render сгенерирует сам.
+> **Стоимость (~$13/мес):** Starter API (~$7) + Basic Postgres (~$6). API на Starter не засыпает.  
+> **Данные:** аккаунты и история в Postgres, фото на persistent disk `/var/data/uploads` — **сохраняются после redeploy**. `JWT_SECRET` Render сгенерирует сам.
 
 Если имя сервиса API на Render не `carconvert-api`, измени URL в:
 - `render.yaml` → `VITE_API_URL` (для web)
@@ -441,12 +443,13 @@ flutter run --dart-define-from-file=dart_defines.local.json
 
 | Симптом | Решение |
 |---------|---------|
-| Deploy падает на старте (`Exited with status 1`) | Проверь логи: должна быть строка `Import OK: CarConvert API`. Чаще всего — пустой или битый `DATABASE_URL`; задай SQLite URL из шага 4. |
-| «Не удаётся подключиться» | Проверь `/health` в браузере телефона. Подожди 1 мин после долгого простоя (cold start). |
+| Deploy падает на старте (`Exited with status 1`) | Проверь логи: должна быть строка `Import OK: CarConvert API`. Чаще всего — пустой или битый `DATABASE_URL`; убедись, что Blueprint привязал Postgres `carconvert-db`. |
+| `/health/db` → failed | Проверь, что `DATABASE_URL` из `carconvert-db` (Internal URL), не SQLite. Redeploy с clear cache. |
+| `/health/storage` → not_writable | Убедись, что у API подключён persistent disk (`/var/data/uploads`) и план Starter. |
+| «Не удаётся подключиться» | Проверь `/health` в браузере телефона. |
 | 500 / OPENROUTER | Задай `OPENROUTER_API_KEY` в Render → Environment → **Save** → redeploy. |
 | WebSocket «Отключено» | Убедись, что API Live; перелогинься в приложении. |
 | Сменил URL API на Render | Обнови `dart_defines.prod.json` и **пересобери** APK. |
-| После redeploy пропали аккаунты | Ожидаемо для SQLite в `/tmp` — зарегистрируйся заново или перейди на Postgres. |
 
 ---
 
@@ -458,7 +461,8 @@ flutter run --dart-define-from-file=dart_defines.local.json
 | Backend | FastAPI, SQLAlchemy, aiosqlite, httpx, python-jose, bcrypt |
 | AI | OpenRouter → rekaai/reka-edge (hints), google/gemini-3.1-flash-image-preview (desert bg) |
 | Web | React, Vite, Tailwind (legacy client/) |
-| DB | SQLite (локально и на Render MVP), готово к PostgreSQL для persistence |
+| DB | PostgreSQL (Render production), SQLite (локально и тесты) |
+| Фото | Persistent Disk `/var/data/uploads` (Render), `data/uploads/` (локально) |
 
 ---
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/debug_log.dart';
 import 'my_cars_screen.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
@@ -17,12 +18,20 @@ class UserShell extends StatefulWidget {
 class _UserShellState extends State<UserShell> {
   int _index = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // #region agent log
+    DebugLog.emit('user_shell.dart:initState', 'UserShell mounted (welcome should be visible)', hypothesisId: 'A');
+    // #endregion
+  }
+
   void _onUserUpdated() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      WelcomeScreen(onBalanceChanged: _onUserUpdated),
+      WelcomeScreen(onBalanceChanged: _onUserUpdated, onLogout: widget.onLogout),
       const MyCarsScreen(),
       ProfileScreen(onLogout: widget.onLogout, onUserUpdated: _onUserUpdated),
     ];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/debug_log.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
 import '../widgets/app_logo.dart';
@@ -34,6 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await AuthService.instance.login(_email.text.trim(), _password.text);
+      // #region agent log
+      DebugLog.emit('login_screen.dart:_login', 'login API ok, calling onLoggedIn', hypothesisId: 'E', data: {'canPop': Navigator.of(context).canPop});
+      // #endregion
       if (mounted) widget.onLoggedIn();
     } catch (e) {
       setState(() => _error = userFacingError(e));
