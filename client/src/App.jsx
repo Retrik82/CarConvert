@@ -3,17 +3,23 @@ import BeforeAfterPreview from "./components/BeforeAfterPreview";
 import LoadingOverlay from "./components/LoadingOverlay";
 import Toast from "./components/Toast";
 import UploadDropzone from "./components/UploadDropzone";
-import { editImage } from "./services/api";
+import { useImageEdit } from "./hooks/useImageEdit";
 import { downloadBase64Image } from "./utils/download";
 
 export default function App() {
   const [file, setFile] = useState(null);
   const [prompt, setPrompt] = useState("");
-  const [resultBase64, setResultBase64] = useState("");
-  const [resultMime, setResultMime] = useState("image/png");
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState("");
+  const {
+    loading,
+    progress,
+    error,
+    resultBase64,
+    resultMime,
+    setError,
+    clearResult,
+    reset,
+    generate,
+  } = useImageEdit();
 
   const sourcePreview = useMemo(() => {
     if (!file) return "";
@@ -40,60 +46,17 @@ export default function App() {
     }
     setError("");
     setFile(nextFile);
-    setResultBase64("");
+    clearResult();
   };
 
   const handleGenerate = async () => {
-    if (!file) {
-      setError("Please upload an image first.");
-      return;
-    }
-    if (prompt.trim().length < 3) {
-      setError("Prompt must be at least 3 characters.");
-      return;
-    }
-
-    setLoading(true);
-    setProgress(4);
-    setError("");
-
-    try {
-      const data = await editImage({
-        file,
-        prompt,
-        onUploadProgress: (event) => {
-          if (!event.total) return;
-          const uploadPercent = (event.loaded / event.total) * 65;
-          setProgress(Math.max(8, uploadPercent));
-        },
-      });
-
-      if (!data.success || !data.image_base64) {
-        throw new Error(data.error || "Failed to generate image.");
-      }
-
-      setResultBase64(data.image_base64);
-      setResultMime(data.mime_type || "image/png");
-      setProgress(100);
-    } catch (err) {
-      const apiMessage = err?.response?.data?.error;
-      setError(apiMessage || err.message || "Unexpected error.");
-    } finally {
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 350);
-    }
+    await generate({ file, prompt });
   };
 
   const handleReset = () => {
     setFile(null);
     setPrompt("");
-    setResultBase64("");
-    setResultMime("image/png");
-    setLoading(false);
-    setProgress(0);
-    setError("");
+    reset();
   };
 
   return (

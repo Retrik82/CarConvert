@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/car.dart';
-import '../services/car_service.dart';
+import '../repositories/car_repository.dart';
 import '../theme/app_theme.dart';
 import 'capture_screen.dart';
 import 'car_detail_screen.dart';
@@ -28,9 +28,9 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    await CarService.instance.load();
+    await CarRepository.instance.load();
     setState(() {
-      _cars = CarService.instance.cars;
+      _cars = CarRepository.instance.cars;
       _loading = false;
     });
   }

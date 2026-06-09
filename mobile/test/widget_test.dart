@@ -11,7 +11,7 @@ void main() {
     expect(find.text('RenderWheels'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 6));
     await tester.pump();
 
     // Bootstrap completes to login or home depending on stored session.

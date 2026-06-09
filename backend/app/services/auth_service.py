@@ -11,10 +11,10 @@ from app.core.security import (
     create_refresh_token_value,
     decode_access_token,
     hash_password,
-    hash_token,
     verify_password,
 )
-from app.db.models.user import PasswordResetToken, RefreshToken, User
+from app.db.models.user import RefreshToken, User
+from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.token_repository import TokenRepository
 from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
@@ -38,9 +38,9 @@ class DeviceInfo:
 
 class AuthService:
     def __init__(self, db: AsyncSession) -> None:
-        self._db = db
         self._users = UserRepository(db)
         self._tokens = TokenRepository(db)
+        self._password_resets = PasswordResetRepository(db)
         self._user_service = UserService(db)
 
     async def register(
@@ -106,45 +106,26 @@ class AuthService:
             return None
         raw = create_password_reset_token()
         expires = datetime.now(timezone.utc) + timedelta(hours=settings.password_reset_expire_hours)
-        self._db.add(
-            PasswordResetToken(
-                user_id=user.id,
-                token_hash=hash_token(raw),
-                expires_at=expires,
-            )
-        )
-        await self._db.flush()
+        await self._password_resets.create(user.id, raw, expires)
         return raw
 
     async def reset_password(self, raw_token: str, new_password: str) -> bool:
-        target_hash = hash_token(raw_token)
-        from sqlalchemy import select
-
-        result = await self._db.execute(
-            select(PasswordResetToken).where(
-                PasswordResetToken.token_hash == target_hash,
-                PasswordResetToken.used.is_(False),
-                PasswordResetToken.expires_at > datetime.now(timezone.utc),
-            )
-        )
-        record = result.scalar_one_or_none()
+        record = await self._password_resets.find_valid_by_raw(raw_token)
         if not record:
             return False
         user = await self._users.get_by_id(record.user_id)
         if not user:
             return False
-        user.password_hash = hash_password(new_password)
-        record.used = True
+        await self._users.update_password(user, hash_password(new_password))
+        await self._password_resets.mark_used(record)
         await self._tokens.revoke_all_for_user(user.id)
-        await self._db.flush()
         return True
 
     async def verify_email(self, user_id: str) -> bool:
         user = await self._users.get_by_id(user_id)
         if not user:
             return False
-        user.email_verified = True
-        await self._db.flush()
+        await self._users.mark_email_verified(user)
         return True
 
     async def _issue_tokens(self, user: User, device: DeviceInfo) -> AuthTokens:

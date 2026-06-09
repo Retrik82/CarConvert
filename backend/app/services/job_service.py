@@ -3,11 +3,11 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.models.photo_job import PhotoJob
+from app.repositories.photo_job_repository import PhotoJobRepository
 from app.services.ai.desert_processor import process_desert_background
 from app.utils.image_utils import crop_to_frame_guide, to_data_url
 
@@ -21,6 +21,37 @@ def _job_dir(user_id: str, job_id: str) -> Path:
     return path
 
 
+class JobService:
+    def __init__(self, db: AsyncSession) -> None:
+        self._jobs = PhotoJobRepository(db)
+        self._db = db
+
+    async def create_photo_job(
+        self,
+        user_id: str,
+        image_bytes: bytes,
+        mime_type: str,
+        session_id: str | None = None,
+    ) -> PhotoJob:
+        job = PhotoJob(user_id=user_id, session_id=session_id, status="queued")
+        await self._jobs.create(job)
+
+        job_dir = _job_dir(user_id, job.id)
+        ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(mime_type, ".jpg")
+        original_path = job_dir / f"original{ext}"
+        original_path.write_bytes(image_bytes)
+
+        job.original_path = str(original_path)
+        await self._jobs.update(job)
+        return job
+
+    async def get_user_job(self, job_id: str, user_id: str) -> PhotoJob | None:
+        return await self._jobs.get_for_user(job_id, user_id)
+
+    async def list_user_history(self, user_id: str, limit: int = 50, offset: int = 0) -> tuple[list[PhotoJob], int]:
+        return await self._jobs.list_for_user(user_id, limit=limit, offset=offset)
+
+
 async def create_photo_job(
     db: AsyncSession,
     user_id: str,
@@ -28,51 +59,27 @@ async def create_photo_job(
     mime_type: str,
     session_id: str | None = None,
 ) -> PhotoJob:
-    job = PhotoJob(user_id=user_id, session_id=session_id, status="queued")
-    db.add(job)
-    await db.flush()
-
-    job_dir = _job_dir(user_id, job.id)
-    ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(mime_type, ".jpg")
-    original_path = job_dir / f"original{ext}"
-    original_path.write_bytes(image_bytes)
-
-    job.original_path = str(original_path)
-    await db.flush()
-    return job
+    return await JobService(db).create_photo_job(user_id, image_bytes, mime_type, session_id)
 
 
 async def get_user_job(db: AsyncSession, job_id: str, user_id: str) -> PhotoJob | None:
-    job = await db.get(PhotoJob, job_id)
-    if not job or job.user_id != user_id:
-        return None
-    return job
+    return await JobService(db).get_user_job(job_id, user_id)
 
 
 async def list_user_history(db: AsyncSession, user_id: str, limit: int = 50, offset: int = 0) -> tuple[list[PhotoJob], int]:
-    total_result = await db.execute(
-        select(func.count()).select_from(PhotoJob).where(PhotoJob.user_id == user_id)
-    )
-    total = int(total_result.scalar_one())
-    result = await db.execute(
-        select(PhotoJob)
-        .where(PhotoJob.user_id == user_id)
-        .order_by(PhotoJob.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    return list(result.scalars().all()), total
+    return await JobService(db).list_user_history(user_id, limit=limit, offset=offset)
 
 
 async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
     from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        job = await get_user_job(db, job_id, user_id)
+        service = JobService(db)
+        job = await service.get_user_job(job_id, user_id)
         if not job or not job.original_path:
             return
 
-        job.status = "processing"
+        await service._jobs.update_status(job, status="processing")
         await db.commit()
 
         try:
@@ -97,15 +104,21 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
             result_path = job_dir / f"result{ext}"
             result_path.write_bytes(base64.b64decode(result_b64))
 
-            job.result_path = str(result_path)
-            job.result_mime_type = result_mime
-            job.status = "completed"
-            job.completed_at = datetime.now(timezone.utc)
-            job.error = None
+            await service._jobs.update_status(
+                job,
+                status="completed",
+                result_path=str(result_path),
+                result_mime_type=result_mime,
+                error=None,
+                completed_at=datetime.now(timezone.utc),
+            )
         except Exception as exc:
             logger.exception("Photo job %s failed", job_id)
-            job.status = "failed"
-            job.error = str(exc)
-            job.completed_at = datetime.now(timezone.utc)
+            await service._jobs.update_status(
+                job,
+                status="failed",
+                error=str(exc),
+                completed_at=datetime.now(timezone.utc),
+            )
 
         await db.commit()

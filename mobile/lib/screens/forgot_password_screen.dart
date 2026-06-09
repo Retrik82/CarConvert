@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
+import '../repositories/auth_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
@@ -28,7 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _error = null;
     });
     try {
-      await AuthService.instance.forgotPassword(_email.text.trim());
+      await AuthRepository.instance.forgotPassword(_email.text.trim());
       setState(() => _sent = true);
     } catch (e) {
       setState(() => _error = userFacingError(e));

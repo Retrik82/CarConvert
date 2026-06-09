@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
+import '../repositories/auth_repository.dart';
 import '../theme/app_theme.dart';
 import 'capture_screen.dart';
 
@@ -22,7 +22,7 @@ Future<void> _confirmLogout(BuildContext context, VoidCallback onLogout) async {
   );
   if (confirmed != true || !context.mounted) return;
 
-  await AuthService.instance.logout();
+  await AuthRepository.instance.logout();
   onLogout();
 }
 
@@ -46,7 +46,7 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
     final name = user?.displayName ?? 'there';
 
     return Scaffold(

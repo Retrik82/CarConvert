@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_settings_service
 from app.db.models.user import User
-from app.db.session import get_db
 from app.models.schemas import GenerationPriceOut
-from app.services.settings_service import get_generation_price
+from app.services.settings_service import SettingsService
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -13,7 +11,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 @router.get("/generation-price", response_model=GenerationPriceOut)
 async def get_public_generation_price(
     _: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    settings: SettingsService = Depends(get_settings_service),
 ) -> GenerationPriceOut:
-    price = await get_generation_price(db)
+    price = await settings.get_generation_price()
     return GenerationPriceOut(price_usd=price)

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
+import '../repositories/auth_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await AuthService.instance.login(_email.text.trim(), _password.text);
+      await AuthRepository.instance.login(_email.text.trim(), _password.text);
       if (mounted) widget.onLoggedIn();
     } catch (e) {
       setState(() => _error = userFacingError(e));

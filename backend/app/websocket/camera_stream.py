@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.db.session import AsyncSessionLocal
 from app.models.schemas import HintResponse
 from app.services.ai.hint_analyzer import analyze_frame
-from app.services.session_service import get_active_session
+from app.services.session_service import SessionService
 from app.utils.image_utils import resize_for_preview, to_data_url
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ async def camera_stream(
             await websocket.close(code=4401)
             return
 
-        session = await get_active_session(db, session_id, user.id)
+        session = await SessionService(db).get_active_session(session_id, user.id)
         if not session:
             await websocket.send_json({"type": "error", "message": "Invalid session"})
             await websocket.close(code=4403)

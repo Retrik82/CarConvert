@@ -29,3 +29,19 @@ class UserRepository:
         self._db.add(user)
         await self._db.flush()
         return user
+
+    async def update(self, user: User) -> User:
+        await self._db.flush()
+        return user
+
+    async def update_password(self, user: User, password_hash: str) -> User:
+        user.password_hash = password_hash
+        return await self.update(user)
+
+    async def update_balance(self, user: User, balance) -> User:
+        user.balance = balance
+        return await self.update(user)
+
+    async def mark_email_verified(self, user: User) -> User:
+        user.email_verified = True
+        return await self.update(user)

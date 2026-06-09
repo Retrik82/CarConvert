@@ -5,64 +5,26 @@ import 'package:flutter/material.dart';
 import 'screens/admin_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/user_shell.dart';
-import 'services/auth_service.dart';
-import 'services/car_service.dart';
+import 'repositories/auth_repository.dart';
+import 'repositories/car_repository.dart';
 import 'theme/app_theme.dart';
 import 'widgets/app_logo.dart';
 
 enum AppDestination { login, userHome, adminHome }
 
-class SplashScreen extends StatefulWidget {
-  final void Function(AppDestination destination) onReady;
-
-  const SplashScreen({super.key, required this.onReady});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _bootstrap();
-  }
-
-  Future<void> _bootstrap() async {
-    await AuthService.instance.loadStoredSession();
-
-    if (!mounted) return;
-
-    if (!AuthService.instance.isLoggedIn) {
-      widget.onReady(AppDestination.login);
-      return;
-    }
-
-    final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
-    widget.onReady(isAdmin ? AppDestination.adminHome : AppDestination.userHome);
-
-    unawaited(_warmUpLoggedInSession());
-  }
-
-  Future<void> _warmUpLoggedInSession() async {
-    final valid = await AuthService.instance.validateSession();
-    if (!valid) {
-      await AuthService.instance.logout();
-      return;
-    }
-    await CarService.instance.load();
-  }
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const AppLogo(showTagline: true),
-            const SizedBox(height: 48),
-            const SizedBox(
+            AppLogo(showTagline: true),
+            SizedBox(height: 48),
+            SizedBox(
               width: 36,
               height: 36,
               child: CircularProgressIndicator(strokeWidth: 3),
@@ -82,66 +44,100 @@ class RenderWheelsApp extends StatefulWidget {
 }
 
 class _RenderWheelsAppState extends State<RenderWheelsApp> {
-  AppDestination? _destination;
+  static const _bootstrapTimeout = Duration(seconds: 5);
+
+  bool _ready = false;
+  AppDestination _destination = AppDestination.login;
 
   @override
   void initState() {
     super.initState();
-    AuthService.instance.addListener(_onAuthStateChanged);
+    AuthRepository.instance.addListener(_onAuthStateChanged);
+    unawaited(_bootstrap());
   }
 
   @override
   void dispose() {
-    AuthService.instance.removeListener(_onAuthStateChanged);
+    AuthRepository.instance.removeListener(_onAuthStateChanged);
     super.dispose();
   }
 
-  void _onAuthStateChanged(bool loggedIn) {
-    if (!loggedIn && mounted && _destination != null && _destination != AppDestination.login) {
-      _handleLoggedOut();
+  Future<void> _bootstrap() async {
+    var next = AppDestination.login;
+    try {
+      await AuthRepository.instance.loadStoredSession().timeout(_bootstrapTimeout);
+      if (AuthRepository.instance.isLoggedIn) {
+        final isAdmin = AuthRepository.instance.currentUser?.isAdmin ?? false;
+        next = isAdmin ? AppDestination.adminHome : AppDestination.userHome;
+      }
+    } catch (_) {
+      next = AppDestination.login;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _destination = next;
+          _ready = true;
+        });
+      }
+    }
+
+    if (next != AppDestination.login) {
+      unawaited(_prepareLoggedInSession());
     }
   }
 
-  void _onSplashReady(AppDestination destination) {
-    setState(() => _destination = destination);
+  Future<void> _prepareLoggedInSession() async {
+    try {
+      await AuthRepository.instance.refreshAccessToken().timeout(const Duration(seconds: 20));
+    } catch (_) {}
+    try {
+      await CarRepository.instance.load();
+    } catch (_) {}
+  }
+
+  void _onAuthStateChanged(bool loggedIn) {
+    if (!loggedIn && mounted && _ready && _destination != AppDestination.login) {
+      unawaited(_handleLoggedOut());
+    }
   }
 
   Future<void> _onAuthSuccess() async {
     if (!mounted) return;
-    final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
+    final isAdmin = AuthRepository.instance.currentUser?.isAdmin ?? false;
     final next = isAdmin ? AppDestination.adminHome : AppDestination.userHome;
     setState(() => _destination = next);
-    unawaited(CarService.instance.load());
+    unawaited(CarRepository.instance.load());
   }
 
   Future<void> _handleLoggedOut() async {
-    await CarService.instance.clear();
+    await CarRepository.instance.clear();
     if (mounted) setState(() => _destination = AppDestination.login);
   }
 
   void _onLogout() {
-    _handleLoggedOut();
+    unawaited(_handleLoggedOut());
+  }
+
+  Widget _buildHome() {
+    if (!_ready) return const SplashScreen();
+
+    switch (_destination) {
+      case AppDestination.login:
+        return LoginScreen(onLoggedIn: _onAuthSuccess);
+      case AppDestination.userHome:
+        return UserShell(onLogout: _onLogout);
+      case AppDestination.adminHome:
+        return AdminShell(onLogout: _onLogout);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget home;
-    switch (_destination) {
-      case null:
-        home = SplashScreen(onReady: _onSplashReady);
-      case AppDestination.login:
-        home = LoginScreen(onLoggedIn: _onAuthSuccess);
-      case AppDestination.userHome:
-        home = UserShell(onLogout: _onLogout);
-      case AppDestination.adminHome:
-        home = AdminShell(onLogout: _onLogout);
-    }
-
     return MaterialApp(
       title: 'RenderWheels',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: home,
+      home: _buildHome(),
     );
   }
 }

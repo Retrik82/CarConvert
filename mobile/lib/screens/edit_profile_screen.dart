@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../services/auth_service.dart';
-import '../services/prefs_service.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/profile_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/validators.dart';
 import '../widgets/form_fields.dart';
@@ -33,9 +33,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _load() async {
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
     if (user == null) return;
-    final override = await PrefsService.getProfileOverride(user.id);
+    final override = await ProfileRepository.instance.getProfileOverride(user.id);
     _name.text = override?['display_name'] ?? user.displayName;
     _avatarPath = override?['avatar_path'];
     if (mounted) setState(() {});
@@ -44,7 +44,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickAvatar() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 512, imageQuality: 85);
     if (picked == null) return;
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
     if (user == null) return;
 
     final dir = await getApplicationDocumentsDirectory();
@@ -56,17 +56,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
     if (user == null) return;
 
     setState(() => _saving = true);
     try {
-      await PrefsService.saveProfileOverride(
+      await ProfileRepository.instance.saveProfileOverride(
         user.id,
         displayName: _name.text.trim(),
         avatarPath: _avatarPath,
       );
-      await AuthService.instance.updateLocalProfile(displayName: _name.text.trim());
+      await AuthRepository.instance.updateLocalProfile(displayName: _name.text.trim());
       widget.onSaved?.call();
       if (mounted) Navigator.pop(context);
     } finally {

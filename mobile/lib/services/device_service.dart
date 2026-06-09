@@ -1,24 +1,11 @@
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
+import '../datasource/local/device_local_datasource.dart';
 
-/// Stable device id for multi-device session tracking on the backend.
+/// @deprecated Use [DeviceLocalDataSource] via [AuthRepository] instead.
 class DeviceService {
   DeviceService._();
   static final DeviceService instance = DeviceService._();
 
-  static const _deviceIdKey = 'device_id';
+  final _local = DeviceLocalDataSource();
 
-  String? _cachedId;
-
-  Future<String> getDeviceId() async {
-    if (_cachedId != null) return _cachedId!;
-    final prefs = await SharedPreferences.getInstance();
-    var id = prefs.getString(_deviceIdKey);
-    if (id == null || id.isEmpty) {
-      id = const Uuid().v4();
-      await prefs.setString(_deviceIdKey, id);
-    }
-    _cachedId = id;
-    return id;
-  }
+  Future<String> getDeviceId() => _local.getDeviceId();
 }

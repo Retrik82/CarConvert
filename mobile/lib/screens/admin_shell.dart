@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
+import '../repositories/auth_repository.dart';
 import 'pricing_screen.dart';
 
 class AdminShell extends StatelessWidget {
@@ -25,7 +25,7 @@ class AdminShell extends StatelessWidget {
     );
     if (confirmed != true || !context.mounted) return;
 
-    await AuthService.instance.logout();
+    await AuthRepository.instance.logout();
     if (context.mounted) onLogout();
   }
 

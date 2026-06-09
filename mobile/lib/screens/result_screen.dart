@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../services/car_service.dart';
+import '../repositories/car_repository.dart';
 import '../widgets/before_after_slider.dart';
 import 'capture_screen.dart';
 
@@ -37,7 +37,7 @@ class _ResultScreenState extends State<ResultScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final car = await CarService.instance.addRender(
+      final car = await CarRepository.instance.addRender(
         carId: widget.carId,
         jobId: widget.jobId,
         originalBytes: widget.originalBytes,
@@ -84,10 +84,10 @@ class _ResultScreenState extends State<ResultScreen> {
     if (_saved) {
       final carId = widget.carId ?? _savedCarId;
       if (carId != null) {
-        final car = CarService.instance.getById(carId);
+        final car = CarRepository.instance.getById(carId);
         final matching = car?.renders.where((r) => r.jobId == widget.jobId);
         if (matching != null && matching.isNotEmpty) {
-          await CarService.instance.deleteRender(carId, matching.first.id);
+          await CarRepository.instance.deleteRender(carId, matching.first.id);
         }
       }
     }

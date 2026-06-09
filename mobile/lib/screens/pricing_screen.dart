@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/settings_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
@@ -39,7 +39,7 @@ class _PricingScreenState extends State<PricingScreen> {
       _error = null;
     });
     try {
-      final price = await ApiService.instance.getGenerationPrice();
+      final price = await SettingsRepository.instance.getGenerationPrice();
       _currentPrice = price;
       _priceController.text = price.toStringAsFixed(2);
     } catch (e) {
@@ -59,7 +59,7 @@ class _PricingScreenState extends State<PricingScreen> {
       _success = null;
     });
     try {
-      final price = await ApiService.instance.setGenerationPrice(parsed);
+      final price = await SettingsRepository.instance.setGenerationPrice(parsed);
       _currentPrice = price;
       _priceController.text = price.toStringAsFixed(2);
       setState(() => _success = 'Price updated for all users');
@@ -102,7 +102,7 @@ class _PricingScreenState extends State<PricingScreen> {
                     const AppLogo(iconSize: 56, titleSize: 24),
                     const SizedBox(height: 8),
                     Text(
-                      'Admin: ${AuthService.instance.currentUser?.email ?? ''}',
+                      'Admin: ${AuthRepository.instance.currentUser?.email ?? ''}',
                       textAlign: TextAlign.center,
                       style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
                     ),

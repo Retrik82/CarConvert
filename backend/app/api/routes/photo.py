@@ -1,18 +1,15 @@
 import asyncio
-import base64
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_billing_service, get_current_user, get_job_service, get_session_service
 from app.config import get_settings
 from app.db.models.user import User
-from app.db.session import get_db
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
-from app.services.billing_service import InsufficientBalanceError, charge_for_generation
-from app.services.job_service import create_photo_job, get_user_job, list_user_history, run_photo_job
-from app.services.session_service import get_active_session
+from app.services.billing_service import BillingService, InsufficientBalanceError
+from app.services.job_service import JobService, run_photo_job
+from app.services.session_service import SessionService
 from app.utils.image_utils import normalize_content_type, read_file_as_base64, validate_image_upload
 
 router = APIRouter(prefix="/photo", tags=["photo"])
@@ -25,13 +22,15 @@ async def process_photo(
     image: UploadFile = File(...),
     session_id: str | None = Form(default=None),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    billing: BillingService = Depends(get_billing_service),
+    session_service: SessionService = Depends(get_session_service),
+    job_service: JobService = Depends(get_job_service),
 ) -> ProcessJobResponse:
     if not settings.openrouter_api_key or settings.openrouter_api_key == "your_key_here":
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is not configured.")
 
     if session_id:
-        session = await get_active_session(db, session_id, current_user.id)
+        session = await session_service.get_active_session(session_id, current_user.id)
         if not session:
             raise HTTPException(status_code=400, detail="Invalid or expired camera session.")
 
@@ -46,21 +45,19 @@ async def process_photo(
         raise HTTPException(status_code=status, detail=message) from exc
 
     try:
-        await charge_for_generation(db, current_user)
+        await billing.charge_for_generation(current_user)
     except InsufficientBalanceError as exc:
         raise HTTPException(
             status_code=402,
             detail=f"Insufficient balance. Required: ${exc.price:.2f}, available: ${exc.balance:.2f}.",
         ) from exc
 
-    job = await create_photo_job(
-        db,
+    job = await job_service.create_photo_job(
         current_user.id,
         image_bytes,
         content_type_used,
         session_id,
     )
-    await db.commit()
 
     asyncio.create_task(run_photo_job(job.id, current_user.id, settings.openrouter_api_key))
     return ProcessJobResponse(job_id=job.id, status=job.status)
@@ -70,9 +67,9 @@ async def process_photo(
 async def get_result(
     job_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    job_service: JobService = Depends(get_job_service),
 ) -> PhotoResultResponse:
-    job = await get_user_job(db, job_id, current_user.id)
+    job = await job_service.get_user_job(job_id, current_user.id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
 
@@ -95,9 +92,9 @@ async def photo_history(
     limit: int = 50,
     offset: int = 0,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    job_service: JobService = Depends(get_job_service),
 ) -> HistoryResponse:
-    jobs, total = await list_user_history(db, current_user.id, limit, offset)
+    jobs, total = await job_service.list_user_history(current_user.id, limit, offset)
     items = [
         HistoryItem(
             job_id=job.id,

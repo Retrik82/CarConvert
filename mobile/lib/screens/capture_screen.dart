@@ -10,9 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../models/hint_response.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../services/websocket_service.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/camera_repository.dart';
+import '../repositories/photo_repository.dart';
+import '../repositories/settings_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/frame_crop.dart';
@@ -42,7 +43,7 @@ class CaptureScreen extends StatefulWidget {
 
 class _CaptureScreenState extends State<CaptureScreen> {
   CameraController? _controller;
-  final _ws = WebSocketService();
+  final _camera = CameraRepository();
   final _picker = ImagePicker();
   HintResponse? _hint;
   String _status = 'Initializing...';
@@ -80,15 +81,15 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   Future<void> _pauseCapture() async {
     _stopFrameLoop();
-    await _ws.disconnect();
+    await _camera.disconnect();
   }
 
   Future<void> _resumeCapture() async {
     if (_mode != CaptureMode.camera) return;
-    final token = AuthService.instance.accessToken;
+    final token = AuthRepository.instance.accessToken;
     if (token != null && _sessionId != null) {
       try {
-        await _ws.connect(sessionId: _sessionId!, token: token);
+        await _camera.connect(sessionId: _sessionId!, token: token);
       } catch (_) {}
     }
     _startFrameLoop();
@@ -96,8 +97,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   Future<void> _loadBilling() async {
     try {
-      await AuthService.instance.refreshCurrentUser();
-      _generationPrice = await ApiService.instance.getGenerationPrice();
+      await AuthRepository.instance.refreshCurrentUser();
+      _generationPrice = await SettingsRepository.instance.getGenerationPrice();
       widget.onBalanceChanged?.call();
       if (mounted) setState(() {});
     } catch (_) {}
@@ -126,20 +127,20 @@ class _CaptureScreenState extends State<CaptureScreen> {
     if (!mounted) return;
 
     try {
-      _sessionId = await ApiService.instance.startSession();
-      final token = AuthService.instance.accessToken;
+      _sessionId = await PhotoRepository.instance.startSession();
+      final token = AuthRepository.instance.accessToken;
       if (token == null) {
         setState(() => _status = 'Authentication required');
         return;
       }
-      await _ws.connect(
+      await _camera.connect(
         sessionId: _sessionId!,
         token: token,
       );
-      _hintSub = _ws.hints.listen((h) {
+      _hintSub = _camera.hints.listen((h) {
         if (mounted) setState(() => _hint = h);
       });
-      _statusSub = _ws.status.listen((s) {
+      _statusSub = _camera.status.listen((s) {
         if (mounted) setState(() => _status = s);
       });
       if (widget.isActive) _startFrameLoop();
@@ -169,7 +170,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       file = await _controller!.takePicture();
       final bytes = await file.readAsBytes();
       final compressed = _compressFrame(bytes);
-      _ws.sendFrame(base64Encode(compressed));
+      _camera.sendFrame(base64Encode(compressed));
     } catch (_) {} finally {
       if (file != null) {
         try {
@@ -187,7 +188,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   }
 
   bool _checkBalance() {
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
     if (user != null && user.balance < _generationPrice) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -292,7 +293,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     _stopFrameLoop();
     _hintSub?.cancel();
     _statusSub?.cancel();
-    _ws.dispose();
+    _camera.dispose();
     _controller?.dispose();
     super.dispose();
   }
@@ -300,7 +301,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   @override
   Widget build(BuildContext context) {
     final ready = _controller?.value.isInitialized ?? false;
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
 
     final canPop = Navigator.canPop(context);
 

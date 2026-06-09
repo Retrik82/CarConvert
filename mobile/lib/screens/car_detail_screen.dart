@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/car.dart';
-import '../services/car_service.dart';
+import '../repositories/car_repository.dart';
 import '../theme/app_theme.dart';
 import 'capture_screen.dart';
 import 'result_screen.dart';
@@ -30,8 +30,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Future<void> _load() async {
-    await CarService.instance.load();
-    setState(() => _car = CarService.instance.getById(widget.carId));
+    await CarRepository.instance.load();
+    setState(() => _car = CarRepository.instance.getById(widget.carId));
   }
 
   Future<void> _deleteCar() async {
@@ -47,7 +47,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       ),
     );
     if (confirmed == true) {
-      await CarService.instance.deleteCar(widget.carId);
+      await CarRepository.instance.deleteCar(widget.carId);
       if (mounted) Navigator.pop(context);
     }
   }

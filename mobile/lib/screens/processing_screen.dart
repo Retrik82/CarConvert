@@ -3,8 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
-import '../services/api_service.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/photo_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import 'result_screen.dart';
@@ -56,14 +56,14 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     _jobId = null;
     try {
       _setProgress(5, 'Connecting to server...');
-      await ApiService.instance.wakeServer();
+      await PhotoRepository.instance.wakeServer();
       _setProgress(15, 'Uploading image...');
-      final job = await ApiService.instance.processPhoto(
+      final job = await PhotoRepository.instance.processPhoto(
         widget.imageBytes,
         'capture.jpg',
         sessionId: widget.sessionId,
       );
-      await AuthService.instance.refreshCurrentUser();
+      await AuthRepository.instance.refreshCurrentUser();
       widget.onCharged?.call();
       _jobId = job.jobId;
       _setProgress(35, 'Rendering your car...');
@@ -76,7 +76,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   Future<void> _poll() async {
     if (_jobId == null) return;
     try {
-      final result = await ApiService.instance.getResult(_jobId!);
+      final result = await PhotoRepository.instance.getResult(_jobId!);
       if (result.status == 'processing') {
         _setProgress((_progress + 8).clamp(35, 90), 'Rendering your car...');
       } else if (result.isCompleted && result.imageBase64 != null) {

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../services/prefs_service.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/profile_repository.dart';
+import '../repositories/settings_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/money_format.dart';
 import 'edit_profile_screen.dart';
@@ -34,11 +34,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load() async {
     try {
-      await AuthService.instance.refreshCurrentUser();
-      _generationPrice = await ApiService.instance.getGenerationPrice();
-      final user = AuthService.instance.currentUser;
+      await AuthRepository.instance.refreshCurrentUser();
+      _generationPrice = await SettingsRepository.instance.getGenerationPrice();
+      final user = AuthRepository.instance.currentUser;
       if (user != null) {
-        final override = await PrefsService.getProfileOverride(user.id);
+        final override = await ProfileRepository.instance.getProfileOverride(user.id);
         _avatarPath = override?['avatar_path'];
         _displayName = override?['display_name'] ?? user.displayName;
       }
@@ -75,13 +75,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    await AuthService.instance.logout();
+    await AuthRepository.instance.logout();
     widget.onLogout();
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService.instance.currentUser;
+    final user = AuthRepository.instance.currentUser;
     final name = _displayName ?? user?.displayName ?? '';
     final created = user?.createdAt;
 

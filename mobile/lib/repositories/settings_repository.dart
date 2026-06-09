@@ -1,0 +1,16 @@
+import '../datasource/remote/settings_remote_datasource.dart';
+import 'auth_repository.dart';
+
+class SettingsRepository {
+  SettingsRepository._() {
+    _remote = SettingsRemoteDataSource(AuthRepository.instance.httpClient);
+  }
+
+  static final SettingsRepository instance = SettingsRepository._();
+
+  late final SettingsRemoteDataSource _remote;
+
+  Future<double> getGenerationPrice() => _remote.getGenerationPrice();
+
+  Future<double> setGenerationPrice(double priceUsd) => _remote.setGenerationPrice(priceUsd);
+}
