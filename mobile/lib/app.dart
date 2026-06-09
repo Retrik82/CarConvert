@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'screens/admin_shell.dart';
@@ -6,7 +8,6 @@ import 'screens/user_shell.dart';
 import 'services/auth_service.dart';
 import 'services/car_service.dart';
 import 'theme/app_theme.dart';
-import 'utils/debug_log.dart';
 import 'widgets/app_logo.dart';
 
 enum AppDestination { login, userHome, adminHome }
@@ -28,45 +29,28 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    // #region agent log
-    final sw = Stopwatch()..start();
-    DebugLog.emit('app.dart:_bootstrap', 'splash bootstrap start', hypothesisId: 'C');
-    // #endregion
     await AuthService.instance.loadStoredSession();
-    // #region agent log
-    DebugLog.emit('app.dart:_bootstrap', 'loadStoredSession done', hypothesisId: 'C', data: {'ms': sw.elapsedMilliseconds});
-    // #endregion
-    var loggedIn = AuthService.instance.isLoggedIn;
-
-    if (loggedIn) {
-      loggedIn = await AuthService.instance.validateSession();
-      // #region agent log
-      DebugLog.emit('app.dart:_bootstrap', 'validateSession done', hypothesisId: 'C', data: {'ms': sw.elapsedMilliseconds, 'loggedIn': loggedIn});
-      // #endregion
-    }
-
-    if (loggedIn) {
-      await CarService.instance.load();
-      // #region agent log
-      DebugLog.emit('app.dart:_bootstrap', 'carService.load done', hypothesisId: 'C', data: {'ms': sw.elapsedMilliseconds});
-      // #endregion
-    }
 
     if (!mounted) return;
 
-    if (!loggedIn) {
-      // #region agent log
-      DebugLog.emit('app.dart:_bootstrap', 'navigate to login', hypothesisId: 'C', data: {'ms': sw.elapsedMilliseconds});
-      // #endregion
+    if (!AuthService.instance.isLoggedIn) {
       widget.onReady(AppDestination.login);
       return;
     }
 
     final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
-    // #region agent log
-    DebugLog.emit('app.dart:_bootstrap', 'navigate to home', hypothesisId: 'C', data: {'ms': sw.elapsedMilliseconds, 'isAdmin': isAdmin});
-    // #endregion
     widget.onReady(isAdmin ? AppDestination.adminHome : AppDestination.userHome);
+
+    unawaited(_warmUpLoggedInSession());
+  }
+
+  Future<void> _warmUpLoggedInSession() async {
+    final valid = await AuthService.instance.validateSession();
+    if (!valid) {
+      await AuthService.instance.logout();
+      return;
+    }
+    await CarService.instance.load();
   }
 
   @override
@@ -123,21 +107,11 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
   }
 
   Future<void> _onAuthSuccess() async {
-    // #region agent log
-    final sw = Stopwatch()..start();
-    DebugLog.emit('app.dart:_onAuthSuccess', 'auth success callback start', hypothesisId: 'B', data: {'destination': _destination?.name});
-    // #endregion
-    await CarService.instance.load();
-    // #region agent log
-    DebugLog.emit('app.dart:_onAuthSuccess', 'carService.load done before setState', hypothesisId: 'B', data: {'ms': sw.elapsedMilliseconds, 'mounted': mounted});
-    // #endregion
     if (!mounted) return;
     final isAdmin = AuthService.instance.currentUser?.isAdmin ?? false;
     final next = isAdmin ? AppDestination.adminHome : AppDestination.userHome;
     setState(() => _destination = next);
-    // #region agent log
-    DebugLog.emit('app.dart:_onAuthSuccess', 'setState destination updated', hypothesisId: 'A', data: {'ms': sw.elapsedMilliseconds, 'next': next.name});
-    // #endregion
+    unawaited(CarService.instance.load());
   }
 
   Future<void> _handleLoggedOut() async {

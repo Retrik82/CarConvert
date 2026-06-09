@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
-import '../utils/debug_log.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
 import '../widgets/form_fields.dart';
@@ -37,17 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _password.text,
         _name.text.trim(),
       );
-      // #region agent log
-      if (mounted) {
-        DebugLog.emit('register_screen.dart:_register', 'register API ok, before onRegistered', hypothesisId: 'A', data: {'canPop': Navigator.of(context).canPop});
-      }
-      // #endregion
       if (mounted) widget.onRegistered();
-      // #region agent log
-      if (mounted) {
-        DebugLog.emit('register_screen.dart:_register', 'after onRegistered, still mounted on RegisterScreen', hypothesisId: 'A', data: {'canPop': Navigator.of(context).canPop});
-      }
-      // #endregion
     } catch (e) {
       setState(() => _error = userFacingError(e));
     } finally {

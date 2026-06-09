@@ -49,6 +49,7 @@ class AuthService {
     }
   }
 
+  /// Loads tokens and profile from secure storage only (no network).
   Future<void> loadStoredSession() async {
     _accessToken = null;
     _refreshToken = await _storage.read(key: _refreshKey);
@@ -56,9 +57,6 @@ class AuthService {
     final userJson = await _storage.read(key: _userKey);
     if (userJson != null) {
       _user = User.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
-    }
-    if (_refreshToken != null) {
-      await refreshAccessToken();
     }
   }
 
