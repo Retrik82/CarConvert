@@ -59,32 +59,64 @@ async def init_db() -> None:
         await session.commit()
 
 
+def _is_postgres(sync_conn) -> bool:
+    return sync_conn.dialect.name == "postgresql"
+
+
+def _bool_default(sync_conn, *, default: bool) -> str:
+    if _is_postgres(sync_conn):
+        return "TRUE" if default else "FALSE"
+    return "1" if default else "0"
+
+
+def _bool_literal(sync_conn, *, value: bool) -> str:
+    if _is_postgres(sync_conn):
+        return "TRUE" if value else "FALSE"
+    return "1" if value else "0"
+
+
 def _migrate_schema(sync_conn) -> None:
     """Add new columns to existing SQLite/Postgres tables without Alembic."""
     from sqlalchemy import inspect, text
 
     inspector = inspect(sync_conn)
+    ts_type = "TIMESTAMP WITH TIME ZONE" if _is_postgres(sync_conn) else "TIMESTAMP"
     if "users" in inspector.get_table_names():
         user_cols = {col["name"] for col in inspector.get_columns("users")}
         if "balance" not in user_cols:
             sync_conn.execute(text("ALTER TABLE users ADD COLUMN balance NUMERIC(10, 2) DEFAULT 10.00"))
         if "is_admin" not in user_cols:
-            sync_conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+            sync_conn.execute(
+                text(f"ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT {_bool_default(sync_conn, default=False)}")
+            )
         if "role" not in user_cols:
             sync_conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'user'"))
-            sync_conn.execute(text("UPDATE users SET role = 'admin' WHERE is_admin = 1"))
+            sync_conn.execute(
+                text(
+                    f"UPDATE users SET role = 'admin' WHERE is_admin = {_bool_literal(sync_conn, value=True)}"
+                )
+            )
         if "email_verified" not in user_cols:
-            sync_conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 0"))
-            sync_conn.execute(text("UPDATE users SET email_verified = 1 WHERE is_admin = 1"))
+            sync_conn.execute(
+                text(
+                    f"ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT {_bool_default(sync_conn, default=False)}"
+                )
+            )
+            sync_conn.execute(
+                text(
+                    "UPDATE users SET email_verified = "
+                    f"{_bool_literal(sync_conn, value=True)} WHERE is_admin = {_bool_literal(sync_conn, value=True)}"
+                )
+            )
 
     if "refresh_tokens" in inspector.get_table_names():
         rt_cols = {col["name"] for col in inspector.get_columns("refresh_tokens")}
         for col, ddl in (
-            ("revoked_at", "ALTER TABLE refresh_tokens ADD COLUMN revoked_at TIMESTAMP"),
+            ("revoked_at", f"ALTER TABLE refresh_tokens ADD COLUMN revoked_at {ts_type}"),
             ("device_id", "ALTER TABLE refresh_tokens ADD COLUMN device_id VARCHAR(128)"),
             ("device_name", "ALTER TABLE refresh_tokens ADD COLUMN device_name VARCHAR(255)"),
             ("user_agent", "ALTER TABLE refresh_tokens ADD COLUMN user_agent VARCHAR(512)"),
-            ("last_used_at", "ALTER TABLE refresh_tokens ADD COLUMN last_used_at TIMESTAMP"),
+            ("last_used_at", f"ALTER TABLE refresh_tokens ADD COLUMN last_used_at {ts_type}"),
         ):
             if col not in rt_cols:
                 sync_conn.execute(text(ddl))
