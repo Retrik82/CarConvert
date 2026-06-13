@@ -486,7 +486,6 @@ class _CaptureTopBar extends StatelessWidget {
                   child: selectedBackground != null
                       ? BackgroundScenePreview(
                           preset: selectedBackground!.preset,
-                          composed: false,
                         )
                       : Icon(
                           Icons.wallpaper_outlined,

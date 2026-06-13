@@ -16,7 +16,7 @@ from app.db.models.background import VARIANT_ANGLES
 from app.db.session import AsyncSessionLocal, ensure_db_ready
 from app.repositories.background_repository import BackgroundRepository
 from app.services.background_service import PRESET_DEFINITIONS, backgrounds_root
-from app.services.preset_ai_background_generator import generate_preset_image
+from app.services.preset_ai_background_generator import generate_preset_scene
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ async def main() -> int:
         for angle in VARIANT_ANGLES:
             image_path = backgrounds_root() / "presets" / slug / f"{angle}.jpg"
             try:
-                await generate_preset_image(slug, angle, image_path, api_key)
+                await generate_preset_scene(slug, angle, image_path, api_key)
                 generated += 1
             except Exception as exc:
                 logger.error("Failed %s/%s: %s", slug, angle, exc)

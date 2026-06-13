@@ -121,6 +121,8 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                     user_variant_id=job.user_background_variant_id,
                     user_id=user_id,
                 )
+                if not reference:
+                    raise ValueError("Scene reference is required for background processing.")
                 result_b64, result_mime = await process_photo_with_background(
                     data_url,
                     prompt,

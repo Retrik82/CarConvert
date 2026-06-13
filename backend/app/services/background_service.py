@@ -16,7 +16,7 @@ from app.db.models.background import (
     UserBackgroundVariant,
 )
 from app.repositories.background_repository import BackgroundRepository
-from app.services.ai.background_processor import generate_empty_background, process_with_background
+from app.services.ai.background_processor import generate_empty_room, process_into_scene
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -141,8 +141,13 @@ class BackgroundService:
                 variant = await self._repo.get_user_background_variant(background.id, selected_angle)
             if variant is None:
                 raise ValueError("Background variant not found.")
-            prompt = f"{background.prompt} {variant.prompt_suffix}".strip()
+            prompt = (
+                f"{background.prompt} {variant.prompt_suffix} "
+                "Place the user's car into this exact studio scene, replacing the BMW."
+            ).strip()
             reference = _image_to_data_url(Path(variant.image_path)) if variant.image_path else None
+            if reference is None:
+                raise ValueError("Scene reference image not found.")
             return prompt, reference
 
         if preset_id:
@@ -156,8 +161,13 @@ class BackgroundService:
                 variant = await self._repo.get_preset_variant(preset.id, selected_angle)
             if variant is None:
                 raise ValueError("Background variant not found.")
-            prompt = f"{preset.prompt_template} {variant.prompt_suffix}".strip()
+            prompt = (
+                f"{preset.prompt_template} {variant.prompt_suffix} "
+                "Place the user's car into this exact studio scene, replacing the BMW."
+            ).strip()
             reference = _image_to_data_url(Path(variant.image_path)) if variant.image_path else None
+            if reference is None:
+                raise ValueError("Scene reference image not found.")
             return prompt, reference
 
         from app.services.ai.desert_processor import DESERT_USER_PROMPT
@@ -186,33 +196,32 @@ class BackgroundService:
             )
             await self._repo.add_user_variant(variant)
 
-            image_path = root / f"{angle}.jpg"
+            scene_path = root / f"{angle}.jpg"
+            room_path = root / f"{angle}_room.jpg"
             try:
-                image_b64, mime = await generate_empty_background(
-                    f"{prompt.strip()} {suffix}",
-                    api_key,
-                )
-                ext = ".png" if mime == "image/png" else ".jpg"
-                image_path = root / f"{angle}{ext}"
-                _save_image_bytes(image_path, base64.b64decode(image_b64))
-                variant.image_path = str(image_path)
-                from app.services.scene_compositor import compose_scene_preview
+                room_b64, _mime = await generate_empty_room(f"{prompt.strip()} {suffix}", api_key)
+                from app.services.scene_compositor import build_scene_from_room_bytes
 
-                compose_scene_preview(image_path, angle)
+                build_scene_from_room_bytes(base64.b64decode(room_b64), angle, scene_path)
+                variant.image_path = str(scene_path)
                 if preview_variant is None or angle == "three_quarter_left":
                     preview_variant = variant
             except Exception as exc:
-                logger.warning("Failed to generate custom background variant %s: %s", angle, exc)
+                logger.warning("Failed to generate custom scene %s: %s", angle, exc)
                 _write_placeholder_image(
-                    image_path,
+                    room_path,
                     title=name.strip(),
                     subtitle=angle.replace("_", " ").title(),
                     tint=(90, 90, 95),
                 )
-                variant.image_path = str(image_path)
-                from app.services.scene_compositor import compose_scene_preview
+                from app.services.scene_compositor import compose_scene_from_room
 
-                compose_scene_preview(image_path, angle)
+                compose_scene_from_room(room_path, angle, scene_path)
+                try:
+                    room_path.unlink()
+                except FileNotFoundError:
+                    pass
+                variant.image_path = str(scene_path)
                 if preview_variant is None:
                     preview_variant = variant
 
@@ -223,7 +232,7 @@ class BackgroundService:
         return background
 
     async def seed_presets(self) -> None:
-        from app.services.background_asset_service import ensure_preset_background
+        from app.services.background_asset_service import ensure_preset_scene
 
         for definition in PRESET_DEFINITIONS:
             existing = await self._repo.get_preset_by_slug(definition["slug"])
@@ -248,8 +257,8 @@ class BackgroundService:
                 )
                 await self._repo.add_variant(variant)
 
-                image_path = ensure_preset_background(preset.slug, angle)
-                variant.image_path = str(image_path)
+                scene_path = ensure_preset_scene(preset.slug, angle)
+                variant.image_path = str(scene_path)
                 if preview_variant is None or angle == "three_quarter_left":
                     preview_variant = variant
 
@@ -258,23 +267,23 @@ class BackgroundService:
             await self._repo.update_preset(preset)
 
     async def sync_preset_images(self) -> None:
-        """Ensure preset JPEGs on the server match bundled assets."""
-        from app.services.background_asset_service import ensure_preset_background, seed_preset_backgrounds
+        """Ensure preset composed scenes on the server match bundled assets."""
+        from app.services.background_asset_service import ensure_preset_scene, seed_preset_scenes
         from app.services.preset_background_renderer import PRESET_SLUGS
 
-        seed_preset_backgrounds()
+        seed_preset_scenes()
 
         for slug in PRESET_SLUGS:
             for angle in VARIANT_ANGLES:
-                ensure_preset_background(slug, angle)
+                ensure_preset_scene(slug, angle)
 
         presets = await self._repo.list_active_presets()
         for preset in presets:
             if preset.slug not in PRESET_SLUGS:
                 continue
             for variant in preset.variants:
-                image_path = ensure_preset_background(preset.slug, variant.angle)
-                variant.image_path = str(image_path)
+                scene_path = ensure_preset_scene(preset.slug, variant.angle)
+                variant.image_path = str(scene_path)
             await self._repo.update_preset(preset)
 
     async def get_variant_image_path(self, variant_id: str, user_id: str) -> Path | None:
@@ -293,35 +302,16 @@ class BackgroundService:
                     return path
         return None
 
-    async def get_variant_preview_path(self, variant_id: str, user_id: str) -> Path | None:
-        from app.services.scene_compositor import ensure_scene_preview, preview_image_path
-
-        variant = await self._repo.get_variant(variant_id)
-        if variant and variant.image_path:
-            raw_path = Path(variant.image_path)
-            if raw_path.exists():
-                return ensure_scene_preview(raw_path, variant.angle)
-
-        user_variant = await self._repo.get_user_variant(variant_id)
-        if user_variant and user_variant.image_path:
-            background = await self._repo.get_user_background(user_variant.background_id, user_id)
-            if background:
-                raw_path = Path(user_variant.image_path)
-                if raw_path.exists():
-                    return ensure_scene_preview(raw_path, user_variant.angle)
-
-        return None
-
 
 async def process_photo_with_background(
     source_data_url: str,
-    background_prompt: str,
-    reference_data_url: str | None,
+    scene_prompt: str,
+    scene_reference_data_url: str,
     api_key: str,
 ) -> tuple[str, str]:
-    return await process_with_background(
+    return await process_into_scene(
         source_data_url,
-        background_prompt,
-        reference_data_url,
+        scene_prompt,
+        scene_reference_data_url,
         api_key,
     )
