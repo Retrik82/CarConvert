@@ -196,6 +196,9 @@ class BackgroundService:
                 image_path = root / f"{angle}{ext}"
                 _save_image_bytes(image_path, base64.b64decode(image_b64))
                 variant.image_path = str(image_path)
+                from app.services.scene_compositor import compose_scene_preview
+
+                compose_scene_preview(image_path, angle)
                 if preview_variant is None or angle == "three_quarter_left":
                     preview_variant = variant
             except Exception as exc:
@@ -207,6 +210,9 @@ class BackgroundService:
                     tint=(90, 90, 95),
                 )
                 variant.image_path = str(image_path)
+                from app.services.scene_compositor import compose_scene_preview
+
+                compose_scene_preview(image_path, angle)
                 if preview_variant is None:
                     preview_variant = variant
 
@@ -285,6 +291,25 @@ class BackgroundService:
                 path = Path(user_variant.image_path)
                 if path.exists():
                     return path
+        return None
+
+    async def get_variant_preview_path(self, variant_id: str, user_id: str) -> Path | None:
+        from app.services.scene_compositor import ensure_scene_preview, preview_image_path
+
+        variant = await self._repo.get_variant(variant_id)
+        if variant and variant.image_path:
+            raw_path = Path(variant.image_path)
+            if raw_path.exists():
+                return ensure_scene_preview(raw_path, variant.angle)
+
+        user_variant = await self._repo.get_user_variant(variant_id)
+        if user_variant and user_variant.image_path:
+            background = await self._repo.get_user_background(user_variant.background_id, user_id)
+            if background:
+                raw_path = Path(user_variant.image_path)
+                if raw_path.exists():
+                    return ensure_scene_preview(raw_path, user_variant.angle)
+
         return None
 
 

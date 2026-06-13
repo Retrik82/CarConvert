@@ -9,37 +9,81 @@ from pathlib import Path
 
 from PIL import Image
 
-from app.db.models.background import ANGLE_PROMPT_SUFFIXES, VARIANT_ANGLES
+from app.db.models.background import VARIANT_ANGLES
 from app.services.ai.background_processor import generate_empty_background
 from app.services.background_service import PRESET_DEFINITIONS, backgrounds_root
+from app.services.scene_layout import GROUND_Y, layout_for_angle
 
 logger = logging.getLogger(__name__)
 
 PRESET_SLUGS = frozenset(d["slug"] for d in PRESET_DEFINITIONS)
 TARGET_SIZE = (1280, 720)
 
+ANGLE_SCENE_HINTS: dict[str, str] = {
+    "left": (
+        "Camera at driver-side profile height, BMW coupe side view facing right. "
+        "Floor horizon at 58% frame height, circular podium centered under wheelbase, "
+        "soft top-down studio lighting from above-left."
+    ),
+    "right": (
+        "Camera at passenger-side profile height, BMW coupe side view facing left. "
+        "Floor horizon at 58% frame height, circular podium centered under wheelbase, "
+        "soft top-down studio lighting from above-right."
+    ),
+    "front": (
+        "Camera straight-on front view at bumper height, symmetrical studio. "
+        "Low circular podium centered on floor, head-on perspective, even frontal lighting."
+    ),
+    "rear": (
+        "Camera straight-on rear view at trunk height, symmetrical studio. "
+        "Low circular podium centered on floor, head-on perspective, even rear lighting."
+    ),
+    "three_quarter_left": (
+        "Camera at three-quarter front-left angle, BMW coupe nose pointing slightly right. "
+        "Perspective floor lines converging to the right, podium slightly left of center, "
+        "corner wall visible on the left."
+    ),
+    "three_quarter_right": (
+        "Camera at three-quarter front-right angle, BMW coupe nose pointing slightly left. "
+        "Perspective floor lines converging to the left, podium slightly right of center, "
+        "corner wall visible on the right."
+    ),
+    "interior": (
+        "Camera inside luxury coupe cabin, dashboard and front seats visible, "
+        "ambient soft lighting, no exterior scene."
+    ),
+}
+
 
 def build_preset_prompt(slug: str, angle: str) -> str:
     definition = next(item for item in PRESET_DEFINITIONS if item["slug"] == slug)
-    angle_hint = ANGLE_PROMPT_SUFFIXES.get(angle, "")
+    layout = layout_for_angle(angle)
     base = definition["prompt_template"]
+    scene_hint = ANGLE_SCENE_HINTS.get(angle, "")
 
     if angle == "interior":
         scene = (
-            "Photorealistic empty luxury car interior cabin background: dashboard, steering wheel, "
-            "front seats, ambient lighting, premium materials. No people, no logos, no text."
+            "Photorealistic empty BMW M4 luxury interior cabin: dashboard, steering wheel, "
+            "front seats, ambient lighting, premium leather and carbon trim. "
+            "No people, no logos, no text."
         )
     else:
+        ground_hint = (
+            f"Vehicle standing position: wheels on floor at {GROUND_Y}px in 720px-tall frame. "
+            if layout
+            else ""
+        )
         scene = (
-            f"{base} Empty scene ready for a car photoshoot. "
-            "A single low circular podium/platform centered on the floor where a vehicle will stand. "
+            f"{base} Empty automotive studio scene for a BMW M4 coupe photoshoot. "
+            f"{scene_hint} {ground_hint}"
+            "Single low circular podium/platform on the floor where the car will stand. "
             "NO car, NO people, NO text, NO watermarks."
         )
 
     return (
-        f"{scene} {angle_hint} "
-        "Landscape 16:9 composition, photorealistic, professional automotive studio photography, "
-        "natural perspective and lighting, ultra detailed, 8k quality."
+        f"{scene} "
+        "Landscape 16:9, photorealistic, professional automotive studio photography, "
+        "consistent perspective with BMW CGI render, natural soft shadows, ultra detailed."
     )
 
 
@@ -63,6 +107,10 @@ async def generate_preset_image(slug: str, angle: str, path: Path, api_key: str)
     image_b64, mime = await generate_empty_background(prompt, api_key)
     _save_image_bytes(path, base64.b64decode(image_b64), mime)
     logger.info("Saved %s", path)
+
+    from app.services.scene_compositor import compose_scene_preview
+
+    compose_scene_preview(path, angle)
 
 
 async def generate_all_preset_backgrounds(api_key: str) -> int:

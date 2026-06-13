@@ -19,13 +19,23 @@ VARIANT_ANGLES = (
 )
 
 ANGLE_PROMPT_SUFFIXES: dict[str, str] = {
-    "left": "Camera perspective: side view from the left, vehicle facing right.",
-    "right": "Camera perspective: side view from the right, vehicle facing left.",
-    "front": "Camera perspective: straight front view of the vehicle.",
-    "rear": "Camera perspective: straight rear view of the vehicle.",
-    "interior": "Camera perspective: interior cabin view through open door or windshield.",
-    "three_quarter_left": "Camera perspective: three-quarter front-left angle.",
-    "three_quarter_right": "Camera perspective: three-quarter front-right angle.",
+    "left": (
+        "Camera: driver-side profile, BMW coupe facing right. "
+        "Floor horizon at 58% height, centered podium under wheelbase."
+    ),
+    "right": (
+        "Camera: passenger-side profile, BMW coupe facing left. "
+        "Floor horizon at 58% height, centered podium under wheelbase."
+    ),
+    "front": "Camera: straight front view at bumper height, symmetrical studio, centered podium.",
+    "rear": "Camera: straight rear view at trunk height, symmetrical studio, centered podium.",
+    "interior": "Camera: interior cabin view, dashboard and front seats, ambient lighting.",
+    "three_quarter_left": (
+        "Camera: three-quarter front-left, nose slightly right, perspective floor, podium left of center."
+    ),
+    "three_quarter_right": (
+        "Camera: three-quarter front-right, nose slightly left, perspective floor, podium right of center."
+    ),
 }
 
 

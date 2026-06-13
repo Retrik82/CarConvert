@@ -1,57 +1,44 @@
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_tokens.dart';
 import '../models/background.dart';
 import 'authenticated_background_image.dart';
-import 'design_system/car_assets.dart';
-import 'design_system/car_overlay.dart';
 
-/// Background preview: server-rendered studio image with car overlay.
+/// Catalog preview — server-baked BMW M4 on angle-matched background.
 class BackgroundScenePreview extends StatelessWidget {
   final BackgroundPreset preset;
   final String? angle;
-  final bool showCar;
   final BorderRadius? borderRadius;
+  /// When false, shows the empty studio background (no car) — e.g. capture toolbar chip.
+  final bool composed;
 
   const BackgroundScenePreview({
     super.key,
     required this.preset,
     this.angle,
-    this.showCar = true,
     this.borderRadius,
+    this.composed = true,
   });
 
   String? _previewPath() {
     final variant = angle != null ? preset.variantByAngle(angle!) : preset.defaultVariant;
-    return variant?.previewUrl ?? preset.previewUrl;
+    var path = variant?.previewUrl ?? preset.previewUrl;
+    if (!composed && path != null) {
+      path = path.replaceFirst('/preview/', '/image/');
+    }
+    return path;
   }
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
     final previewPath = _previewPath();
-    final carView = CarAssets.fromBackgroundAngle(angle);
-    final displayCar = showCar && CarOverlay.supportsBackgroundAngle(angle);
 
-    Widget child = Stack(
-      fit: StackFit.expand,
-      clipBehavior: Clip.none,
-      children: [
-        AuthenticatedBackgroundImage(
-          previewPath: previewPath,
-          fit: BoxFit.contain,
-        ),
-        if (displayCar)
-          CarOverlay(
-            view: carView,
-            tokens: tokens,
-            style: CarOverlayStyle.backgroundPreview,
-          ),
-      ],
+    Widget child = AuthenticatedBackgroundImage(
+      previewPath: previewPath,
+      fit: BoxFit.cover,
     );
 
     if (borderRadius != null) {
-      return ClipRRect(borderRadius: borderRadius!, child: child);
+      child = ClipRRect(borderRadius: borderRadius!, child: child);
     }
     return child;
   }

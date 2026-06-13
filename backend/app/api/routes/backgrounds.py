@@ -24,7 +24,7 @@ settings = get_settings()
 def _variant_preview_url(variant_id: str | None) -> str | None:
     if not variant_id:
         return None
-    return f"/backgrounds/image/{variant_id}"
+    return f"/backgrounds/preview/{variant_id}"
 
 
 def _preset_to_out(preset, *, is_custom: bool = False) -> BackgroundPresetOut:
@@ -74,6 +74,18 @@ async def get_background_image(
     if image_path is None:
         raise HTTPException(status_code=404, detail="Background image not found.")
     return FileResponse(image_path)
+
+
+@router.get("/preview/{variant_id}")
+async def get_background_preview(
+    variant_id: str,
+    current_user: User = Depends(get_current_user),
+    backgrounds: BackgroundService = Depends(get_background_service),
+):
+    preview_path = await backgrounds.get_variant_preview_path(variant_id, current_user.id)
+    if preview_path is None:
+        raise HTTPException(status_code=404, detail="Background preview not found.")
+    return FileResponse(preview_path)
 
 
 @router.post("/custom", response_model=CreateCustomBackgroundResponse)

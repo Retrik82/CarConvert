@@ -27,6 +27,14 @@ def preset_image_path(slug: str, angle: str) -> Path:
     return backgrounds_root() / "presets" / slug / f"{angle}.jpg"
 
 
+def bundled_preview_path(slug: str, angle: str) -> Path:
+    return BUNDLED_BACKGROUNDS / slug / f"{angle}_preview.jpg"
+
+
+def preset_preview_path(slug: str, angle: str) -> Path:
+    return backgrounds_root() / "presets" / slug / f"{angle}_preview.jpg"
+
+
 def seed_preset_backgrounds() -> int:
     """Copy bundled preset JPEGs into upload storage (idempotent)."""
     if not BUNDLED_BACKGROUNDS.is_dir():
@@ -36,15 +44,23 @@ def seed_preset_backgrounds() -> int:
     copied = 0
     for slug in PRESET_SLUGS:
         for angle in VARIANT_ANGLES:
-            src = bundled_preset_path(slug, angle)
-            if not src.is_file():
-                logger.warning("Missing bundled background %s", src)
-                continue
-            dst = preset_image_path(slug, angle)
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            if not dst.exists() or src.stat().st_mtime > dst.stat().st_mtime or src.stat().st_size != dst.stat().st_size:
-                shutil.copy2(src, dst)
-                copied += 1
+            for suffix in ("", "_preview"):
+                src_name = f"{angle}{suffix}.jpg"
+                src = BUNDLED_BACKGROUNDS / slug / src_name
+                if not src.is_file():
+                    if suffix:
+                        continue
+                    logger.warning("Missing bundled background %s", src)
+                    continue
+                dst = backgrounds_root() / "presets" / slug / src_name
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                if (
+                    not dst.exists()
+                    or src.stat().st_mtime > dst.stat().st_mtime
+                    or src.stat().st_size != dst.stat().st_size
+                ):
+                    shutil.copy2(src, dst)
+                    copied += 1
 
     if copied:
         logger.info("Seeded %s preset background image(s) into %s", copied, backgrounds_root() / "presets")
@@ -64,12 +80,21 @@ def ensure_preset_background(slug: str, angle: str) -> Path:
             or src.stat().st_size != dst.stat().st_size
         ):
             shutil.copy2(src, dst)
-        return dst
+    elif not dst.is_file() or dst.stat().st_size < 10_000:
+        from app.services.preset_background_renderer import render_preset_background
 
-    if dst.is_file() and dst.stat().st_size > 10_000:
-        return dst
+        render_preset_background(slug, dst, angle)
 
-    from app.services.preset_background_renderer import render_preset_background
+    from app.services.scene_compositor import ensure_scene_preview, preview_image_path
 
-    render_preset_background(slug, dst)
+    ensure_scene_preview(dst, angle)
+    preview_dst = preview_image_path(dst)
+    bundled_preview = bundled_preview_path(slug, angle)
+    if bundled_preview.is_file() and (
+        not preview_dst.is_file()
+        or bundled_preview.stat().st_mtime > preview_dst.stat().st_mtime
+    ):
+        preview_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(bundled_preview, preview_dst)
+
     return dst
