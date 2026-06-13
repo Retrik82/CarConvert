@@ -64,7 +64,7 @@ def remove_green_background(img: Image.Image) -> Image.Image:
     return img
 
 
-def crop_to_content(img: Image.Image, padding: int = 8) -> Image.Image:
+def crop_to_content(img: Image.Image, padding: int = 24) -> Image.Image:
     bbox = img.getbbox()
     if not bbox:
         return img

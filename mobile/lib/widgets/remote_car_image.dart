@@ -63,8 +63,6 @@ class _RemoteCarImageState extends State<RemoteCarImage> {
             bytes,
             fit: widget.fit,
             alignment: widget.alignment,
-            width: double.infinity,
-            height: double.infinity,
             filterQuality: FilterQuality.high,
             gaplessPlayback: true,
             color: widget.tintColor,

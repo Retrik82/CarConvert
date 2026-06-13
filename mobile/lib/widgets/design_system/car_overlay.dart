@@ -5,7 +5,7 @@ import 'car_assets.dart';
 import '../remote_car_image.dart';
 
 enum CarOverlayStyle {
-  /// Splash / login / configurator — sized for local podium widget.
+  /// Splash / login / welcome / configurator — car only on transparent canvas.
   hero,
   /// Composited on server background — wheels align to rendered podium.
   backgroundPreview,
@@ -40,17 +40,20 @@ class CarOverlay extends StatelessWidget {
         final h = constraints.maxHeight;
 
         final padding = switch (style) {
-          CarOverlayStyle.hero => EdgeInsets.fromLTRB(w * 0.02, h * 0.04, w * 0.02, h * 0.20),
-          CarOverlayStyle.backgroundPreview => EdgeInsets.fromLTRB(w * 0.04, h * 0.05, w * 0.04, h * 0.27),
+          CarOverlayStyle.hero => EdgeInsets.fromLTRB(w * 0.04, h * 0.06, w * 0.04, h * 0.08),
+          CarOverlayStyle.backgroundPreview => EdgeInsets.fromLTRB(w * 0.05, h * 0.06, w * 0.05, h * 0.24),
         };
 
         return Padding(
           padding: padding,
-          child: RemoteCarImage(
-            imagePath: imagePath,
-            fit: BoxFit.contain,
+          child: Align(
             alignment: Alignment.bottomCenter,
-            tintColor: bodyColor,
+            child: RemoteCarImage(
+              imagePath: imagePath,
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomCenter,
+              tintColor: bodyColor,
+            ),
           ),
         );
       },

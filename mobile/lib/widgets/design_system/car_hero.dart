@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/design_tokens.dart';
 import 'car_assets.dart';
-import 'car_on_podium.dart';
+import 'car_overlay.dart';
 
-/// BMW M4 G82 hero — car on podium only, theme-aware paint.
+/// BMW M4 G82 hero — theme-aware car image only (no podium strip).
 class CarHero extends StatelessWidget {
   final Color? bodyColor;
   final double height;
@@ -34,11 +34,11 @@ class CarHero extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: CarOnPodium(
+        child: CarOverlay(
           view: view,
           tokens: tokens,
           bodyColor: bodyColor,
-          podiumStyle: PodiumStyle.theme,
+          style: CarOverlayStyle.hero,
         ),
       ),
     );

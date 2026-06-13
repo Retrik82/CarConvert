@@ -32,8 +32,10 @@ class SeedService:
         await BackgroundService(self._db).seed_presets()
         await BackgroundService(self._db).sync_preset_images()
 
+        from app.services.background_asset_service import seed_preset_backgrounds
         from app.services.car_asset_service import seed_car_assets
 
+        seed_preset_backgrounds()
         seed_car_assets()
 
         admin = await self._users.get_by_email(ADMIN_EMAIL)

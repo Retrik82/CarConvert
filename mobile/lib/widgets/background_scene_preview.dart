@@ -39,7 +39,7 @@ class BackgroundScenePreview extends StatelessWidget {
       children: [
         AuthenticatedBackgroundImage(
           previewPath: previewPath,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
         ),
         if (displayCar)
           CarOverlay(

@@ -1,4 +1,4 @@
-"""Remove green-screen spill and re-export BMW M4 G82 car PNG assets."""
+"""Remove green-screen spill, preserve shadows, and add safe padding to car PNG assets."""
 
 from __future__ import annotations
 
@@ -31,7 +31,6 @@ def remove_green_background(img: Image.Image) -> Image.Image:
                 continue
 
             if spill > 12 and a > 0:
-                neutral = (r + b) // 2
                 corrected_g = int(g - spill * 0.92)
                 corrected_g = max(min(corrected_g, 255), min(r, b))
                 pixels[x, y] = (r, corrected_g, b, a)
@@ -39,10 +38,33 @@ def remove_green_background(img: Image.Image) -> Image.Image:
     return img
 
 
-def add_safe_padding(img: Image.Image, *, top: int = 10, bottom: int = 14) -> Image.Image:
-    w, h = img.size
-    canvas = Image.new("RGBA", (w, h + top + bottom), (0, 0, 0, 0))
-    canvas.paste(img, (0, top), img)
+def add_safe_padding(
+    img: Image.Image,
+    *,
+    min_horizontal: int = 24,
+    min_top: int = 12,
+    min_bottom: int = 20,
+) -> Image.Image:
+    """Expand canvas so wheels, mirrors, and ground shadows are never clipped."""
+    img = img.convert("RGBA")
+    bbox = img.getbbox()
+    if not bbox:
+        return img
+
+    left, top, right, bottom = bbox
+    width, height = img.size
+
+    pad_left = min_horizontal if left <= 4 else 8
+    pad_right = min_horizontal if right >= width - 5 else 8
+    pad_top = min_top if top <= 4 else 8
+    pad_bottom = min_bottom if bottom >= height - 5 else min_bottom
+
+    canvas = Image.new(
+        "RGBA",
+        (width + pad_left + pad_right, height + pad_top + pad_bottom),
+        (0, 0, 0, 0),
+    )
+    canvas.paste(img, (pad_left, pad_top), img)
     return canvas
 
 
@@ -56,6 +78,8 @@ def process_file(path: Path) -> None:
 
 def main() -> None:
     for path in sorted(ASSET_DIR.glob("*.png")):
+        if "raw" in path.name:
+            continue
         process_file(path)
 
 
