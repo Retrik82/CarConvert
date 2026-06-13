@@ -16,7 +16,7 @@ from app.db.models.background import (
     UserBackgroundVariant,
 )
 from app.repositories.background_repository import BackgroundRepository
-from app.services.ai.background_processor import generate_empty_room, process_into_scene
+from app.services.ai.background_processor import generate_full_scene, process_into_scene
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -27,11 +27,9 @@ PRESET_DEFINITIONS = (
         "name": "Gray Showroom",
         "description": "Minimalist gray studio with a central podium",
         "prompt_template": (
-            "Minimalist empty gray room with smooth concrete walls and floor, "
-            "a single round light-gray podium in the center, soft diffused studio lighting, "
-            "clean modern interior, subtle shadows, premium product showcase background, "
-            "monochromatic gray palette, realistic materials, high detail, photorealistic, "
-            "luxury presentation stage, no objects, no people, ultra realistic, 8k render"
+            "Minimalist gray automotive showroom with a white BMW M4 Coupe on a central round "
+            "light-gray podium, soft diffused studio lighting, clean modern interior, subtle shadows, "
+            "premium product showcase, monochromatic gray palette, photorealistic, luxury presentation"
         ),
         "sort_order": 1,
         "tint": (180, 180, 185),
@@ -41,11 +39,9 @@ PRESET_DEFINITIONS = (
         "name": "Auto Workshop",
         "description": "Modern professional car service garage",
         "prompt_template": (
-            "Modern automotive repair workshop interior, spacious professional car service garage, "
-            "clean industrial environment, vehicle lifts, tool cabinets, diagnostic equipment, "
-            "organized workspace, concrete floor, bright ceiling lights, realistic automotive "
-            "service center background, no cars, no people, photorealistic, high detail, "
-            "industrial modern design, ultra realistic, 8k render, depth of field"
+            "Modern professional car service garage with a white BMW M4 Coupe on a low platform, "
+            "clean industrial environment, vehicle lifts, tool cabinets, concrete floor, "
+            "bright ceiling lights, realistic automotive workshop, photorealistic, high detail"
         ),
         "sort_order": 2,
         "tint": (120, 130, 145),
@@ -197,30 +193,21 @@ class BackgroundService:
             await self._repo.add_user_variant(variant)
 
             scene_path = root / f"{angle}.jpg"
-            room_path = root / f"{angle}_room.jpg"
             try:
-                room_b64, _mime = await generate_empty_room(f"{prompt.strip()} {suffix}", api_key)
-                from app.services.scene_compositor import build_scene_from_room_bytes
+                from app.services.ai_scene_generator import generate_custom_scene_ai
 
-                build_scene_from_room_bytes(base64.b64decode(room_b64), angle, scene_path)
+                await generate_custom_scene_ai(prompt.strip(), angle, scene_path, api_key)
                 variant.image_path = str(scene_path)
                 if preview_variant is None or angle == "three_quarter_left":
                     preview_variant = variant
             except Exception as exc:
                 logger.warning("Failed to generate custom scene %s: %s", angle, exc)
                 _write_placeholder_image(
-                    room_path,
+                    scene_path,
                     title=name.strip(),
                     subtitle=angle.replace("_", " ").title(),
                     tint=(90, 90, 95),
                 )
-                from app.services.scene_compositor import compose_scene_from_room
-
-                compose_scene_from_room(room_path, angle, scene_path)
-                try:
-                    room_path.unlink()
-                except FileNotFoundError:
-                    pass
                 variant.image_path = str(scene_path)
                 if preview_variant is None:
                     preview_variant = variant

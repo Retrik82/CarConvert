@@ -25,7 +25,7 @@ class BackgroundScenePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget child = AuthenticatedBackgroundImage(
       previewPath: _scenePath(),
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
     );
 
     if (borderRadius != null) {

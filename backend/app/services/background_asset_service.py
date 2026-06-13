@@ -74,9 +74,8 @@ def ensure_preset_scene(slug: str, angle: str) -> Path:
     if dst.is_file() and dst.stat().st_size > 10_000:
         return dst
 
-    from app.services.scene_compositor import build_preset_scene
-
-    return build_preset_scene(slug, angle, dst)
+    logger.warning("No bundled scene for %s/%s — run bundle_preset_backgrounds.py with OpenRouter", slug, angle)
+    return dst
 
 
 # Backward-compatible names used by seed_service

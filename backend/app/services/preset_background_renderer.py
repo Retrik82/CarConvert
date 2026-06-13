@@ -1,4 +1,4 @@
-"""Render angle-matched studio backgrounds for BMW M4 G82 transparent overlays."""
+"""Clean photorealistic-style studio rooms for BMW M4 composed scenes."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ HEIGHT = CANVAS_HEIGHT
 
 PRESET_SLUGS = frozenset({"gray-showroom", "auto-workshop"})
 
-HORIZON_Y = int(HEIGHT * 0.58)
-PODIUM_TOP_Y = int(HEIGHT * 0.655)
+HORIZON_Y = int(HEIGHT * 0.60)
+FLOOR_LINE_Y = GROUND_Y
 
 
 def _lerp(a: int, b: int, t: float) -> int:
@@ -35,222 +35,121 @@ def _gradient_vertical(
         draw.line([(x0, y), (x1, y)], fill=color)
 
 
-def _soft_spotlight(image: Image.Image, box: tuple[int, int, int, int], alpha: int = 90) -> Image.Image:
+def _soft_spotlight(image: Image.Image, box: tuple[int, int, int, int], alpha: int = 70) -> Image.Image:
     spot = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     ImageDraw.Draw(spot).ellipse(box, fill=(255, 255, 255, alpha))
     return Image.alpha_composite(image.convert("RGBA"), spot).convert("RGB")
 
 
-def _draw_floor_shadow(
-    image: Image.Image,
-    *,
-    center_x: int,
-    top_y: int,
-    width: int,
-    height: int,
-    opacity: int = 70,
-) -> Image.Image:
-    shadow = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-    shadow_draw = ImageDraw.Draw(shadow)
-    shadow_draw.ellipse(
-        [center_x - width // 2, top_y, center_x + width // 2, top_y + height],
-        fill=(0, 0, 0, opacity),
+def _floor_disc(image: Image.Image, *, center_x: int, colors: dict, width_ratio: float = 0.42) -> Image.Image:
+    """Subtle circular floor patch — no raised podium block."""
+    disc_w = int(WIDTH * width_ratio)
+    disc_h = int(HEIGHT * 0.07)
+    top = FLOOR_LINE_Y - disc_h // 2
+
+    overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    draw.ellipse(
+        [center_x - disc_w // 2, top, center_x + disc_w // 2, top + disc_h],
+        fill=(*colors["disc"], 255),
     )
-    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=14))
-    return Image.alpha_composite(image.convert("RGBA"), shadow).convert("RGB")
-
-
-def _draw_podium(
-    image: Image.Image,
-    *,
-    center_x: int,
-    top_y: int = PODIUM_TOP_Y,
-    width: int | None = None,
-    height: int = int(HEIGHT * 0.04),
-    top_color: tuple[int, int, int],
-    bottom_color: tuple[int, int, int],
-    outline: tuple[int, int, int] = (210, 210, 216),
-) -> Image.Image:
-    podium_width = width or int(WIDTH * 0.34)
-    left = center_x - podium_width // 2
-    right = center_x + podium_width // 2
-    bottom = top_y + height
-
-    image = _draw_floor_shadow(
-        image,
-        center_x=center_x,
-        top_y=top_y + int(height * 0.35),
-        width=int(podium_width * 1.15),
-        height=int(HEIGHT * 0.08),
-    )
-
-    draw = ImageDraw.Draw(image)
-    for i in range(height):
-        t = i / max(height - 1, 1)
-        color = tuple(_lerp(top_color[j], bottom_color[j], t) for j in range(3))
-        draw.line([(left, top_y + i), (right, top_y + i)], fill=color)
-
-    draw.rounded_rectangle(
-        [left, top_y, right, bottom],
-        radius=max(height // 4, 4),
-        outline=outline,
-        width=1,
-    )
-    return image
+    overlay = overlay.filter(ImageFilter.GaussianBlur(radius=6))
+    return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
 
 
 def _palette(slug: str) -> dict[str, tuple[int, int, int]]:
     if slug == "auto-workshop":
         return {
-            "wall_top": (58, 68, 82),
-            "wall_bottom": (18, 20, 26),
-            "floor_top": (48, 50, 58),
-            "floor_bottom": (32, 34, 40),
-            "podium_top": (58, 58, 66),
-            "podium_bottom": (38, 38, 46),
-            "podium_outline": (96, 102, 112),
-            "accent": (74, 84, 98),
-            "lamp": (255, 248, 232),
+            "wall_top": (72, 78, 88),
+            "wall_bottom": (34, 38, 46),
+            "floor_near": (56, 60, 68),
+            "floor_far": (40, 44, 52),
+            "disc": (64, 68, 76),
+            "accent": (88, 96, 108),
+            "lamp": (255, 244, 220),
         }
     return {
-        "wall_top": (232, 232, 236),
-        "wall_bottom": (152, 152, 160),
-        "floor_top": (208, 208, 214),
-        "floor_bottom": (144, 144, 152),
-        "podium_top": (228, 228, 234),
-        "podium_bottom": (196, 196, 204),
-        "podium_outline": (210, 210, 216),
-        "accent": (180, 180, 185),
+        "wall_top": (236, 236, 240),
+        "wall_bottom": (168, 170, 178),
+        "floor_near": (214, 216, 222),
+        "floor_far": (176, 178, 186),
+        "disc": (226, 228, 234),
+        "accent": (196, 198, 206),
         "lamp": (255, 255, 255),
     }
 
 
-def _base_canvas(slug: str) -> tuple[Image.Image, ImageDraw.ImageDraw, dict]:
+def _base_studio(slug: str) -> tuple[Image.Image, ImageDraw.ImageDraw, dict]:
     colors = _palette(slug)
     image = Image.new("RGB", (WIDTH, HEIGHT), colors["accent"])
     draw = ImageDraw.Draw(image)
     _gradient_vertical(draw, (0, 0, WIDTH, HORIZON_Y), colors["wall_top"], colors["wall_bottom"])
-    _gradient_vertical(draw, (0, HORIZON_Y, WIDTH, HEIGHT), colors["floor_top"], colors["floor_bottom"])
-    draw.line([(0, HORIZON_Y), (WIDTH, HORIZON_Y)], fill=colors["podium_top"], width=2)
+    _gradient_vertical(draw, (0, HORIZON_Y, WIDTH, HEIGHT), colors["floor_far"], colors["floor_near"])
+    draw.line([(0, HORIZON_Y), (WIDTH, HORIZON_Y)], fill=colors["disc"], width=1)
     return image, draw, colors
 
 
-def _workshop_props(image: Image.Image, draw: ImageDraw.ImageDraw, colors: dict) -> Image.Image:
-    for i in range(4):
-        x = int(WIDTH * (0.14 + i * 0.22))
-        draw.rectangle([x - 8, 24, x + 8, int(HEIGHT * 0.11)], fill=(80, 88, 100))
+def _workshop_ceiling_lights(image: Image.Image, colors: dict) -> Image.Image:
+    for i in range(3):
+        x = int(WIDTH * (0.25 + i * 0.25))
         lamp = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-        ImageDraw.Draw(lamp).ellipse([x - 28, 36, x + 28, 92], fill=(*colors["lamp"], 110))
+        ImageDraw.Draw(lamp).ellipse([x - 70, 32, x + 70, 88], fill=(*colors["lamp"], 45))
         image = Image.alpha_composite(image.convert("RGBA"), lamp).convert("RGB")
-        draw = ImageDraw.Draw(image)
-
-    draw.rectangle([int(WIDTH * 0.04), int(HEIGHT * 0.28), int(WIDTH * 0.18), int(HEIGHT * 0.66)], fill=colors["accent"])
-    draw.rectangle([int(WIDTH * 0.78), int(HEIGHT * 0.32), int(WIDTH * 0.92), int(HEIGHT * 0.64)], fill=colors["accent"])
     return image
 
 
-def _render_side(slug: str, *, facing: str) -> Image.Image:
-    image, draw, colors = _base_canvas(slug)
+def _render_side(slug: str) -> Image.Image:
+    image, _draw, colors = _base_studio(slug)
     if slug == "auto-workshop":
-        image = _workshop_props(image, draw, colors)
-        draw = ImageDraw.Draw(image)
+        image = _workshop_ceiling_lights(image, colors)
 
-    # Long side profile: wall on the opposite side, floor stretches horizontally.
-    wall_x = int(WIDTH * 0.08) if facing == "right" else int(WIDTH * 0.92)
-    draw.rectangle(
-        [wall_x - 40, int(HEIGHT * 0.12), wall_x + 40, HORIZON_Y],
-        fill=colors["wall_bottom"],
-    )
-    image = _soft_spotlight(image, (int(WIDTH * 0.18), 30, int(WIDTH * 0.82), int(HEIGHT * 0.55)))
-    draw = ImageDraw.Draw(image)
-
-    return _draw_podium(
-        image,
-        center_x=WIDTH // 2,
-        width=int(WIDTH * 0.52),
-        top_color=colors["podium_top"],
-        bottom_color=colors["podium_bottom"],
-        outline=colors["podium_outline"],
-    )
+    image = _soft_spotlight(image, (int(WIDTH * 0.15), 20, int(WIDTH * 0.85), int(HEIGHT * 0.55)), alpha=55)
+    return _floor_disc(image, center_x=WIDTH // 2, colors=colors, width_ratio=0.50)
 
 
-def _render_front_rear(slug: str, *, rear: bool = False) -> Image.Image:
-    image, draw, colors = _base_canvas(slug)
+def _render_front_rear(slug: str) -> Image.Image:
+    image, draw, colors = _base_studio(slug)
     if slug == "auto-workshop":
-        image = _workshop_props(image, draw, colors)
-        draw = ImageDraw.Draw(image)
+        image = _workshop_ceiling_lights(image, colors)
 
-    image = _soft_spotlight(image, (WIDTH // 2 - 360, 24, WIDTH // 2 + 360, int(HEIGHT * 0.52)), alpha=95)
-    draw = ImageDraw.Draw(image)
-
-    if rear:
-        draw.rectangle([int(WIDTH * 0.34), int(HEIGHT * 0.16), int(WIDTH * 0.66), HORIZON_Y], fill=colors["wall_bottom"])
-
-    return _draw_podium(
-        image,
-        center_x=WIDTH // 2,
-        width=int(WIDTH * 0.30),
-        top_color=colors["podium_top"],
-        bottom_color=colors["podium_bottom"],
-        outline=colors["podium_outline"],
-    )
+    # Subtle back wall panel
+    draw.rectangle([int(WIDTH * 0.22), int(HEIGHT * 0.14), int(WIDTH * 0.78), HORIZON_Y], fill=colors["wall_bottom"])
+    image = _soft_spotlight(image, (WIDTH // 2 - 340, 16, WIDTH // 2 + 340, int(HEIGHT * 0.50)), alpha=65)
+    return _floor_disc(image, center_x=WIDTH // 2, colors=colors, width_ratio=0.34)
 
 
 def _render_three_quarter(slug: str, *, left: bool) -> Image.Image:
-    image, draw, colors = _base_canvas(slug)
+    image, _draw, colors = _base_studio(slug)
     if slug == "auto-workshop":
-        image = _workshop_props(image, draw, colors)
-        draw = ImageDraw.Draw(image)
+        image = _workshop_ceiling_lights(image, colors)
 
-    # Perspective floor lines converging toward the car placement.
-    vanish_x = int(WIDTH * (0.72 if left else 0.28))
-    for offset in (-120, -40, 40, 120):
-        draw.line([(vanish_x, HORIZON_Y - 20), (WIDTH // 2 + offset, HEIGHT)], fill=colors["floor_bottom"], width=2)
-
-    corner_x = int(WIDTH * (0.12 if left else 0.88))
-    draw.polygon(
-        [
-            (corner_x, int(HEIGHT * 0.12)),
-            (corner_x, HORIZON_Y),
-            (WIDTH // 2, HORIZON_Y),
-            (WIDTH // 2, int(HEIGHT * 0.2)),
-        ],
-        fill=colors["wall_bottom"],
-    )
-
-    spotlight_center = int(WIDTH * (0.44 if left else 0.56))
+    spot_x = int(WIDTH * (0.44 if left else 0.56))
     image = _soft_spotlight(
         image,
-        (spotlight_center - 300, 24, spotlight_center + 300, int(HEIGHT * 0.54)),
-        alpha=90,
+        (spot_x - 280, 18, spot_x + 280, int(HEIGHT * 0.52)),
+        alpha=48,
     )
-
-    return _draw_podium(
-        image,
-        center_x=int(WIDTH * (0.46 if left else 0.54)),
-        width=int(WIDTH * 0.36),
-        top_color=colors["podium_top"],
-        bottom_color=colors["podium_bottom"],
-        outline=colors["podium_outline"],
-    )
+    disc_x = int(WIDTH * (0.48 if left else 0.52))
+    return _floor_disc(image, center_x=disc_x, colors=colors, width_ratio=0.38)
 
 
 def _render_interior(slug: str) -> Image.Image:
     colors = _palette(slug)
-    image = Image.new("RGB", (WIDTH, HEIGHT), (24, 26, 30))
+    image = Image.new("RGB", (WIDTH, HEIGHT), (28, 30, 36))
     draw = ImageDraw.Draw(image)
-    _gradient_vertical(draw, (0, 0, WIDTH, HEIGHT), (42, 46, 54), (18, 20, 24))
+    _gradient_vertical(draw, (0, 0, WIDTH, HEIGHT), (50, 54, 62), (20, 22, 28))
 
-    dash_top = int(HEIGHT * 0.42)
     draw.rounded_rectangle(
-        [int(WIDTH * 0.08), dash_top, int(WIDTH * 0.92), int(HEIGHT * 0.78)],
-        radius=28,
-        fill=(34, 38, 46),
+        [int(WIDTH * 0.10), int(HEIGHT * 0.40), int(WIDTH * 0.90), int(HEIGHT * 0.76)],
+        radius=24,
+        fill=(38, 42, 50),
     )
-    draw.ellipse([int(WIDTH * 0.36), int(HEIGHT * 0.52), int(WIDTH * 0.64), int(HEIGHT * 0.82)], outline=(90, 96, 108), width=3)
-    draw.rectangle([int(WIDTH * 0.12), int(HEIGHT * 0.58), int(WIDTH * 0.34), int(HEIGHT * 0.9)], fill=(48, 52, 60))
-    draw.rectangle([int(WIDTH * 0.66), int(HEIGHT * 0.58), int(WIDTH * 0.88), int(HEIGHT * 0.9)], fill=(48, 52, 60))
-    return _soft_spotlight(image, (WIDTH // 2 - 280, 40, WIDTH // 2 + 280, int(HEIGHT * 0.55)), alpha=70)
+    draw.ellipse(
+        [int(WIDTH * 0.38), int(HEIGHT * 0.54), int(WIDTH * 0.62), int(HEIGHT * 0.80)],
+        outline=(100, 106, 118),
+        width=3,
+    )
+    return _soft_spotlight(image, (WIDTH // 2 - 260, 36, WIDTH // 2 + 260, int(HEIGHT * 0.52)), alpha=55)
 
 
 _VALID_ANGLES = frozenset({
@@ -264,11 +163,11 @@ def render_preset_background(slug: str, path: Path, angle: str | None = None) ->
     if resolved_angle == "interior":
         image = _render_interior(slug)
     elif resolved_angle in {"left", "right"}:
-        image = _render_side(slug, facing=resolved_angle)
+        image = _render_side(slug)
     elif resolved_angle == "front":
-        image = _render_front_rear(slug, rear=False)
+        image = _render_front_rear(slug)
     elif resolved_angle == "rear":
-        image = _render_front_rear(slug, rear=True)
+        image = _render_front_rear(slug)
     elif resolved_angle == "three_quarter_left":
         image = _render_three_quarter(slug, left=True)
     elif resolved_angle == "three_quarter_right":
@@ -277,4 +176,4 @@ def render_preset_background(slug: str, path: Path, angle: str | None = None) ->
         image = _render_three_quarter(slug, left=True)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    image.save(path, format="JPEG", quality=92, optimize=True)
+    image.save(path, format="JPEG", quality=93, optimize=True)

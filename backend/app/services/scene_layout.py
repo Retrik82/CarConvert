@@ -7,11 +7,12 @@ from dataclasses import dataclass
 CANVAS_WIDTH = 1280
 CANVAS_HEIGHT = 720
 
-# Where the car wheels meet the floor in the final composition.
-GROUND_Y = int(CANVAS_HEIGHT * 0.682)
+# Vertical safe zone for the full car silhouette.
+MARGIN_TOP_RATIO = 0.07
+MARGIN_SIDE_RATIO = 0.05
 
-# Measured from bundled PNG assets (ground row / image height).
-CAR_GROUND_RATIO = 0.884
+# Where the car wheels meet the floor in the final composition.
+GROUND_Y = int(CANVAS_HEIGHT * 0.70)
 
 ANGLE_TO_CAR_VIEW: dict[str, str] = {
     "left": "side_left",
@@ -25,20 +26,19 @@ ANGLE_TO_CAR_VIEW: dict[str, str] = {
 
 @dataclass(frozen=True)
 class SceneLayout:
-    car_width_ratio: float
     center_x_ratio: float
-    car_ground_ratio: float = CAR_GROUND_RATIO
+    max_width_ratio: float
     ground_y: int = GROUND_Y
 
 
-# Calibrated per bundled car render center-of-mass and aspect ratio.
+# Center of mass per angle; max width is an upper bound — compositor scales down to fit height.
 SCENE_LAYOUTS: dict[str, SceneLayout] = {
-    "left": SceneLayout(car_width_ratio=0.86, center_x_ratio=0.484),
-    "right": SceneLayout(car_width_ratio=0.86, center_x_ratio=0.511),
-    "front": SceneLayout(car_width_ratio=0.52, center_x_ratio=0.499),
-    "rear": SceneLayout(car_width_ratio=0.52, center_x_ratio=0.499),
-    "three_quarter_left": SceneLayout(car_width_ratio=0.74, center_x_ratio=0.453),
-    "three_quarter_right": SceneLayout(car_width_ratio=0.74, center_x_ratio=0.540),
+    "left": SceneLayout(center_x_ratio=0.50, max_width_ratio=0.88),
+    "right": SceneLayout(center_x_ratio=0.50, max_width_ratio=0.88),
+    "front": SceneLayout(center_x_ratio=0.50, max_width_ratio=0.56),
+    "rear": SceneLayout(center_x_ratio=0.50, max_width_ratio=0.56),
+    "three_quarter_left": SceneLayout(center_x_ratio=0.48, max_width_ratio=0.78),
+    "three_quarter_right": SceneLayout(center_x_ratio=0.52, max_width_ratio=0.78),
 }
 
 
