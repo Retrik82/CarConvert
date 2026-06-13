@@ -10,6 +10,7 @@ import 'screens/admin_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/user_shell.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/car_asset_repository.dart';
 import 'repositories/car_repository.dart';
 import 'widgets/design_system/car_hero.dart';
 
@@ -69,6 +70,7 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
 
   Future<void> _bootstrap() async {
     await _settings.load();
+    unawaited(CarAssetRepository.instance.prefetchDefaults());
 
     var next = AppDestination.login;
     try {
@@ -118,6 +120,7 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
 
   Future<void> _handleLoggedOut() async {
     await CarRepository.instance.clear();
+    CarAssetRepository.instance.clearImageCache();
     if (mounted) setState(() => _destination = AppDestination.login);
   }
 

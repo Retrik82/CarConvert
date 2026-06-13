@@ -31,6 +31,10 @@ class SeedService:
 
         await BackgroundService(self._db).seed_presets()
 
+        from app.services.car_asset_service import seed_car_assets
+
+        seed_car_assets()
+
         admin = await self._users.get_by_email(ADMIN_EMAIL)
         if admin is None:
             admin = User(

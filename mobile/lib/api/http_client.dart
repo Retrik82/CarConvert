@@ -48,6 +48,13 @@ class HttpClient {
     });
   }
 
+  Future<http.Response> getPublic(String path) {
+    final uri = path.startsWith('http')
+        ? Uri.parse(path)
+        : Uri.parse('${Env.apiBaseUrl}$path');
+    return http.get(uri).timeout(apiTimeout);
+  }
+
   Future<http.Response> getUri(Uri uri, {bool json = false}) {
     return authorized(() async {
       return http

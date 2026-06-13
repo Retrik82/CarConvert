@@ -84,8 +84,6 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                   icon: Icons.directions_car_outlined,
                   title: s.emptyCars,
                   subtitle: s.emptyCarsSubtitle,
-                  actionLabel: s.takePhoto,
-                  onAction: () => _openCapture(context),
                 )
               : RefreshIndicator(
                   onRefresh: _load,

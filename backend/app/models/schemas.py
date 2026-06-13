@@ -97,6 +97,19 @@ class BackgroundCatalogResponse(BaseModel):
     custom_background_price_usd: Decimal
 
 
+class CarModelOut(BaseModel):
+    id: str
+    name: str
+    views: list[str]
+    paints: list[str]
+    default_view: str
+    preview_url: str
+
+
+class CarCatalogResponse(BaseModel):
+    models: list[CarModelOut]
+
+
 class CreateCustomBackgroundRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     prompt: str = Field(min_length=10, max_length=2000)

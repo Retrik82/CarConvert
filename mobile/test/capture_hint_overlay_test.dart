@@ -1,20 +1,18 @@
 import 'package:carconvert/core/l10n/hint_localizer.dart';
 import 'package:carconvert/core/l10n/strings_en.dart';
 import 'package:carconvert/models/hint_response.dart';
+import 'package:carconvert/widgets/capture_hint_bar.dart';
 import 'package:carconvert/widgets/capture_hint_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('CaptureHintOverlay shows connection status when hint is null', (tester) async {
+  testWidgets('CaptureHintBar shows connection status message', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('en'),
+      const MaterialApp(
+        locale: Locale('en'),
         home: Scaffold(
-          body: CaptureHintOverlay(
-            hint: null,
-            status: 'Connecting...',
-          ),
+          body: CaptureHintBar(message: 'Connecting...'),
         ),
       ),
     );
@@ -22,25 +20,46 @@ void main() {
     expect(find.text('Connecting...'), findsOneWidget);
   });
 
-  testWidgets('CaptureHintOverlay shows perfect framing message', (tester) async {
+  testWidgets('CaptureHintBar shows perfect framing message', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        locale: Locale('en'),
+        home: Scaffold(
+          body: CaptureHintBar(
+            message: 'Perfect framing — shoot now',
+            isPerfect: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Perfect framing — shoot now'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+  });
+
+  testWidgets('CaptureHintOverlay renders frame guide painter', (tester) async {
     final hint = HintResponse(
-      hint: 'perfect_frame',
-      message: 'Good',
-      confidence: 0.95,
-      scores: HintScores(centering: 1, distance: 1, angle: 1),
-      overlay: HintOverlay(arrow: 'none', color: 'green'),
+      hint: 'align_car',
+      message: 'Center',
+      confidence: 0.5,
+      scores: HintScores(centering: 0.5, distance: 0.5, angle: 0.5),
+      overlay: HintOverlay(arrow: 'left', color: 'yellow'),
     );
 
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
         home: Scaffold(
-          body: CaptureHintOverlay(hint: hint, status: 'AI active'),
+          body: SizedBox(
+            width: 400,
+            height: 600,
+            child: CaptureHintOverlay(hint: hint),
+          ),
         ),
       ),
     );
 
-    expect(find.text('Perfect framing — shoot now'), findsOneWidget);
+    expect(find.byType(CaptureHintOverlay), findsOneWidget);
   });
 
   group('HintLocalizer', () {

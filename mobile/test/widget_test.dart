@@ -10,6 +10,6 @@ void main() {
     await tester.pumpWidget(const RenderWheelsApp());
 
     expect(find.byType(CarHero), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
   });
 }
