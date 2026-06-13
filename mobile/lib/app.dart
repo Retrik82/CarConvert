@@ -105,7 +105,14 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
   }
 
   void _onAuthStateChanged(bool loggedIn) {
-    if (!loggedIn && mounted && _ready && _destination != AppDestination.login) {
+    if (!mounted || !_ready) return;
+
+    if (loggedIn && _destination == AppDestination.login) {
+      unawaited(_onAuthSuccess());
+      return;
+    }
+
+    if (!loggedIn && _destination != AppDestination.login) {
       unawaited(_handleLoggedOut());
     }
   }

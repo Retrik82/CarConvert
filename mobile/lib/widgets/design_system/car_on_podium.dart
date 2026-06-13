@@ -62,8 +62,7 @@ class CarOnPodium extends StatelessWidget {
                   view: view,
                   tokens: tokens,
                   bodyColor: bodyColor,
-                  heightFactor: 0.72,
-                  bottomInsetFactor: (h - podiumTop) / h,
+                  style: CarOverlayStyle.hero,
                 ),
               ),
             if (showCar)

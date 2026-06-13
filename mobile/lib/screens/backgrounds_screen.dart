@@ -52,6 +52,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
       _loading = true;
       _error = null;
     });
+    _repo.clearImageCache();
     try {
       final catalog = await _repo.fetchCatalog();
       if (!mounted) return;
@@ -375,7 +376,7 @@ class _BackgroundCard extends StatelessWidget {
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusCard)),
               child: AspectRatio(
-                aspectRatio: 16 / 9,
+                aspectRatio: 4 / 3,
                 child: BackgroundScenePreview(
                   preset: preset,
                   angle: selectedAngle,

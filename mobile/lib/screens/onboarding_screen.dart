@@ -7,7 +7,9 @@ import '../core/theme/design_tokens.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/car_hero.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
+import 'forgot_password_screen.dart';
 import 'login_screen.dart';
+import 'register_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
   final AppSettingsController settings;
@@ -19,11 +21,11 @@ class OnboardingScreen extends StatelessWidget {
     required this.onLoggedIn,
   });
 
-  void _openEmailLogin(BuildContext context) {
+  void _pushAuthScreen(BuildContext context, Widget screen) {
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => LoginScreen(onLoggedIn: onLoggedIn),
+        pageBuilder: (_, __, ___) => screen,
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: DesignTokens.curveEmphasized),
@@ -77,23 +79,30 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: DesignTokens.spacing32),
                   AppButton(
-                    label: s.continueWithEmail,
-                    icon: Icons.mail_outline_rounded,
-                    onPressed: () => _openEmailLogin(context),
+                    label: s.login,
+                    onPressed: () => _pushAuthScreen(
+                      context,
+                      LoginScreen(onLoggedIn: onLoggedIn),
+                    ),
                   ),
                   const SizedBox(height: DesignTokens.spacing12),
                   AppButton(
-                    label: s.continueWithToken,
-                    icon: Icons.qr_code_2_rounded,
+                    label: s.register,
                     variant: AppButtonVariant.secondary,
-                    onPressed: () => _openEmailLogin(context),
+                    onPressed: () => _pushAuthScreen(
+                      context,
+                      RegisterScreen(onRegistered: onLoggedIn),
+                    ),
                   ),
                   const SizedBox(height: DesignTokens.spacing16),
                   Center(
                     child: TextButton(
-                      onPressed: () => _openEmailLogin(context),
+                      onPressed: () => _pushAuthScreen(
+                        context,
+                        const ForgotPasswordScreen(),
+                      ),
                       child: Text(
-                        s.companyLogin,
+                        s.forgotPassword,
                         style: tokens.textStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,

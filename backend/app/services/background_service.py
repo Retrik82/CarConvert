@@ -241,18 +241,47 @@ class BackgroundService:
                 await self._repo.add_variant(variant)
 
                 image_path = backgrounds_root() / "presets" / preset.slug / f"{angle}.jpg"
-                _write_placeholder_image(
-                    image_path,
-                    title=definition["name"],
-                    subtitle=angle.replace("_", " ").title(),
-                    tint=definition["tint"],
-                )
+                from app.services.preset_background_renderer import render_preset_background
+
+                render_preset_background(preset.slug, image_path)
                 variant.image_path = str(image_path)
                 if preview_variant is None or angle == "three_quarter_left":
                     preview_variant = variant
 
             if preview_variant:
                 preset.preview_variant_id = preview_variant.id
+            await self._repo.update_preset(preset)
+
+    async def sync_preset_images(self) -> None:
+        """Ensure preset JPEG previews exist — skip when already generated."""
+        from app.db.models.background import VARIANT_ANGLES
+        from app.services.preset_ai_background_generator import generate_preset_image
+        from app.services.preset_background_renderer import PRESET_SLUGS, render_preset_background
+
+        api_key = settings.openrouter_api_key
+        has_ai = bool(api_key and api_key != "your_key_here")
+
+        for slug in PRESET_SLUGS:
+            for angle in VARIANT_ANGLES:
+                image_path = backgrounds_root() / "presets" / slug / f"{angle}.jpg"
+                if image_path.is_file() and image_path.stat().st_size > 10_000:
+                    continue
+                try:
+                    if has_ai:
+                        await generate_preset_image(slug, angle, image_path, api_key)
+                    else:
+                        render_preset_background(slug, image_path)
+                except Exception as exc:
+                    logger.warning("Background generation failed for %s/%s: %s", slug, angle, exc)
+                    render_preset_background(slug, image_path)
+
+        presets = await self._repo.list_active_presets()
+        for preset in presets:
+            if preset.slug not in PRESET_SLUGS:
+                continue
+            for variant in preset.variants:
+                image_path = backgrounds_root() / "presets" / preset.slug / f"{variant.angle}.jpg"
+                variant.image_path = str(image_path)
             await self._repo.update_preset(preset)
 
     async def get_variant_image_path(self, variant_id: str, user_id: str) -> Path | None:

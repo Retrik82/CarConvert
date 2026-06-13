@@ -25,19 +25,25 @@ class RemoteCarImage extends StatefulWidget {
 
 class _RemoteCarImageState extends State<RemoteCarImage> {
   late Future<Uint8List> _future;
+  Uint8List? _cachedBytes;
 
   @override
   void initState() {
     super.initState();
-    _future = CarAssetRepository.instance.fetchImageBytes(widget.imagePath);
+    _future = _load();
   }
 
   @override
   void didUpdateWidget(covariant RemoteCarImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imagePath != widget.imagePath) {
-      _future = CarAssetRepository.instance.fetchImageBytes(widget.imagePath);
+      _cachedBytes = null;
+      _future = _load();
     }
+  }
+
+  Future<Uint8List> _load() {
+    return CarAssetRepository.instance.fetchImageBytes(widget.imagePath);
   }
 
   @override
@@ -47,6 +53,25 @@ class _RemoteCarImageState extends State<RemoteCarImage> {
     return FutureBuilder<Uint8List>(
       future: _future,
       builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          _cachedBytes = snapshot.data;
+        }
+
+        final bytes = snapshot.data ?? _cachedBytes;
+        if (bytes != null) {
+          return Image.memory(
+            bytes,
+            fit: widget.fit,
+            alignment: widget.alignment,
+            width: double.infinity,
+            height: double.infinity,
+            filterQuality: FilterQuality.high,
+            gaplessPlayback: true,
+            color: widget.tintColor,
+            colorBlendMode: widget.tintColor != null ? BlendMode.modulate : null,
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: SizedBox(
@@ -57,19 +82,7 @@ class _RemoteCarImageState extends State<RemoteCarImage> {
           );
         }
 
-        if (snapshot.hasError || !snapshot.hasData) {
-          return Icon(Icons.directions_car_outlined, color: tokens.textTertiary, size: 32);
-        }
-
-        return Image.memory(
-          snapshot.data!,
-          fit: widget.fit,
-          alignment: widget.alignment,
-          filterQuality: FilterQuality.high,
-          gaplessPlayback: true,
-          color: widget.tintColor,
-          colorBlendMode: widget.tintColor != null ? BlendMode.modulate : null,
-        );
+        return Icon(Icons.directions_car_outlined, color: tokens.textTertiary, size: 32);
       },
     );
   }

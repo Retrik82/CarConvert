@@ -36,7 +36,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _password.text,
         _name.text.trim(),
       );
-      if (mounted) widget.onRegistered();
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      widget.onRegistered();
     } catch (e) {
       setState(() => _error = userFacingError(e));
     } finally {

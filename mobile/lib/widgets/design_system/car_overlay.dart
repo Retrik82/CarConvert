@@ -4,21 +4,26 @@ import '../../core/theme/app_tokens.dart';
 import 'car_assets.dart';
 import '../remote_car_image.dart';
 
+enum CarOverlayStyle {
+  /// Splash / login / configurator — sized for local podium widget.
+  hero,
+  /// Composited on server background — wheels align to rendered podium.
+  backgroundPreview,
+}
+
 /// Transparent car render loaded from the server, sized to fit without clipping.
 class CarOverlay extends StatelessWidget {
   final CarViewAngle view;
   final AppTokens tokens;
   final Color? bodyColor;
-  final double heightFactor;
-  final double bottomInsetFactor;
+  final CarOverlayStyle style;
 
   const CarOverlay({
     super.key,
     required this.view,
     required this.tokens,
     this.bodyColor,
-    this.heightFactor = 0.62,
-    this.bottomInsetFactor = 0.08,
+    this.style = CarOverlayStyle.hero,
   });
 
   static bool supportsBackgroundAngle(String? angle) => angle != 'interior';
@@ -31,24 +36,21 @@ class CarOverlay extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final w = constraints.maxWidth;
         final h = constraints.maxHeight;
-        final carHeight = h * heightFactor;
-        final bottom = h * bottomInsetFactor;
 
-        return Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(4, 8, 4, bottom),
-            child: SizedBox(
-              height: carHeight,
-              width: constraints.maxWidth,
-              child: RemoteCarImage(
-                imagePath: imagePath,
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomCenter,
-                tintColor: bodyColor,
-              ),
-            ),
+        final padding = switch (style) {
+          CarOverlayStyle.hero => EdgeInsets.fromLTRB(w * 0.02, h * 0.04, w * 0.02, h * 0.20),
+          CarOverlayStyle.backgroundPreview => EdgeInsets.fromLTRB(w * 0.04, h * 0.05, w * 0.04, h * 0.27),
+        };
+
+        return Padding(
+          padding: padding,
+          child: RemoteCarImage(
+            imagePath: imagePath,
+            fit: BoxFit.contain,
+            alignment: Alignment.bottomCenter,
+            tintColor: bodyColor,
           ),
         );
       },

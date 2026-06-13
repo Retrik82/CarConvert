@@ -10,8 +10,6 @@ import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/car_hero.dart';
 import '../widgets/form_fields.dart';
 import 'forgot_password_screen.dart';
-import 'register_screen.dart';
-
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoggedIn;
 
@@ -37,7 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await AuthRepository.instance.login(_email.text.trim(), _password.text);
-      if (mounted) widget.onLoggedIn();
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      widget.onLoggedIn();
     } catch (e) {
       setState(() => _error = userFacingError(e));
     } finally {
@@ -111,19 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: s.login,
                   loading: _loading,
                   onPressed: _loading ? null : _login,
-                ),
-                const SizedBox(height: DesignTokens.spacing12),
-                AppButton(
-                  label: s.register,
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RegisterScreen(onRegistered: widget.onLoggedIn),
-                      ),
-                    );
-                  },
                 ),
                 TextButton(
                   onPressed: () {

@@ -30,6 +30,7 @@ class SeedService:
         from app.services.background_service import BackgroundService
 
         await BackgroundService(self._db).seed_presets()
+        await BackgroundService(self._db).sync_preset_images()
 
         from app.services.car_asset_service import seed_car_assets
 

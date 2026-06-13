@@ -35,6 +35,7 @@ class BackgroundScenePreview extends StatelessWidget {
 
     Widget child = Stack(
       fit: StackFit.expand,
+      clipBehavior: Clip.none,
       children: [
         AuthenticatedBackgroundImage(
           previewPath: previewPath,
@@ -44,8 +45,7 @@ class BackgroundScenePreview extends StatelessWidget {
           CarOverlay(
             view: carView,
             tokens: tokens,
-            heightFactor: 0.52,
-            bottomInsetFactor: 0.11,
+            style: CarOverlayStyle.backgroundPreview,
           ),
       ],
     );
