@@ -63,6 +63,46 @@ abstract class AppStrings {
   String get backgroundSelected;
   String get startCapture;
 
+  // Backgrounds
+  String get backgroundsTitle;
+  String get backgroundsIntro;
+  String get sharedBackgrounds;
+  String get yourBackgrounds;
+  String get selectBackground;
+  String get useThisBackground;
+  String get customBackground;
+  String get createCustomBackground;
+  String get customBackgroundPrice;
+  String get backgroundName;
+  String get backgroundNameHint;
+  String get backgroundPrompt;
+  String get backgroundPromptHint;
+  String get generate;
+  String get personal;
+  String get fieldRequired;
+  String get promptMinLength;
+
+  // Capture
+  String get captureTitle;
+  String get captureCamera;
+  String get captureGallery;
+  String get uploadFromGallery;
+  String get selectGalleryPhoto;
+  String get advisorConnecting;
+  String get advisorPointCamera;
+  String get advisorPerfectFrame;
+  String get advisorLowLight;
+  String get advisorMoveLeft;
+  String get advisorMoveRight;
+  String get advisorMoveBack;
+  String get advisorMoveCloser;
+  String get advisorAlignCar;
+  String get advisorImproveFocus;
+  String confidenceLabel(int percent);
+  String get qualityFraming;
+  String get qualityLighting;
+  String get qualityFocus;
+
   // Navigation
   String get navHome;
   String get navCars;

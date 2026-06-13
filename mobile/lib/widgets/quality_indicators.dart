@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+class QualityLabels {
+  final String framing;
+  final String lighting;
+  final String focus;
+
+  const QualityLabels({
+    required this.framing,
+    required this.lighting,
+    required this.focus,
+  });
+}
 
 class QualityIndicators extends StatelessWidget {
   final double framingScore;
   final double lightingScore;
   final double focusScore;
+  final QualityLabels labels;
 
   const QualityIndicators({
     super.key,
     required this.framingScore,
     required this.lightingScore,
     required this.focusScore,
+    required this.labels,
   });
 
   @override
@@ -19,19 +31,19 @@ class QualityIndicators extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(AppTheme.radiusInput),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        color: Colors.black.withValues(alpha: 0.48),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _scoreRow('Framing', framingScore),
+          _scoreRow(labels.framing, framingScore),
           const SizedBox(height: 10),
-          _scoreRow('Lighting', lightingScore),
+          _scoreRow(labels.lighting, lightingScore),
           const SizedBox(height: 10),
-          _scoreRow('Focus', focusScore),
+          _scoreRow(labels.focus, focusScore),
         ],
       ),
     );
@@ -39,7 +51,7 @@ class QualityIndicators extends StatelessWidget {
 
   Widget _scoreRow(String label, double score) {
     final color = score >= 0.75
-        ? AppTheme.success
+        ? const Color(0xFF66BB6A)
         : score >= 0.5
             ? Colors.white.withValues(alpha: 0.85)
             : const Color(0xFFE57373);
@@ -50,7 +62,7 @@ class QualityIndicators extends StatelessWidget {
           width: 72,
           child: Text(
             label,
-            style: AppTheme.textStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.white70),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.7)),
           ),
         ),
         Expanded(
@@ -67,7 +79,7 @@ class QualityIndicators extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '${(score * 100).round()}%',
-          style: AppTheme.textStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
         ),
       ],
     );

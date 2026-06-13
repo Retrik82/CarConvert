@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../datasource/remote/background_remote_datasource.dart';
 import '../models/background.dart';
 import 'auth_repository.dart';
@@ -12,6 +14,7 @@ class BackgroundRepository {
   late final BackgroundRemoteDataSource _remote;
 
   SelectedBackground? _selected;
+  final Map<String, Uint8List> _imageCache = {};
 
   SelectedBackground? get selected => _selected;
 
@@ -31,8 +34,15 @@ class BackgroundRepository {
   }) =>
       _remote.createCustomBackground(name: name, prompt: prompt);
 
-  Future<List<int>> fetchImageBytes(String previewPath) async {
+  Future<Uint8List> fetchImageBytes(String previewPath) async {
+    final cached = _imageCache[previewPath];
+    if (cached != null) return cached;
+
     final bytes = await _remote.fetchImageBytes(previewPath);
-    return bytes;
+    final data = Uint8List.fromList(bytes);
+    _imageCache[previewPath] = data;
+    return data;
   }
+
+  void clearImageCache() => _imageCache.clear();
 }

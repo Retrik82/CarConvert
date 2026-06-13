@@ -50,7 +50,7 @@ class StringsDe extends AppStrings {
   String greeting(String name) => 'Hallo, $name';
 
   @override
-  String get dashboardSubtitle => 'Studio konfigurieren oder sofort aufnehmen.';
+  String get dashboardSubtitle => 'Szene wählen und Aufnahme starten.';
 
   @override
   String get configureStudio => 'Studio konfigurieren';
@@ -72,6 +72,114 @@ class StringsDe extends AppStrings {
 
   @override
   String get startCapture => 'Aufnahme starten';
+
+  @override
+  String get backgroundsTitle => 'Hintergründe';
+
+  @override
+  String get backgroundsIntro => 'Wählen Sie die Studio-Umgebung vor der Aufnahme. Jede Szene unterstützt 7 Kamerawinkel.';
+
+  @override
+  String get sharedBackgrounds => 'Geteilte Hintergründe';
+
+  @override
+  String get yourBackgrounds => 'Ihre Hintergründe';
+
+  @override
+  String get selectBackground => 'Hintergrund wählen';
+
+  @override
+  String get useThisBackground => 'Diesen Hintergrund verwenden';
+
+  @override
+  String get customBackground => 'Eigener';
+
+  @override
+  String get createCustomBackground => 'Eigenen Hintergrund erstellen';
+
+  @override
+  String get customBackgroundPrice => 'Preis:';
+
+  @override
+  String get backgroundName => 'Name';
+
+  @override
+  String get backgroundNameHint => 'Mein Studio';
+
+  @override
+  String get backgroundPrompt => 'Prompt';
+
+  @override
+  String get backgroundPromptHint => 'Beschreiben Sie die leere Umgebung für Ihre Fahrzeugbilder…';
+
+  @override
+  String get generate => 'Generieren für';
+
+  @override
+  String get personal => 'Persönlich';
+
+  @override
+  String get fieldRequired => 'Pflichtfeld';
+
+  @override
+  String get promptMinLength => 'Prompt muss mindestens 10 Zeichen haben';
+
+  @override
+  String get captureTitle => 'Aufnahme';
+
+  @override
+  String get captureCamera => 'Kamera';
+
+  @override
+  String get captureGallery => 'Galerie';
+
+  @override
+  String get uploadFromGallery => 'Aus Galerie hochladen';
+
+  @override
+  String get selectGalleryPhoto => 'Foto aus Galerie wählen';
+
+  @override
+  String get advisorConnecting => 'Berater wird verbunden…';
+
+  @override
+  String get advisorPointCamera => 'Kamera auf das Auto richten';
+
+  @override
+  String get advisorPerfectFrame => 'Perfektes Framing — jetzt aufnehmen';
+
+  @override
+  String get advisorLowLight => 'Wenig Licht — mehr Beleuchtung finden';
+
+  @override
+  String get advisorMoveLeft => 'Kamera nach links bewegen';
+
+  @override
+  String get advisorMoveRight => 'Kamera nach rechts bewegen';
+
+  @override
+  String get advisorMoveBack => 'Schritt zurück';
+
+  @override
+  String get advisorMoveCloser => 'Näher heran';
+
+  @override
+  String get advisorAlignCar => 'Auto im Bild zentrieren';
+
+  @override
+  String get advisorImproveFocus => 'Fokus verbessern';
+
+  @override
+  String confidenceLabel(int percent) => 'Konfidenz: $percent%';
+
+  @override
+  String get qualityFraming => 'Framing';
+
+  @override
+  String get qualityLighting => 'Licht';
+
+  @override
+  String get qualityFocus => 'Fokus';
 
   @override
   String get navHome => 'Start';

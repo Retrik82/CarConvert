@@ -50,7 +50,7 @@ class StringsRu extends AppStrings {
   String greeting(String name) => 'Привет, $name';
 
   @override
-  String get dashboardSubtitle => 'Настройте студию или начните съёмку.';
+  String get dashboardSubtitle => 'Выберите сцену и начните съёмку.';
 
   @override
   String get configureStudio => 'Настроить студию';
@@ -72,6 +72,114 @@ class StringsRu extends AppStrings {
 
   @override
   String get startCapture => 'Начать съёмку';
+
+  @override
+  String get backgroundsTitle => 'Фоны';
+
+  @override
+  String get backgroundsIntro => 'Выберите студийное окружение перед съёмкой. Каждая сцена поддерживает 7 ракурсов.';
+
+  @override
+  String get sharedBackgrounds => 'Общие фоны';
+
+  @override
+  String get yourBackgrounds => 'Ваши фоны';
+
+  @override
+  String get selectBackground => 'Выбрать фон';
+
+  @override
+  String get useThisBackground => 'Использовать этот фон';
+
+  @override
+  String get customBackground => 'Свой';
+
+  @override
+  String get createCustomBackground => 'Создать свой фон';
+
+  @override
+  String get customBackgroundPrice => 'Цена:';
+
+  @override
+  String get backgroundName => 'Название';
+
+  @override
+  String get backgroundNameHint => 'Моя студия';
+
+  @override
+  String get backgroundPrompt => 'Промпт';
+
+  @override
+  String get backgroundPromptHint => 'Опишите пустое окружение для рендера автомобиля…';
+
+  @override
+  String get generate => 'Сгенерировать за';
+
+  @override
+  String get personal => 'Личный';
+
+  @override
+  String get fieldRequired => 'Обязательное поле';
+
+  @override
+  String get promptMinLength => 'Промпт должен быть не короче 10 символов';
+
+  @override
+  String get captureTitle => 'Съёмка';
+
+  @override
+  String get captureCamera => 'Камера';
+
+  @override
+  String get captureGallery => 'Галерея';
+
+  @override
+  String get uploadFromGallery => 'Загрузить из галереи';
+
+  @override
+  String get selectGalleryPhoto => 'Выберите фото из галереи';
+
+  @override
+  String get advisorConnecting => 'Подключение советчика…';
+
+  @override
+  String get advisorPointCamera => 'Наведите камеру на автомобиль';
+
+  @override
+  String get advisorPerfectFrame => 'Идеальный кадр — снимайте';
+
+  @override
+  String get advisorLowLight => 'Мало света — найдите освещение';
+
+  @override
+  String get advisorMoveLeft => 'Сдвиньте камеру влево';
+
+  @override
+  String get advisorMoveRight => 'Сдвиньте камеру вправо';
+
+  @override
+  String get advisorMoveBack => 'Отойдите назад';
+
+  @override
+  String get advisorMoveCloser => 'Подойдите ближе';
+
+  @override
+  String get advisorAlignCar => 'Центрируйте автомобиль в кадре';
+
+  @override
+  String get advisorImproveFocus => 'Улучшите фокус';
+
+  @override
+  String confidenceLabel(int percent) => 'Уверенность: $percent%';
+
+  @override
+  String get qualityFraming => 'Кадр';
+
+  @override
+  String get qualityLighting => 'Свет';
+
+  @override
+  String get qualityFocus => 'Фокус';
 
   @override
   String get navHome => 'Главная';

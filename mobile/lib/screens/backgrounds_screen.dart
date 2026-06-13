@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../models/background.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
-import '../widgets/authenticated_background_image.dart';
+import '../widgets/background_scene_preview.dart';
+import '../widgets/design_system/app_button.dart';
+import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/state_views.dart';
 import '../widgets/form_fields.dart';
 
 class BackgroundsScreen extends StatefulWidget {
@@ -21,11 +26,20 @@ class BackgroundsScreen extends StatefulWidget {
 class _BackgroundsScreenState extends State<BackgroundsScreen> {
   final _repo = BackgroundRepository.instance;
   BackgroundCatalog? _catalog;
-  BackgroundPreset? _expandedPreset;
   String _selectedAngle = 'three_quarter_left';
   bool _loading = true;
   bool _creating = false;
   String? _error;
+
+  static const _angles = [
+    ('three_quarter_left', '3/4 L'),
+    ('three_quarter_right', '3/4 R'),
+    ('left', 'Left'),
+    ('right', 'Right'),
+    ('front', 'Front'),
+    ('rear', 'Rear'),
+    ('interior', 'Inside'),
+  ];
 
   @override
   void initState() {
@@ -43,13 +57,10 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
       if (!mounted) return;
       setState(() {
         _catalog = catalog;
-        _expandedPreset ??= catalog.presets.isNotEmpty ? catalog.presets.first : null;
         if (_repo.selected == null && catalog.presets.isNotEmpty) {
           final preset = catalog.presets.first;
           final variant = preset.defaultVariant;
-          if (variant != null) {
-            _repo.select(preset, variant);
-          }
+          if (variant != null) _repo.select(preset, variant);
         }
       });
     } catch (e) {
@@ -70,25 +81,23 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   Future<void> _showCreateSheet() async {
     final catalog = _catalog;
     if (catalog == null) return;
+    final s = context.strings;
+    final tokens = context.tokens;
 
     final nameController = TextEditingController();
     final promptController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    final created = await showModalBottomSheet<BackgroundPreset>(
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            left: DesignTokens.screenPaddingH,
+            right: DesignTokens.screenPaddingH,
+            top: DesignTokens.spacing24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + DesignTokens.spacing24,
           ),
           child: Form(
             key: formKey,
@@ -96,62 +105,37 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(s.createCustomBackground, style: tokens.textStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                const SizedBox(height: DesignTokens.spacing8),
                 Text(
-                  'Create custom background',
-                  style: AppTheme.textStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  '${s.customBackgroundPrice} ${MoneyFormat.usd(catalog.customBackgroundPriceUsd)}',
+                  style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your personal background will be saved and available only to you. '
-                  'Price: ${MoneyFormat.usd(catalog.customBackgroundPriceUsd)}',
-                  style: AppTheme.textStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: DesignTokens.spacing16),
                 TextFormField(
                   controller: nameController,
-                  decoration: appInputDecoration('Name', hint: 'My studio'),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Enter a name' : null,
+                  decoration: appInputDecoration(s.backgroundName, hint: s.backgroundNameHint),
+                  validator: (v) => v == null || v.trim().isEmpty ? s.fieldRequired : null,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DesignTokens.spacing12),
                 TextFormField(
                   controller: promptController,
                   minLines: 4,
                   maxLines: 6,
-                  decoration: appInputDecoration(
-                    'Prompt',
-                    hint: 'Describe the empty environment for your car renders...',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().length < 10) {
-                      return 'Prompt must be at least 10 characters';
-                    }
-                    return null;
-                  },
+                  decoration: appInputDecoration(s.backgroundPrompt, hint: s.backgroundPromptHint),
+                  validator: (v) => v == null || v.trim().length < 10 ? s.promptMinLength : null,
                 ),
-                const SizedBox(height: 20),
-                FilledButton(
+                const SizedBox(height: DesignTokens.spacing16),
+                AppButton(
+                  label: '${s.generate} ${MoneyFormat.usd(catalog.customBackgroundPriceUsd)}',
+                  loading: _creating,
                   onPressed: _creating
                       ? null
                       : () async {
                           if (!formKey.currentState!.validate()) return;
                           Navigator.pop(ctx);
-                          await _createCustom(
-                            nameController.text.trim(),
-                            promptController.text.trim(),
-                          );
+                          await _createCustom(nameController.text.trim(), promptController.text.trim());
                         },
-                  child: _creating
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text('Generate for ${MoneyFormat.usd(catalog.customBackgroundPriceUsd)}'),
                 ),
               ],
             ),
@@ -159,10 +143,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
         );
       },
     );
-
-    if (created != null) {
-      _selectPreset(created);
-    }
   }
 
   Future<void> _createCustom(String name, String prompt) async {
@@ -179,18 +159,15 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
           'Insufficient balance. Need ${MoneyFormat.usd(price)}, available ${MoneyFormat.usd(user.balance)}',
         );
       }
-
       final preset = await _repo.createCustomBackground(name: name, prompt: prompt);
+      _repo.clearImageCache();
       await AuthRepository.instance.refreshCurrentUser();
       await _load();
       if (!mounted) return;
-      setState(() => _expandedPreset = preset);
       _selectPreset(preset);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(userFacingError(e))),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userFacingError(e))));
       }
     } finally {
       if (mounted) setState(() => _creating = false);
@@ -199,81 +176,72 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
     final selected = _repo.selected;
 
     return Scaffold(
+      backgroundColor: tokens.background,
       appBar: AppBar(
-        title: const Text('Backgrounds'),
+        title: Text(s.backgroundsTitle),
         actions: [
           TextButton.icon(
             onPressed: _creating ? null : _showCreateSheet,
             icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-            label: const Text('Custom'),
+            label: Text(s.customBackground),
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: tokens.accent))
           : _error != null
-              ? _ErrorState(message: _error!, onRetry: _load)
+              ? ErrorStateView(message: _error!, onRetry: _load)
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    padding: const EdgeInsets.all(AppTheme.spacingScreenH),
+                    padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
                     children: [
                       Text(
-                        'Choose a scene before capture',
-                        style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        s.backgroundsIntro,
+                        style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Each background includes 7 perspective variants for different car angles.',
-                        style: AppTheme.textStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: DesignTokens.spacing16),
                       _AngleSelector(
+                        angles: _angles,
                         selectedAngle: _selectedAngle,
-                        onChanged: (angle) => setState(() => _selectedAngle = angle),
+                        onChanged: (a) => setState(() => _selectedAngle = a),
                       ),
                       if (selected != null) ...[
-                        const SizedBox(height: 16),
-                        _SelectedBanner(selected: selected),
+                        const SizedBox(height: DesignTokens.spacing16),
+                        _SelectedBanner(selected: selected, angle: _selectedAngle),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: DesignTokens.spacing24),
                       if (_catalog!.presets.isNotEmpty) ...[
-                        _SectionTitle(title: 'Shared backgrounds'),
-                        const SizedBox(height: 12),
+                        Text(s.sharedBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: DesignTokens.spacing12),
                         ..._catalog!.presets.map(
                           (preset) => _BackgroundCard(
                             preset: preset,
                             selectedAngle: _selectedAngle,
                             isSelected: selected?.preset.id == preset.id && !preset.isCustom,
-                            isExpanded: _expandedPreset?.id == preset.id,
-                            onExpand: () => setState(() => _expandedPreset = preset),
                             onSelect: () => _selectPreset(preset),
                           ),
                         ),
                       ],
                       if (_catalog!.custom.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        _SectionTitle(title: 'Your backgrounds'),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: DesignTokens.spacing24),
+                        Text(s.yourBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: DesignTokens.spacing12),
                         ..._catalog!.custom.map(
                           (preset) => _BackgroundCard(
                             preset: preset,
                             selectedAngle: _selectedAngle,
-                            isSelected: selected?.preset.id == preset.id && preset.isCustom,
-                            isExpanded: _expandedPreset?.id == preset.id,
-                            onExpand: () => setState(() => _expandedPreset = preset),
+                            isSelected: selected?.preset.id == preset.id,
                             onSelect: () => _selectPreset(preset),
                           ),
                         ),
                       ],
-                      const SizedBox(height: 32),
+                      const SizedBox(height: DesignTokens.spacing32),
                     ],
                   ),
                 ),
@@ -281,56 +249,43 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String title;
-
-  const _SectionTitle({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w600),
-    );
-  }
-}
-
 class _AngleSelector extends StatelessWidget {
+  final List<(String, String)> angles;
   final String selectedAngle;
   final ValueChanged<String> onChanged;
 
   const _AngleSelector({
+    required this.angles,
     required this.selectedAngle,
     required this.onChanged,
   });
 
-  static const _angles = [
-    ('three_quarter_left', '3/4 L'),
-    ('three_quarter_right', '3/4 R'),
-    ('left', 'Left'),
-    ('right', 'Right'),
-    ('front', 'Front'),
-    ('rear', 'Rear'),
-    ('interior', 'Inside'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return SizedBox(
       height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _angles.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemCount: angles.length,
+        separatorBuilder: (_, __) => const SizedBox(width: DesignTokens.spacing8),
         itemBuilder: (context, index) {
-          final (angle, label) = _angles[index];
+          final (angle, label) = angles[index];
           final selected = angle == selectedAngle;
-          return ChoiceChip(
+          return FilterChip(
             label: Text(label),
             selected: selected,
             onSelected: (_) => onChanged(angle),
-            selectedColor: AppTheme.accent,
-            labelStyle: TextStyle(color: selected ? AppTheme.white : AppTheme.textPrimary),
+            selectedColor: tokens.accent,
+            checkmarkColor: tokens.onAccent,
+            labelStyle: tokens.textStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: selected ? tokens.onAccent : tokens.textPrimary,
+            ),
+            side: BorderSide(color: tokens.border),
+            backgroundColor: tokens.surface,
           );
         },
       ),
@@ -340,48 +295,49 @@ class _AngleSelector extends StatelessWidget {
 
 class _SelectedBanner extends StatelessWidget {
   final SelectedBackground selected;
+  final String angle;
 
-  const _SelectedBanner({required this.selected});
+  const _SelectedBanner({required this.selected, required this.angle});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: AppTheme.cardDecoration(color: AppTheme.surfaceMuted, showBorder: true),
+    final tokens = context.tokens;
+    final s = context.strings;
+
+    return AppCard(
+      selected: true,
+      padding: const EdgeInsets.all(DesignTokens.spacing12),
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
             child: SizedBox(
-              width: 56,
-              height: 56,
-              child: AuthenticatedBackgroundImage(
-                previewPath: selected.previewUrl,
-                borderRadius: BorderRadius.circular(12),
+              width: 64,
+              height: 64,
+              child: BackgroundScenePreview(
+                preset: selected.preset,
+                angle: angle,
+                borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: DesignTokens.spacing12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Selected: ${selected.displayName}',
-                  style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  '${s.backgroundSelected}: ${selected.displayName}',
+                  style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 Text(
                   selected.variant.angleLabel,
-                  style: AppTheme.textStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    color: AppTheme.textSecondary,
-                  ),
+                  style: tokens.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.check_circle, color: AppTheme.success),
+          Icon(Icons.check_circle_rounded, color: tokens.success, size: 22),
         ],
       ),
     );
@@ -392,145 +348,106 @@ class _BackgroundCard extends StatelessWidget {
   final BackgroundPreset preset;
   final String selectedAngle;
   final bool isSelected;
-  final bool isExpanded;
-  final VoidCallback onExpand;
   final VoidCallback onSelect;
 
   const _BackgroundCard({
     required this.preset,
     required this.selectedAngle,
     required this.isSelected,
-    required this.isExpanded,
-    required this.onExpand,
     required this.onSelect,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
     final variant = preset.variantByAngle(selectedAngle) ?? preset.defaultVariant;
-    final previewPath = variant?.previewUrl ?? preset.previewUrl;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          onTap: onExpand,
-          child: Container(
-            decoration: AppTheme.cardDecoration(
-              showBorder: true,
-              color: isSelected ? AppTheme.surfaceMuted : AppTheme.surface,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusCard)),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: AuthenticatedBackgroundImage(previewPath: previewPath),
-                  ),
+      padding: const EdgeInsets.only(bottom: DesignTokens.spacing12),
+      child: AppCard(
+        selected: isSelected,
+        padding: EdgeInsets.zero,
+        onTap: onSelect,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusCard)),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: BackgroundScenePreview(
+                  preset: preset,
+                  angle: selectedAngle,
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(DesignTokens.spacing16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              preset.name,
-                              style: AppTheme.textStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          if (preset.isCustom)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accent.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Personal',
-                                style: AppTheme.textStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ),
-                        ],
+                      Expanded(
+                        child: Text(
+                          preset.name,
+                          style: tokens.textStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                        ),
                       ),
-                      if (preset.description != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          preset.description!,
-                          style: AppTheme.textStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: AppTheme.textSecondary,
+                      if (preset.isCustom)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: tokens.surfaceMuted,
+                            borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                          ),
+                          child: Text(
+                            s.personal,
+                            style: tokens.textStyle(fontSize: 12, fontWeight: FontWeight.w500, color: tokens.textSecondary),
                           ),
                         ),
-                      ],
-                      if (isExpanded) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: preset.variants
-                              .map(
-                                (item) => Chip(
-                                  label: Text(item.angleLabel),
-                                  backgroundColor: item.angle == selectedAngle
-                                      ? AppTheme.accent
-                                      : AppTheme.surfaceMuted,
-                                  labelStyle: TextStyle(
-                                    color: item.angle == selectedAngle
-                                        ? AppTheme.white
-                                        : AppTheme.textPrimary,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: onSelect,
-                          child: Text(isSelected ? 'Use this background' : 'Select background'),
-                        ),
-                      ],
                     ],
                   ),
-                ),
-              ],
+                  if (preset.description != null) ...[
+                    const SizedBox(height: DesignTokens.spacing8),
+                    Text(
+                      preset.description!,
+                      style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: tokens.textSecondary),
+                    ),
+                  ],
+                  if (variant != null) ...[
+                    const SizedBox(height: DesignTokens.spacing12),
+                    Wrap(
+                      spacing: DesignTokens.spacing8,
+                      runSpacing: DesignTokens.spacing8,
+                      children: preset.variants
+                          .map(
+                            (v) => Chip(
+                              label: Text(v.angleLabel),
+                              backgroundColor: v.angle == selectedAngle ? tokens.accent : tokens.surfaceMuted,
+                              labelStyle: tokens.textStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: v.angle == selectedAngle ? tokens.onAccent : tokens.textPrimary,
+                              ),
+                              side: BorderSide.none,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: DesignTokens.spacing12),
+                  AppButton(
+                    label: isSelected ? s.useThisBackground : s.selectBackground,
+                    variant: isSelected ? AppButtonVariant.primary : AppButtonVariant.secondary,
+                    expanded: true,
+                    onPressed: onSelect,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

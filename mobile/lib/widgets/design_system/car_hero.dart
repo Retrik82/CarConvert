@@ -142,9 +142,9 @@ class _CarHeroPainter extends CustomPainter {
 
   void _drawCar(Canvas canvas, double w, double h) {
     final cx = w / 2;
-    final cy = h * 0.52;
-    final carW = w * 0.78;
-    final carH = h * 0.28;
+    final cy = h * 0.50;
+    final carW = w * 0.86;
+    final carH = h * 0.32;
 
     final bodyPath = _buildCarBodyPath(cx, cy, carW, carH);
 
@@ -171,7 +171,24 @@ class _CarHeroPainter extends CustomPainter {
 
     _drawWindows(canvas, cx, cy, carW, carH);
     _drawWheels(canvas, cx, cy, carW, carH);
+    _drawDetails(canvas, cx, cy, carW, carH);
     _drawHighlight(canvas, bodyPath);
+  }
+
+  void _drawDetails(Canvas canvas, double cx, double cy, double carW, double carH) {
+    final left = cx - carW / 2;
+    final headlightY = cy - carH * 0.02;
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(left + carW * 0.9, headlightY), width: carW * 0.06, height: carH * 0.12),
+      Paint()..color = tokens.isDark ? const Color(0xFFE8E8EC) : const Color(0xFFFFF8F0),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(left + carW * 0.78, cy + carH * 0.08), width: carW * 0.12, height: carH * 0.06),
+        const Radius.circular(2),
+      ),
+      Paint()..color = tokens.isDark ? const Color(0xFF2A2A32) : const Color(0xFF404048),
+    );
   }
 
   Path _buildCarBodyPath(double cx, double cy, double carW, double carH) {
@@ -247,9 +264,9 @@ class _CarHeroPainter extends CustomPainter {
 
   void _drawHighlight(Canvas canvas, Path bodyPath) {
     final highlight = Paint()
-      ..color = tokens.carHighlight.withValues(alpha: tokens.isDark ? 0.08 : 0.35)
+      ..color = tokens.carHighlight.withValues(alpha: tokens.isDark ? 0.15 : 0.45)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+      ..strokeWidth = 2;
     canvas.drawPath(bodyPath, highlight);
   }
 

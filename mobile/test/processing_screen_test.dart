@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:carconvert/core/theme/app_theme_builder.dart';
 import 'package:carconvert/screens/processing_screen.dart';
-import 'package:carconvert/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,7 +9,7 @@ void main() {
   testWidgets('ProcessingScreen shows back button and progress UI', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.theme,
+        theme: AppThemeBuilder.light,
         home: ProcessingScreen(
           imageBytes: Uint8List.fromList([1, 2, 3]),
           autoStart: false,

@@ -9,17 +9,21 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/design_tokens.dart';
+import '../models/background.dart';
 import '../models/hint_response.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
 import '../repositories/camera_repository.dart';
 import '../repositories/photo_repository.dart';
 import '../repositories/settings_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/frame_crop.dart';
 import '../utils/money_format.dart';
+import '../widgets/background_scene_preview.dart';
 import '../widgets/capture_hint_overlay.dart';
+import '../widgets/design_system/app_button.dart';
 import 'backgrounds_screen.dart';
 import 'processing_screen.dart';
 
@@ -63,9 +67,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   void initState() {
     super.initState();
     _mode = widget.initialMode;
-    if (_mode == CaptureMode.camera) {
-      _initCamera();
-    }
+    if (_mode == CaptureMode.camera) _initCamera();
     _loadBilling();
   }
 
@@ -135,10 +137,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
         setState(() => _status = 'Authentication required');
         return;
       }
-      await _camera.connect(
-        sessionId: _sessionId!,
-        token: token,
-      );
+      await _camera.connect(sessionId: _sessionId!, token: token);
       _hintSub = _camera.hints.listen((h) {
         if (mounted) setState(() => _hint = h);
       });
@@ -312,11 +311,12 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.strings;
     final ready = _controller?.value.isInitialized ?? false;
     final user = AuthRepository.instance.currentUser;
-
     final canPop = Navigator.canPop(context);
     final selectedBackground = BackgroundRepository.instance.selected;
+    final isPerfect = _hint?.isPerfect == true;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -326,131 +326,87 @@ class _CaptureScreenState extends State<CaptureScreen> {
           if (_mode == CaptureMode.camera)
             (ready
                 ? CameraPreview(_controller!)
-                : const Center(child: CircularProgressIndicator(color: AppTheme.white)))
+                : const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)))
           else if (_galleryPreview != null)
             Image.memory(_galleryPreview!, fit: BoxFit.cover)
           else
             Container(
-              color: AppTheme.surface,
-              child: const Center(
+              color: const Color(0xFF121216),
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.photo_library_outlined, size: 64, color: AppTheme.textSecondary),
-                    SizedBox(height: 12),
-                    Text('Select a photo from gallery', style: TextStyle(color: AppTheme.textSecondary)),
+                    Icon(Icons.photo_library_outlined, size: 56, color: Colors.white.withValues(alpha: 0.4)),
+                    const SizedBox(height: DesignTokens.spacing12),
+                    Text(
+                      s.selectGalleryPhoto,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 15),
+                    ),
                   ],
                 ),
               ),
             ),
+
           if (_mode == CaptureMode.camera)
             CaptureHintOverlay(hint: _hint, status: _status),
-          if (user != null)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 56,
-              left: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusInput),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.account_balance_wallet_outlined, color: Colors.white.withValues(alpha: 0.9), size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      MoneyFormat.usd(user.balance),
-                      style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.white),
-                    ),
-                    const Spacer(),
-                    Text(
-                      MoneyFormat.pricePerGeneration(_generationPrice),
-                      style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (canPop)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 4,
-              left: 4,
-              child: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-            ),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 56,
-            right: 16,
-            child: Material(
-              color: Colors.black.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(AppTheme.radiusInput),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppTheme.radiusInput),
-                onTap: _openBackgrounds,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.wallpaper_outlined, color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        selectedBackground?.displayName ?? 'Background',
-                        style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
-                      ),
-                    ],
+
+          _GlassBar(
+            top: MediaQuery.of(context).padding.top + 8,
+            child: Row(
+              children: [
+                if (canPop)
+                  _GlassIconButton(icon: Icons.arrow_back_ios_new_rounded, onTap: () => Navigator.pop(context)),
+                if (canPop) const SizedBox(width: DesignTokens.spacing8),
+                Expanded(
+                  child: _ModePill(
+                    mode: _mode,
+                    onChanged: _switchMode,
+                    cameraLabel: s.captureCamera,
+                    galleryLabel: s.captureGallery,
                   ),
                 ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            right: 16,
-            child: SegmentedButton<CaptureMode>(
-              segments: const [
-                ButtonSegment(value: CaptureMode.camera, label: Text('Camera'), icon: Icon(Icons.camera_alt)),
-                ButtonSegment(value: CaptureMode.gallery, label: Text('Gallery'), icon: Icon(Icons.photo_library)),
               ],
-              selected: {_mode},
-              onSelectionChanged: (s) => _switchMode(s.first),
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) return Colors.white.withValues(alpha: 0.22);
-                  return Colors.black.withValues(alpha: 0.4);
-                }),
-                foregroundColor: WidgetStateProperty.all(Colors.white),
-                side: WidgetStateProperty.all(BorderSide(color: Colors.white.withValues(alpha: 0.15))),
-              ),
             ),
           ),
+
+          if (user != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 60,
+              left: DesignTokens.screenPaddingH,
+              child: _GlassChip(
+                icon: Icons.account_balance_wallet_outlined,
+                label: MoneyFormat.usd(user.balance),
+                trailing: MoneyFormat.pricePerGeneration(_generationPrice),
+              ),
+            ),
+
           Positioned(
-            bottom: 36,
+            top: MediaQuery.of(context).padding.top + 60,
+            right: DesignTokens.screenPaddingH,
+            child: GestureDetector(
+              onTap: _openBackgrounds,
+              child: _BackgroundChip(selectedBackground: selectedBackground, s: s),
+            ),
+          ),
+
+          Positioned(
+            bottom: MediaQuery.paddingOf(context).bottom + 24,
             left: 0,
             right: 0,
             child: _mode == CaptureMode.camera
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _ShutterButton(
-                        enabled: !_capturing,
-                        isPerfect: _hint?.isPerfect == true,
-                        onTap: _takePhoto,
-                      ),
-                    ],
+                ? _ShutterButton(
+                    enabled: !_capturing && ready,
+                    isPerfect: isPerfect,
+                    loading: _capturing,
+                    label: s.takePhoto,
+                    onTap: _takePhoto,
                   )
                 : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: FilledButton.icon(
+                    padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+                    child: AppButton(
+                      label: s.uploadFromGallery,
+                      icon: Icons.upload_rounded,
                       onPressed: _pickFromGallery,
-                      icon: const Icon(Icons.upload),
-                      label: const Text('Upload from Gallery'),
                     ),
                   ),
           ),
@@ -460,14 +416,216 @@ class _CaptureScreenState extends State<CaptureScreen> {
   }
 }
 
+class _GlassBar extends StatelessWidget {
+  final double top;
+  final Widget child;
+
+  const _GlassBar({required this.top, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: top,
+      left: DesignTokens.screenPaddingH,
+      right: DesignTokens.screenPaddingH,
+      child: child,
+    );
+  }
+}
+
+class _GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _GlassIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModePill extends StatelessWidget {
+  final CaptureMode mode;
+  final ValueChanged<CaptureMode> onChanged;
+  final String cameraLabel;
+  final String galleryLabel;
+
+  const _ModePill({
+    required this.mode,
+    required this.onChanged,
+    required this.cameraLabel,
+    required this.galleryLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          _pillItem(CaptureMode.camera, Icons.camera_alt_outlined, cameraLabel),
+          _pillItem(CaptureMode.gallery, Icons.photo_library_outlined, galleryLabel),
+        ],
+      ),
+    );
+  }
+
+  Widget _pillItem(CaptureMode value, IconData icon, String label) {
+    final selected = mode == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onChanged(value),
+        child: AnimatedContainer(
+          duration: DesignTokens.durationNormal,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white.withValues(alpha: 0.18) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: Colors.white.withValues(alpha: selected ? 1 : 0.65)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: Colors.white.withValues(alpha: selected ? 1 : 0.65),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String trailing;
+
+  const _GlassChip({required this.icon, required this.label, required this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 16),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 8),
+          Text(trailing, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackgroundChip extends StatelessWidget {
+  final SelectedBackground? selectedBackground;
+  final AppStrings s;
+
+  const _BackgroundChip({required this.selectedBackground, required this.s});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 160),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selectedBackground != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: BackgroundScenePreview(
+                  preset: selectedBackground!.preset,
+                  showCar: false,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.wallpaper_outlined, color: Colors.white.withValues(alpha: 0.7), size: 18),
+            ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              selectedBackground?.displayName ?? s.chooseBackground,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right_rounded, color: Colors.white.withValues(alpha: 0.5), size: 18),
+        ],
+      ),
+    );
+  }
+}
+
 class _ShutterButton extends StatelessWidget {
   final bool enabled;
   final bool isPerfect;
+  final bool loading;
+  final String label;
   final VoidCallback onTap;
 
   const _ShutterButton({
     required this.enabled,
     required this.isPerfect,
+    required this.loading,
+    required this.label,
     required this.onTap,
   });
 
@@ -476,26 +634,52 @@ class _ShutterButton extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Take Photo', style: TextStyle(color: Colors.white70, fontSize: 13)),
-        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: isPerfect ? const Color(0xFF66BB6A) : Colors.white.withValues(alpha: 0.75),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: DesignTokens.spacing12),
         GestureDetector(
-          onTap: enabled ? onTap : null,
-          child: Container(
-            width: 78,
-            height: 78,
+          onTap: enabled && !loading ? onTap : null,
+          child: AnimatedContainer(
+            duration: DesignTokens.durationNormal,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
+              border: Border.all(
+                color: isPerfect ? const Color(0xFF66BB6A) : Colors.white,
+                width: 3,
+              ),
+              boxShadow: isPerfect
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF66BB6A).withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
             ),
             child: Center(
-              child: Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isPerfect ? AppTheme.success : AppTheme.white,
-                ),
-              ),
+              child: loading
+                  ? const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isPerfect ? const Color(0xFF66BB6A) : Colors.white,
+                      ),
+                    ),
             ),
           ),
         ),

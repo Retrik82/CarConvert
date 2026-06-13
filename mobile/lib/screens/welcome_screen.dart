@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_theme_builder.dart';
 import '../core/l10n/app_strings.dart';
+import '../core/theme/app_theme_builder.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
-import '../features/configurator/screens/configurator_screen.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
 import '../widgets/design_system/app_card.dart';
@@ -69,15 +68,6 @@ class WelcomeScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const BackgroundsScreen()),
-    );
-  }
-
-  void _openConfigurator(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConfiguratorScreen(onBalanceChanged: onBalanceChanged),
-      ),
     );
   }
 
@@ -174,17 +164,11 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                           ),
                         _ActionCard(
-                          icon: Icons.tune_rounded,
-                          title: s.configureStudio,
-                          subtitle: s.selectStudio,
-                          onTap: () => _openConfigurator(context),
-                        ),
-                        const SizedBox(height: DesignTokens.spacing12),
-                        _ActionCard(
                           icon: Icons.wallpaper_outlined,
                           title: selectedBackground == null ? s.chooseBackground : s.changeBackground,
-                          subtitle: s.stepStudio,
+                          subtitle: s.backgroundsIntro.split('.').first,
                           onTap: () => _openBackgrounds(context),
+                          highlighted: selectedBackground == null,
                         ),
                         const SizedBox(height: DesignTokens.spacing12),
                         _ActionCard(

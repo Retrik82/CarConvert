@@ -50,7 +50,7 @@ class StringsEn extends AppStrings {
   String greeting(String name) => 'Hello, $name';
 
   @override
-  String get dashboardSubtitle => 'Configure your studio or capture now.';
+  String get dashboardSubtitle => 'Choose a scene and capture.';
 
   @override
   String get configureStudio => 'Configure Studio';
@@ -72,6 +72,114 @@ class StringsEn extends AppStrings {
 
   @override
   String get startCapture => 'Start Capture';
+
+  @override
+  String get backgroundsTitle => 'Backgrounds';
+
+  @override
+  String get backgroundsIntro => 'Pick the studio environment before capture. Each scene supports 7 camera angles.';
+
+  @override
+  String get sharedBackgrounds => 'Shared backgrounds';
+
+  @override
+  String get yourBackgrounds => 'Your backgrounds';
+
+  @override
+  String get selectBackground => 'Select background';
+
+  @override
+  String get useThisBackground => 'Use this background';
+
+  @override
+  String get customBackground => 'Custom';
+
+  @override
+  String get createCustomBackground => 'Create custom background';
+
+  @override
+  String get customBackgroundPrice => 'Price:';
+
+  @override
+  String get backgroundName => 'Name';
+
+  @override
+  String get backgroundNameHint => 'My studio';
+
+  @override
+  String get backgroundPrompt => 'Prompt';
+
+  @override
+  String get backgroundPromptHint => 'Describe the empty environment for your car renders…';
+
+  @override
+  String get generate => 'Generate for';
+
+  @override
+  String get personal => 'Personal';
+
+  @override
+  String get fieldRequired => 'This field is required';
+
+  @override
+  String get promptMinLength => 'Prompt must be at least 10 characters';
+
+  @override
+  String get captureTitle => 'Capture';
+
+  @override
+  String get captureCamera => 'Camera';
+
+  @override
+  String get captureGallery => 'Gallery';
+
+  @override
+  String get uploadFromGallery => 'Upload from Gallery';
+
+  @override
+  String get selectGalleryPhoto => 'Select a photo from gallery';
+
+  @override
+  String get advisorConnecting => 'Connecting advisor…';
+
+  @override
+  String get advisorPointCamera => 'Point the camera at the car';
+
+  @override
+  String get advisorPerfectFrame => 'Perfect framing — shoot now';
+
+  @override
+  String get advisorLowLight => 'Low lighting — find more light';
+
+  @override
+  String get advisorMoveLeft => 'Move camera left';
+
+  @override
+  String get advisorMoveRight => 'Move camera right';
+
+  @override
+  String get advisorMoveBack => 'Step back';
+
+  @override
+  String get advisorMoveCloser => 'Move closer';
+
+  @override
+  String get advisorAlignCar => 'Center the car in frame';
+
+  @override
+  String get advisorImproveFocus => 'Improve focus';
+
+  @override
+  String confidenceLabel(int percent) => 'Confidence: $percent%';
+
+  @override
+  String get qualityFraming => 'Framing';
+
+  @override
+  String get qualityLighting => 'Lighting';
+
+  @override
+  String get qualityFocus => 'Focus';
 
   @override
   String get navHome => 'Home';
