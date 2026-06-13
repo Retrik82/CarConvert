@@ -48,6 +48,17 @@ class HttpClient {
     });
   }
 
+  Future<http.Response> getUri(Uri uri, {bool json = false}) {
+    return authorized(() async {
+      return http
+          .get(
+            uri,
+            headers: await _buildAuthHeaders(json: json),
+          )
+          .timeout(apiTimeout);
+    });
+  }
+
   Future<http.Response> put(String path, Map<String, dynamic> body) {
     return authorized(() async {
       return http
@@ -61,11 +72,14 @@ class HttpClient {
   }
 
   Future<http.Response> post(String path, Map<String, dynamic> body, {bool useAuth = true}) async {
-    Future<http.Response> send() {
+    Future<http.Response> send() async {
+      final headers = useAuth
+          ? await _buildAuthHeaders()
+          : const {'Content-Type': 'application/json'};
       return http
           .post(
             Uri.parse('${Env.apiBaseUrl}$path'),
-            headers: useAuth ? const {'Content-Type': 'application/json'} : const {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode(body),
           )
           .timeout(apiTimeout);

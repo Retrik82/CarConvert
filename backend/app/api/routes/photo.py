@@ -21,6 +21,10 @@ settings = get_settings()
 async def process_photo(
     image: UploadFile = File(...),
     session_id: str | None = Form(default=None),
+    background_preset_id: str | None = Form(default=None),
+    background_variant_id: str | None = Form(default=None),
+    user_background_id: str | None = Form(default=None),
+    user_background_variant_id: str | None = Form(default=None),
     current_user: User = Depends(get_current_user),
     billing: BillingService = Depends(get_billing_service),
     session_service: SessionService = Depends(get_session_service),
@@ -57,6 +61,10 @@ async def process_photo(
         image_bytes,
         content_type_used,
         session_id,
+        background_preset_id=background_preset_id,
+        background_variant_id=background_variant_id,
+        user_background_id=user_background_id,
+        user_background_variant_id=user_background_variant_id,
     )
 
     asyncio.create_task(run_photo_job(job.id, current_user.id, settings.openrouter_api_key))

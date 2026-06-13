@@ -64,12 +64,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             children: [
               appTextField(
+                context: context,
                 controller: _name,
                 label: 'Name',
                 validator: (v) => Validators.required(v, 'Name'),
               ),
               const SizedBox(height: 16),
               appTextField(
+                context: context,
                 controller: _email,
                 label: 'Email',
                 keyboardType: TextInputType.emailAddress,
@@ -77,6 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               appTextField(
+                context: context,
                 controller: _password,
                 label: 'Password',
                 obscureText: true,
@@ -84,6 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               appTextField(
+                context: context,
                 controller: _confirmPassword,
                 label: 'Confirm password',
                 obscureText: true,

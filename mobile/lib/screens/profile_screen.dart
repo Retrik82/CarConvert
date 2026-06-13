@@ -3,18 +3,31 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_theme_builder.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../repositories/settings_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/money_format.dart';
+import '../widgets/design_system/app_button.dart';
+import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/summary_panel.dart';
+import '../widgets/design_system/theme_language_switcher.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
+  final AppSettingsController settings;
   final VoidCallback onLogout;
   final VoidCallback? onUserUpdated;
 
-  const ProfileScreen({super.key, required this.onLogout, this.onUserUpdated});
+  const ProfileScreen({
+    super.key,
+    required this.settings,
+    required this.onLogout,
+    this.onUserUpdated,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -58,17 +71,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    final s = context.strings;
+    final tokens = context.tokens;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Выйти из аккаунта?'),
-        content: const Text('Вы сможете войти снова в любое время.'),
+        title: Text(s.logoutConfirmTitle),
+        content: Text(s.logoutConfirmBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Выйти'),
+            style: FilledButton.styleFrom(backgroundColor: tokens.error),
+            child: Text(s.logout),
           ),
         ],
       ),
@@ -81,157 +97,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
     final user = AuthRepository.instance.currentUser;
     final name = _displayName ?? user?.displayName ?? '';
     final created = user?.createdAt;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Профиль'),
-        actions: [
-          IconButton(onPressed: _openEdit, icon: const Icon(Icons.edit_outlined)),
-          IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Выйти',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingScreenH),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: CircleAvatar(
-                radius: 48,
-                backgroundColor: AppTheme.surfaceMuted,
-                backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
-                    ? FileImage(File(_avatarPath!))
-                    : null,
-                child: _avatarPath == null || !File(_avatarPath!).existsSync()
-                    ? Text(
-                        (name.isNotEmpty ? name[0] : '?').toUpperCase(),
-                        style: AppTheme.textStyle(fontSize: 32, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-                      )
-                    : null,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacingElement),
-            Center(
-              child: Text(
-                name,
-                style: AppTheme.textStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-              ),
-            ),
-            Center(
-              child: Text(
-                user?.email ?? '',
-                style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
-              ),
-            ),
-            if (created != null) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'Member since ${DateFormat('MMM d, yyyy').format(created.toLocal())}',
-                  style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textTertiary),
+      backgroundColor: tokens.background,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: PremiumTopBar(
+                settings: widget.settings,
+                trailing: IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: _loading ? null : _load,
                 ),
               ),
-            ],
-            const SizedBox(height: AppTheme.spacingSection),
-            _infoCard(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Balance',
-              value: _loading ? '...' : MoneyFormat.usd(user?.balance ?? 0),
             ),
-            const SizedBox(height: AppTheme.spacingElement),
-            _infoCard(
-              icon: Icons.monetization_on_outlined,
-              title: 'Render price',
-              value: _loading ? '...' : MoneyFormat.pricePerGeneration(_generationPrice ?? 0.10),
-            ),
-            const SizedBox(height: AppTheme.spacingElement),
-            _paymentPlaceholder(),
-            const SizedBox(height: AppTheme.spacingSection),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.error,
-                  side: const BorderSide(color: AppTheme.error),
-                ),
-                child: const Text('Выйти из аккаунта'),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  Text(
+                    s.profile,
+                    style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w600, letterSpacing: -0.6),
+                  ),
+                  const SizedBox(height: DesignTokens.spacing24),
+                  Center(
+                    child: CircleAvatar(
+                      radius: 48,
+                      backgroundColor: tokens.surfaceMuted,
+                      backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
+                          ? FileImage(File(_avatarPath!))
+                          : null,
+                      child: _avatarPath == null || !File(_avatarPath!).existsSync()
+                          ? Text(
+                              (name.isNotEmpty ? name[0] : '?').toUpperCase(),
+                              style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w600),
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: DesignTokens.spacing16),
+                  Center(
+                    child: Text(
+                      name,
+                      style: tokens.textStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Center(
+                    child: Text(
+                      user?.email ?? '',
+                      style: tokens.textStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                  ),
+                  if (created != null) ...[
+                    const SizedBox(height: DesignTokens.spacing8),
+                    Center(
+                      child: Text(
+                        DateFormat.yMMMd().format(created.toLocal()),
+                        style: tokens.textStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: tokens.textTertiary,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: DesignTokens.spacing32),
+                  Text(
+                    s.settings,
+                    style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: DesignTokens.spacing12),
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          s.appearance,
+                          style: tokens.textStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                            color: tokens.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: DesignTokens.spacing12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(s.theme, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                            ),
+                            ThemeSwitcher(controller: widget.settings),
+                          ],
+                        ),
+                        const Divider(height: DesignTokens.spacing32),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(s.language, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                            ),
+                            LanguageSwitcher(controller: widget.settings),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: DesignTokens.spacing16),
+                  SummaryPanel(
+                    title: s.estimatedPrice,
+                    rows: [
+                      SummaryRow(
+                        label: 'Balance',
+                        value: _loading ? '…' : MoneyFormat.usd(user?.balance ?? 0),
+                      ),
+                      SummaryRow(
+                        label: s.estimatedPrice,
+                        value: _loading ? '…' : MoneyFormat.pricePerGeneration(_generationPrice ?? 0.10),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: DesignTokens.spacing16),
+                  AppButton(
+                    label: s.editProfile,
+                    variant: AppButtonVariant.secondary,
+                    icon: Icons.edit_outlined,
+                    onPressed: _openEdit,
+                  ),
+                  const SizedBox(height: DesignTokens.spacing12),
+                  AppButton(
+                    label: s.logout,
+                    variant: AppButtonVariant.ghost,
+                    icon: Icons.logout_rounded,
+                    onPressed: _logout,
+                  ),
+                  const SizedBox(height: DesignTokens.spacing32),
+                ]),
               ),
             ),
-            const SizedBox(height: AppTheme.spacingElement),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _infoCard({required IconData icon, required String title, required String value}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.spacingElement),
-      decoration: AppTheme.cardDecoration(),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.textPrimary, size: 22),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _paymentPlaceholder() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.spacingElement),
-      decoration: AppTheme.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.payment_outlined, color: AppTheme.textPrimary, size: 22),
-              const SizedBox(width: 14),
-              Text(
-                'Payment method',
-                style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Coming soon',
-            style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Top-up and card payments will be available in a future update.',
-            style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textTertiary),
-          ),
-        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.services.auth_service import AuthService
 from app.services.billing_service import BillingService
+from app.services.background_service import BackgroundService
 from app.services.job_service import JobService
 from app.services.session_service import SessionService
 from app.services.settings_service import SettingsService
@@ -41,6 +42,10 @@ def get_job_service(db: AsyncSession = Depends(get_db)) -> JobService:
 
 def get_billing_service(db: AsyncSession = Depends(get_db)) -> BillingService:
     return BillingService(db)
+
+
+def get_background_service(db: AsyncSession = Depends(get_db)) -> BackgroundService:
+    return BackgroundService(db)
 
 
 async def get_current_user(

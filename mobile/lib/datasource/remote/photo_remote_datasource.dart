@@ -32,6 +32,10 @@ class PhotoRemoteDataSource {
     Uint8List bytes,
     String filename, {
     String? sessionId,
+    String? backgroundPresetId,
+    String? backgroundVariantId,
+    String? userBackgroundId,
+    String? userBackgroundVariantId,
   }) async {
     Object? lastError;
     for (var attempt = 0; attempt < 2; attempt++) {
@@ -49,6 +53,18 @@ class PhotoRemoteDataSource {
           contentType: MediaType('image', 'jpeg'),
         ));
         if (sessionId != null) request.fields['session_id'] = sessionId;
+        if (backgroundPresetId != null) {
+          request.fields['background_preset_id'] = backgroundPresetId;
+        }
+        if (backgroundVariantId != null) {
+          request.fields['background_variant_id'] = backgroundVariantId;
+        }
+        if (userBackgroundId != null) {
+          request.fields['user_background_id'] = userBackgroundId;
+        }
+        if (userBackgroundVariantId != null) {
+          request.fields['user_background_variant_id'] = userBackgroundVariantId;
+        }
 
         final response = await _client.sendMultipart(request);
         if (response.statusCode >= 400) {

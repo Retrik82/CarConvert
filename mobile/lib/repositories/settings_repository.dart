@@ -13,4 +13,8 @@ class SettingsRepository {
   Future<double> getGenerationPrice() => _remote.getGenerationPrice();
 
   Future<double> setGenerationPrice(double priceUsd) => _remote.setGenerationPrice(priceUsd);
+
+  Future<double> getCustomBackgroundPrice() => _remote.getCustomBackgroundPrice();
+
+  Future<double> setCustomBackgroundPrice(double priceUsd) => _remote.setCustomBackgroundPrice(priceUsd);
 }

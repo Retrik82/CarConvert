@@ -29,6 +29,14 @@ class BillingService:
         await self._users.update_balance(user, balance - price)
         return price
 
+    async def charge_for_custom_background(self, user: User) -> Decimal:
+        price = await self._settings.get_custom_background_price()
+        balance = Decimal(str(user.balance))
+        if balance < price:
+            raise InsufficientBalanceError(balance, price)
+        await self._users.update_balance(user, balance - price)
+        return price
+
 
 async def charge_for_generation(db: AsyncSession, user: User) -> Decimal:
     return await BillingService(db).charge_for_generation(user)

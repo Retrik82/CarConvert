@@ -63,6 +63,49 @@ class UpdateGenerationPriceRequest(BaseModel):
     price_usd: Decimal = Field(gt=0, le=1000)
 
 
+class CustomBackgroundPriceOut(BaseModel):
+    price_usd: Decimal
+
+
+class UpdateCustomBackgroundPriceRequest(BaseModel):
+    price_usd: Decimal = Field(gt=0, le=1000)
+
+
+class BackgroundVariantOut(BaseModel):
+    id: str
+    angle: str
+    preview_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class BackgroundPresetOut(BaseModel):
+    id: str
+    slug: str
+    name: str
+    description: str | None = None
+    preview_url: str | None = None
+    variants: list[BackgroundVariantOut] = Field(default_factory=list)
+    is_custom: bool = False
+
+    model_config = {"from_attributes": True}
+
+
+class BackgroundCatalogResponse(BaseModel):
+    presets: list[BackgroundPresetOut]
+    custom: list[BackgroundPresetOut]
+    custom_background_price_usd: Decimal
+
+
+class CreateCustomBackgroundRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    prompt: str = Field(min_length=10, max_length=2000)
+
+
+class CreateCustomBackgroundResponse(BaseModel):
+    background: BackgroundPresetOut
+
+
 class RegisterRequest(DeviceMeta):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)

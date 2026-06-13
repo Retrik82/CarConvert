@@ -60,6 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               const SizedBox(height: 24),
               appTextField(
+                context: context,
                 controller: _email,
                 label: 'Email',
                 keyboardType: TextInputType.emailAddress,

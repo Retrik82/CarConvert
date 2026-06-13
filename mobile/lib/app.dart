@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/l10n/app_strings.dart';
+import 'core/theme/app_theme_builder.dart';
+import 'core/theme/design_tokens.dart';
 import 'screens/admin_shell.dart';
-import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/user_shell.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/car_repository.dart';
-import 'theme/app_theme.dart';
-import 'widgets/app_logo.dart';
+import 'widgets/design_system/car_hero.dart';
 
 enum AppDestination { login, userHome, adminHome }
 
@@ -17,17 +20,17 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AppLogo(showTagline: true),
-            SizedBox(height: 48),
-            SizedBox(
-              width: 36,
-              height: 36,
-              child: CircularProgressIndicator(strokeWidth: 3),
+            CarHero(height: 180, animate: true),
+            const SizedBox(height: DesignTokens.spacing48),
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
             ),
           ],
         ),
@@ -46,6 +49,8 @@ class RenderWheelsApp extends StatefulWidget {
 class _RenderWheelsAppState extends State<RenderWheelsApp> {
   static const _bootstrapTimeout = Duration(seconds: 5);
 
+  final _settings = AppSettingsController();
+
   bool _ready = false;
   AppDestination _destination = AppDestination.login;
 
@@ -63,6 +68,8 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
   }
 
   Future<void> _bootstrap() async {
+    await _settings.load();
+
     var next = AppDestination.login;
     try {
       await AuthRepository.instance.loadStoredSession().timeout(_bootstrapTimeout);
@@ -123,9 +130,9 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
 
     switch (_destination) {
       case AppDestination.login:
-        return LoginScreen(onLoggedIn: _onAuthSuccess);
+        return OnboardingScreen(settings: _settings, onLoggedIn: _onAuthSuccess);
       case AppDestination.userHome:
-        return UserShell(onLogout: _onLogout);
+        return UserShell(settings: _settings, onLogout: _onLogout);
       case AppDestination.adminHome:
         return AdminShell(onLogout: _onLogout);
     }
@@ -133,11 +140,27 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'RenderWheels',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
-      home: _buildHome(),
+    return ListenableBuilder(
+      listenable: _settings,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'RenderWheels',
+          debugShowCheckedModeBanner: false,
+          locale: _settings.locale,
+          supportedLocales: AppLanguage.values.map((l) => l.locale).toList(),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          theme: AppThemeBuilder.light,
+          darkTheme: AppThemeBuilder.dark,
+          themeMode: _settings.themeMode,
+          themeAnimationDuration: DesignTokens.durationTheme,
+          themeAnimationCurve: DesignTokens.curveStandard,
+          home: _buildHome(),
+        );
+      },
     );
   }
 }

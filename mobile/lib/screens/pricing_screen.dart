@@ -21,11 +21,13 @@ class PricingScreen extends StatefulWidget {
 class _PricingScreenState extends State<PricingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _priceController = TextEditingController();
+  final _customBackgroundPriceController = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _error;
   String? _success;
   double _currentPrice = 0.10;
+  double _currentCustomBackgroundPrice = 0.50;
 
   @override
   void initState() {
@@ -40,8 +42,11 @@ class _PricingScreenState extends State<PricingScreen> {
     });
     try {
       final price = await SettingsRepository.instance.getGenerationPrice();
+      final customPrice = await SettingsRepository.instance.getCustomBackgroundPrice();
       _currentPrice = price;
+      _currentCustomBackgroundPrice = customPrice;
       _priceController.text = price.toStringAsFixed(2);
+      _customBackgroundPriceController.text = customPrice.toStringAsFixed(2);
     } catch (e) {
       _error = userFacingError(e);
     } finally {
@@ -60,9 +65,13 @@ class _PricingScreenState extends State<PricingScreen> {
     });
     try {
       final price = await SettingsRepository.instance.setGenerationPrice(parsed);
+      final customPrice = double.parse(_customBackgroundPriceController.text.replaceAll(',', '.'));
+      final savedCustomPrice = await SettingsRepository.instance.setCustomBackgroundPrice(customPrice);
       _currentPrice = price;
+      _currentCustomBackgroundPrice = savedCustomPrice;
       _priceController.text = price.toStringAsFixed(2);
-      setState(() => _success = 'Price updated for all users');
+      _customBackgroundPriceController.text = savedCustomPrice.toStringAsFixed(2);
+      setState(() => _success = 'Prices updated for all users');
     } catch (e) {
       setState(() => _error = userFacingError(e));
     } finally {
@@ -73,6 +82,7 @@ class _PricingScreenState extends State<PricingScreen> {
   @override
   void dispose() {
     _priceController.dispose();
+    _customBackgroundPriceController.dispose();
     super.dispose();
   }
 
@@ -128,7 +138,34 @@ class _PricingScreenState extends State<PricingScreen> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: Validators.price,
                             style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppTheme.textPrimary),
-                            decoration: appInputDecoration('New price (USD)', hint: '0.10'),
+                            decoration: appInputDecoration('Generation price (USD)', hint: '0.10'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingElement),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: AppTheme.cardDecoration(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Custom background price',
+                            style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Current: ${MoneyFormat.usd(_currentCustomBackgroundPrice)}',
+                            style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _customBackgroundPriceController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: Validators.price,
+                            style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppTheme.textPrimary),
+                            decoration: appInputDecoration('Custom background price (USD)', hint: '0.50'),
                           ),
                         ],
                       ),
@@ -148,7 +185,7 @@ class _PricingScreenState extends State<PricingScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Changes apply globally for all users on the next render.',
+                      'Generation price applies per render. Custom background price is charged once when a user creates a personal background.',
                       style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textTertiary),
                     ),
                   ],

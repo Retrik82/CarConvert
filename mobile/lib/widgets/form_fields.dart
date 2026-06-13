@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../core/theme/app_tokens.dart';
 
 InputDecoration appInputDecoration(
   String label, {
+  BuildContext? context,
   String? hint,
   Widget? suffixIcon,
 }) {
@@ -15,6 +16,7 @@ InputDecoration appInputDecoration(
 }
 
 Widget appTextField({
+  required BuildContext context,
   required TextEditingController controller,
   required String label,
   String? hint,
@@ -23,27 +25,28 @@ Widget appTextField({
   String? Function(String?)? validator,
   AutovalidateMode autovalidateMode = AutovalidateMode.onUserInteraction,
 }) {
+  final tokens = context.tokens;
   return TextFormField(
     controller: controller,
     obscureText: obscureText,
     keyboardType: keyboardType,
     validator: validator,
     autovalidateMode: autovalidateMode,
-    style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppTheme.textPrimary),
+    style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w400),
     decoration: appInputDecoration(label, hint: hint),
   );
 }
 
-/// Inline feedback below forms.
-Widget appFormMessage(String text, {required bool isError}) {
+Widget appFormMessage(String text, {required bool isError, BuildContext? context}) {
+  final tokens = context != null ? context.tokens : AppTokens.light;
   return Padding(
-    padding: const EdgeInsets.only(top: AppTheme.spacingElement),
+    padding: const EdgeInsets.only(top: 16),
     child: Text(
       text,
-      style: AppTheme.textStyle(
+      style: tokens.textStyle(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: isError ? AppTheme.error : AppTheme.success,
+        color: isError ? tokens.error : tokens.success,
       ),
     ),
   );

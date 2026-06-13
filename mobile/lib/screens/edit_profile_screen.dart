@@ -127,6 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 24),
               appTextField(
+                context: context,
                 controller: _name,
                 label: 'Name',
                 validator: (v) => Validators.required(v, 'Name'),

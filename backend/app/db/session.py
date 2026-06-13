@@ -121,6 +121,17 @@ def _migrate_schema(sync_conn) -> None:
             if col not in rt_cols:
                 sync_conn.execute(text(ddl))
 
+    if "photo_jobs" in inspector.get_table_names():
+        job_cols = {col["name"] for col in inspector.get_columns("photo_jobs")}
+        for col in (
+            "background_preset_id",
+            "background_variant_id",
+            "user_background_id",
+            "user_background_variant_id",
+        ):
+            if col not in job_cols:
+                sync_conn.execute(text(f"ALTER TABLE photo_jobs ADD COLUMN {col} VARCHAR(36)"))
+
 
 async def ensure_db_ready(*, max_attempts: int = 8, delay_sec: float = 2.0) -> None:
     if _db_ready.is_set():

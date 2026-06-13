@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.roles import Role
 from app.core.security import hash_password
-from app.db.models.app_config import DEFAULT_GENERATION_PRICE
+from app.db.models.app_config import DEFAULT_CUSTOM_BACKGROUND_PRICE, DEFAULT_GENERATION_PRICE
 from app.db.models.user import User
 from app.repositories.app_config_repository import AppConfigRepository
 from app.repositories.user_repository import UserRepository
-from app.services.settings_service import GENERATION_PRICE_KEY
+from app.services.settings_service import CUSTOM_BACKGROUND_PRICE_KEY, GENERATION_PRICE_KEY
 
 ADMIN_EMAIL = "admin@admin.com"
 ADMIN_PASSWORD = "admin82"
@@ -24,6 +24,11 @@ class SeedService:
 
     async def seed_defaults(self) -> None:
         await self._config.ensure_default(GENERATION_PRICE_KEY, DEFAULT_GENERATION_PRICE)
+        await self._config.ensure_default(CUSTOM_BACKGROUND_PRICE_KEY, DEFAULT_CUSTOM_BACKGROUND_PRICE)
+
+        from app.services.background_service import BackgroundService
+
+        await BackgroundService(self._db).seed_presets()
 
         admin = await self._users.get_by_email(ADMIN_EMAIL)
         if admin is None:

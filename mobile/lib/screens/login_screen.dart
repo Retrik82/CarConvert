@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
-import '../widgets/app_logo.dart';
+import '../widgets/design_system/app_button.dart';
+import '../widgets/design_system/car_hero.dart';
 import '../widgets/form_fields.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -51,45 +54,68 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
+
     return Scaffold(
+      backgroundColor: tokens.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingScreenH),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Spacer(),
-                const AppLogo(showTagline: true),
-                const SizedBox(height: AppTheme.spacingSection),
+                const SizedBox(height: DesignTokens.spacing8),
+                CarHero(height: 160, animate: false),
+                const SizedBox(height: DesignTokens.spacing32),
+                Text(
+                  s.login,
+                  style: tokens.textStyle(fontSize: 28, fontWeight: FontWeight.w600, letterSpacing: -0.5),
+                ),
+                const SizedBox(height: DesignTokens.spacing8),
+                Text(
+                  s.appTagline,
+                  style: tokens.textStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: DesignTokens.spacing32),
                 appTextField(
+                  context: context,
                   controller: _email,
-                  label: 'Email or username',
+                  label: s.emailOrUsername,
                   keyboardType: TextInputType.emailAddress,
                   validator: Validators.loginIdentifier,
                 ),
-                const SizedBox(height: AppTheme.spacingElement),
+                const SizedBox(height: DesignTokens.spacing16),
                 appTextField(
+                  context: context,
                   controller: _password,
-                  label: 'Password',
+                  label: s.password,
                   obscureText: true,
                   validator: Validators.loginPassword,
                 ),
-                if (_error != null) appFormMessage(_error!, isError: true),
-                const SizedBox(height: AppTheme.spacingSection),
-                FilledButton(
+                if (_error != null) appFormMessage(_error!, isError: true, context: context),
+                const SizedBox(height: DesignTokens.spacing24),
+                AppButton(
+                  label: s.login,
+                  loading: _loading,
                   onPressed: _loading ? null : _login,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
-                        )
-                      : const Text('Login'),
                 ),
-                const SizedBox(height: 8),
-                TextButton(
+                const SizedBox(height: DesignTokens.spacing12),
+                AppButton(
+                  label: s.register,
+                  variant: AppButtonVariant.secondary,
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -98,7 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     );
                   },
-                  child: const Text('Register'),
                 ),
                 TextButton(
                   onPressed: () {
@@ -108,11 +133,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                   child: Text(
-                    'Forgot Password',
-                    style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                    s.forgotPassword,
+                    style: tokens.textStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: tokens.textSecondary,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(height: DesignTokens.spacing32),
               ],
             ),
           ),

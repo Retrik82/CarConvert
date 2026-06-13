@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 DEFAULT_GENERATION_PRICE = Decimal("0.10")
+DEFAULT_CUSTOM_BACKGROUND_PRICE = Decimal("0.50")
 INITIAL_USER_BALANCE = Decimal("10.00")
 
 

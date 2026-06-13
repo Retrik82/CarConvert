@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../models/car.dart';
 import '../repositories/car_repository.dart';
-import '../theme/app_theme.dart';
+import '../widgets/design_system/state_views.dart';
 import 'capture_screen.dart';
 import 'car_detail_screen.dart';
 
@@ -44,135 +47,133 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
+
     return Scaffold(
+      backgroundColor: tokens.background,
       appBar: AppBar(
-        title: const Text('My Cars'),
+        title: Text(s.navCars),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openCapture(context),
         icon: const Icon(Icons.camera_alt_outlined),
-        label: const Text('Capture'),
+        label: Text(s.takePhoto),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _cars.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spacingScreenH),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.directions_car_outlined, size: 64, color: AppTheme.textTertiary),
-                        const SizedBox(height: AppTheme.spacingElement),
-                        Text(
-                          'No cars yet',
-                          style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppTheme.textSecondary),
-                        ),
-                        const SizedBox(height: AppTheme.spacingSection),
-                        FilledButton.icon(
-                          onPressed: () => _openCapture(context),
-                          icon: const Icon(Icons.camera_alt_outlined),
-                          label: const Text('Take your first photo'),
-                        ),
-                      ],
+          ? Padding(
+              padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
+              child: Column(
+                children: List.generate(
+                  3,
+                  (_) => Padding(
+                    padding: const EdgeInsets.only(bottom: DesignTokens.spacing16),
+                    child: LoadingSkeleton(
+                      height: 100,
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
                     ),
                   ),
+                ),
+              ),
+            )
+          : _cars.isEmpty
+              ? EmptyStateView(
+                  icon: Icons.directions_car_outlined,
+                  title: s.emptyCars,
+                  subtitle: s.emptyCarsSubtitle,
+                  actionLabel: s.takePhoto,
+                  onAction: () => _openCapture(context),
                 )
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppTheme.spacingScreenH,
-                      8,
-                      AppTheme.spacingScreenH,
-                      96,
-                    ),
+                    padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
                     itemCount: _cars.length,
-                    itemBuilder: (_, i) => _CarCard(
-                      car: _cars[i],
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CarDetailScreen(carId: _cars[i].id),
-                          ),
-                        );
-                        _load();
-                      },
-                    ),
+                    itemBuilder: (context, index) {
+                      final car = _cars[index];
+                      return _CarListTile(
+                        car: car,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => CarDetailScreen(carId: car.id)),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
     );
   }
 }
 
-class _CarCard extends StatelessWidget {
+class _CarListTile extends StatelessWidget {
   final Car car;
   final VoidCallback onTap;
 
-  const _CarCard({required this.car, required this.onTap});
+  const _CarListTile({required this.car, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final previewPath = car.lastRenderPreview;
-    final date = DateFormat('MMM d, yyyy').format(car.createdAt.toLocal());
+    final tokens = context.tokens;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingElement),
+      padding: const EdgeInsets.only(bottom: DesignTokens.spacing12),
       child: Material(
-        color: AppTheme.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          side: const BorderSide(color: AppTheme.border),
-        ),
-        clipBehavior: Clip.antiAlias,
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
         child: InkWell(
           onTap: onTap,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 104,
-                height: 104,
-                child: previewPath != null && File(previewPath).existsSync()
-                    ? Image.file(File(previewPath), fit: BoxFit.cover)
-                    : ColoredBox(
-                        color: AppTheme.surfaceMuted,
-                        child: Icon(Icons.directions_car_outlined, color: AppTheme.textTertiary, size: 40),
-                      ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spacingElement),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
+          child: Container(
+            padding: const EdgeInsets.all(DesignTokens.spacing16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
+              border: Border.all(color: tokens.border.withValues(alpha: 0.7)),
+              boxShadow: tokens.cardShadow,
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                  child: car.lastRenderPreview != null && File(car.lastRenderPreview!).existsSync()
+                      ? Image.file(File(car.lastRenderPreview!), width: 72, height: 72, fit: BoxFit.cover)
+                      : Container(
+                          width: 72,
+                          height: 72,
+                          color: tokens.surfaceMuted,
+                          child: Icon(Icons.directions_car_outlined, color: tokens.textTertiary),
+                        ),
+                ),
+                const SizedBox(width: DesignTokens.spacing16),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         car.name,
-                        style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Created $date',
-                        style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${car.renders.length} render${car.renders.length == 1 ? '' : 's'}',
-                        style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                        DateFormat.yMMMd().format(car.createdAt.toLocal()),
+                        style: tokens.textStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: tokens.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.chevron_right, color: AppTheme.textTertiary),
-              ),
-            ],
+                Icon(Icons.chevron_right_rounded, color: tokens.textTertiary),
+              ],
+            ),
           ),
         ),
       ),

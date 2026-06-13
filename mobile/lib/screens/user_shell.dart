@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_theme_builder.dart';
+import '../core/theme/app_tokens.dart';
 import 'my_cars_screen.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
 
 class UserShell extends StatefulWidget {
+  final AppSettingsController settings;
   final VoidCallback onLogout;
 
-  const UserShell({super.key, required this.onLogout});
+  const UserShell({
+    super.key,
+    required this.settings,
+    required this.onLogout,
+  });
 
   @override
   State<UserShell> createState() => _UserShellState();
@@ -17,32 +24,55 @@ class UserShell extends StatefulWidget {
 class _UserShellState extends State<UserShell> {
   int _index = 0;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   void _onUserUpdated() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
+    final s = context.strings;
+    final tokens = context.tokens;
+
     final pages = <Widget>[
-      WelcomeScreen(onBalanceChanged: _onUserUpdated, onLogout: widget.onLogout),
+      WelcomeScreen(
+        settings: widget.settings,
+        onBalanceChanged: _onUserUpdated,
+        onLogout: widget.onLogout,
+      ),
       const MyCarsScreen(),
-      ProfileScreen(onLogout: widget.onLogout, onUserUpdated: _onUserUpdated),
+      ProfileScreen(
+        settings: widget.settings,
+        onLogout: widget.onLogout,
+        onUserUpdated: _onUserUpdated,
+      ),
     ];
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: tokens.background,
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.directions_car_outlined), selectedIcon: Icon(Icons.directions_car), label: 'My Cars'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: tokens.border.withValues(alpha: 0.5))),
+        ),
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => setState(() => _index = i),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home_rounded),
+              label: s.navHome,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.directions_car_outlined),
+              selectedIcon: const Icon(Icons.directions_car_rounded),
+              label: s.navCars,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.person_outline_rounded),
+              selectedIcon: const Icon(Icons.person_rounded),
+              label: s.navProfile,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../repositories/auth_repository.dart';
+import '../models/background.dart';
 import '../repositories/photo_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
@@ -15,6 +16,7 @@ class ProcessingScreen extends StatefulWidget {
   final String? carId;
   final VoidCallback? onCharged;
   final bool autoStart;
+  final SelectedBackground? selectedBackground;
 
   const ProcessingScreen({
     super.key,
@@ -23,6 +25,7 @@ class ProcessingScreen extends StatefulWidget {
     this.carId,
     this.onCharged,
     this.autoStart = true,
+    this.selectedBackground,
   });
 
   @override
@@ -62,6 +65,10 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         widget.imageBytes,
         'capture.jpg',
         sessionId: widget.sessionId,
+        backgroundPresetId: widget.selectedBackground?.presetId,
+        backgroundVariantId: widget.selectedBackground?.presetVariantId,
+        userBackgroundId: widget.selectedBackground?.userBackgroundId,
+        userBackgroundVariantId: widget.selectedBackground?.userVariantId,
       );
       await AuthRepository.instance.refreshCurrentUser();
       widget.onCharged?.call();

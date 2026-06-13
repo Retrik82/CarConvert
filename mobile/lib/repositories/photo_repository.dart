@@ -23,8 +23,20 @@ class PhotoRepository {
     Uint8List bytes,
     String filename, {
     String? sessionId,
+    String? backgroundPresetId,
+    String? backgroundVariantId,
+    String? userBackgroundId,
+    String? userBackgroundVariantId,
   }) =>
-      _remote.processPhoto(bytes, filename, sessionId: sessionId);
+      _remote.processPhoto(
+        bytes,
+        filename,
+        sessionId: sessionId,
+        backgroundPresetId: backgroundPresetId,
+        backgroundVariantId: backgroundVariantId,
+        userBackgroundId: userBackgroundId,
+        userBackgroundVariantId: userBackgroundVariantId,
+      );
 
   Future<PhotoResult> getResult(String jobId) => _remote.getResult(jobId);
 

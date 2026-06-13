@@ -1,21 +1,33 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme_builder.dart';
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
+import '../features/configurator/screens/configurator_screen.dart';
 import '../repositories/auth_repository.dart';
-import '../theme/app_theme.dart';
+import '../repositories/background_repository.dart';
+import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/car_hero.dart';
+import '../widgets/design_system/theme_language_switcher.dart';
+import 'backgrounds_screen.dart';
 import 'capture_screen.dart';
 
 Future<void> _confirmLogout(BuildContext context, VoidCallback onLogout) async {
+  final s = context.strings;
+  final tokens = context.tokens;
+
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Выйти из аккаунта?'),
-      content: const Text('Вы сможете войти снова в любое время.'),
+      title: Text(s.logoutConfirmTitle),
+      content: Text(s.logoutConfirmBody),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
-          style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-          child: const Text('Выйти'),
+          style: FilledButton.styleFrom(backgroundColor: tokens.error),
+          child: Text(s.logout),
         ),
       ],
     ),
@@ -27,94 +39,269 @@ Future<void> _confirmLogout(BuildContext context, VoidCallback onLogout) async {
 }
 
 class WelcomeScreen extends StatelessWidget {
+  final AppSettingsController settings;
   final VoidCallback? onBalanceChanged;
   final VoidCallback? onLogout;
 
-  const WelcomeScreen({super.key, this.onBalanceChanged, this.onLogout});
+  const WelcomeScreen({
+    super.key,
+    required this.settings,
+    this.onBalanceChanged,
+    this.onLogout,
+  });
 
   void _openCapture(BuildContext context, CaptureMode mode) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => CaptureScreen(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => CaptureScreen(
           initialMode: mode,
           onBalanceChanged: onBalanceChanged,
         ),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  void _openBackgrounds(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BackgroundsScreen()),
+    );
+  }
+
+  void _openConfigurator(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ConfiguratorScreen(onBalanceChanged: onBalanceChanged),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
     final user = AuthRepository.instance.currentUser;
     final name = user?.displayName ?? 'there';
+    final selectedBackground = BackgroundRepository.instance.selected;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: onLogout != null
-          ? AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              actions: [
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.account_circle_outlined),
-                  onSelected: (value) {
-                    if (value == 'logout' && onLogout != null) {
-                      _confirmLogout(context, onLogout!);
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'logout',
-                      child: Row(
+      backgroundColor: tokens.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            PremiumTopBar(
+              settings: settings,
+              trailing: onLogout != null
+                  ? IconButton(
+                      icon: const Icon(Icons.more_horiz_rounded),
+                      onPressed: () => _showAccountMenu(context),
+                    )
+                  : null,
+            ),
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.logout, color: AppTheme.error, size: 20),
-                          const SizedBox(width: 12),
-                          Text('Выйти', style: TextStyle(color: AppTheme.error)),
+                          Text(
+                            s.greeting(name),
+                            style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w600, letterSpacing: -0.6),
+                          ),
+                          const SizedBox(height: DesignTokens.spacing8),
+                          Text(
+                            s.dashboardSubtitle,
+                            style: tokens.textStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: tokens.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: DesignTokens.spacing24),
+                          AnimatedSwitcher(
+                            duration: DesignTokens.durationTheme,
+                            child: CarHero(
+                              key: ValueKey(tokens.isDark),
+                              height: 200,
+                            ),
+                          ),
+                          const SizedBox(height: DesignTokens.spacing24),
                         ],
                       ),
                     ),
-                  ],
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        if (selectedBackground != null)
+                          AppCard(
+                            padding: const EdgeInsets.all(DesignTokens.spacing16),
+                            child: Row(
+                              children: [
+                                Icon(Icons.check_circle_outline, color: tokens.success, size: 22),
+                                const SizedBox(width: DesignTokens.spacing12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        s.backgroundSelected,
+                                        style: tokens.textStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w400,
+                                          color: tokens.textSecondary,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${selectedBackground.displayName} · ${selectedBackground.variant.angleLabel}',
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        _ActionCard(
+                          icon: Icons.tune_rounded,
+                          title: s.configureStudio,
+                          subtitle: s.selectStudio,
+                          onTap: () => _openConfigurator(context),
+                        ),
+                        const SizedBox(height: DesignTokens.spacing12),
+                        _ActionCard(
+                          icon: Icons.wallpaper_outlined,
+                          title: selectedBackground == null ? s.chooseBackground : s.changeBackground,
+                          subtitle: s.stepStudio,
+                          onTap: () => _openBackgrounds(context),
+                        ),
+                        const SizedBox(height: DesignTokens.spacing12),
+                        _ActionCard(
+                          icon: Icons.camera_alt_outlined,
+                          title: s.takePhoto,
+                          subtitle: s.startCapture,
+                          onTap: () => _openCapture(context, CaptureMode.camera),
+                          highlighted: true,
+                        ),
+                        const SizedBox(height: DesignTokens.spacing12),
+                        _ActionCard(
+                          icon: Icons.photo_library_outlined,
+                          title: s.fromGallery,
+                          subtitle: s.startCapture,
+                          onTap: () => _openCapture(context, CaptureMode.gallery),
+                        ),
+                        const SizedBox(height: DesignTokens.spacing32),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAccountMenu(BuildContext context) {
+    final s = context.strings;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.logout_rounded),
+              title: Text(s.logout),
+              onTap: () {
+                Navigator.pop(ctx);
+                if (onLogout != null) _confirmLogout(context, onLogout!);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool highlighted;
+
+  const _ActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.highlighted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return AppCard(
+      onTap: onTap,
+      elevated: highlighted,
+      padding: const EdgeInsets.all(DesignTokens.spacing16),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: highlighted ? tokens.accent : tokens.surfaceMuted,
+              borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+            ),
+            child: Icon(
+              icon,
+              color: highlighted ? tokens.onAccent : tokens.textPrimary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: DesignTokens.spacing16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens.textStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: tokens.textSecondary,
+                  ),
                 ),
               ],
-            )
-          : null,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingScreenH),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(flex: 2),
-              Text(
-                'Hello, $name',
-                style: AppTheme.textStyle(fontSize: 32, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'How would you like to start?',
-                style: AppTheme.textStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              FilledButton.icon(
-                onPressed: () => _openCapture(context, CaptureMode.camera),
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Take Photo'),
-              ),
-              const SizedBox(height: AppTheme.spacingElement),
-              OutlinedButton.icon(
-                onPressed: () => _openCapture(context, CaptureMode.gallery),
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('From Gallery'),
-              ),
-              const Spacer(flex: 3),
-            ],
+            ),
           ),
-        ),
+          Icon(Icons.arrow_forward_ios_rounded, size: 16, color: tokens.textTertiary),
+        ],
       ),
     );
   }

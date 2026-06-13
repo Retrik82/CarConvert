@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../models/hint_response.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/background_repository.dart';
 import '../repositories/camera_repository.dart';
 import '../repositories/photo_repository.dart';
 import '../repositories/settings_repository.dart';
@@ -19,6 +20,7 @@ import '../utils/error_utils.dart';
 import '../utils/frame_crop.dart';
 import '../utils/money_format.dart';
 import '../widgets/capture_hint_overlay.dart';
+import 'backgrounds_screen.dart';
 import 'processing_screen.dart';
 
 enum CaptureMode { camera, gallery }
@@ -205,6 +207,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   Future<void> _processBytes(Uint8List bytes) async {
     if (!mounted) return;
+    final selectedBackground = BackgroundRepository.instance.selected;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -213,9 +216,18 @@ class _CaptureScreenState extends State<CaptureScreen> {
           sessionId: _sessionId,
           carId: widget.carId,
           onCharged: _loadBilling,
+          selectedBackground: selectedBackground,
         ),
       ),
     ).then((_) => _loadBilling());
+  }
+
+  Future<void> _openBackgrounds() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BackgroundsScreen()),
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> _takePhoto() async {
@@ -304,6 +316,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
     final user = AuthRepository.instance.currentUser;
 
     final canPop = Navigator.canPop(context);
+    final selectedBackground = BackgroundRepository.instance.selected;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -370,6 +383,32 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 56,
+            right: 16,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+                onTap: _openBackgrounds,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.wallpaper_outlined, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        selectedBackground?.displayName ?? 'Background',
+                        style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 16,

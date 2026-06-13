@@ -4,10 +4,11 @@ from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.app_config import DEFAULT_GENERATION_PRICE
+from app.db.models.app_config import DEFAULT_CUSTOM_BACKGROUND_PRICE, DEFAULT_GENERATION_PRICE
 from app.repositories.app_config_repository import AppConfigRepository
 
 GENERATION_PRICE_KEY = "generation_price_usd"
+CUSTOM_BACKGROUND_PRICE_KEY = "custom_background_price_usd"
 
 
 class SettingsService:
@@ -20,6 +21,13 @@ class SettingsService:
 
     async def set_generation_price(self, price: Decimal) -> Decimal:
         return await self._config.set_value(GENERATION_PRICE_KEY, price)
+
+    async def get_custom_background_price(self) -> Decimal:
+        value = await self._config.get_value(CUSTOM_BACKGROUND_PRICE_KEY, DEFAULT_CUSTOM_BACKGROUND_PRICE)
+        return value if value is not None else DEFAULT_CUSTOM_BACKGROUND_PRICE
+
+    async def set_custom_background_price(self, price: Decimal) -> Decimal:
+        return await self._config.set_value(CUSTOM_BACKGROUND_PRICE_KEY, price)
 
 
 async def get_generation_price(db: AsyncSession) -> Decimal:

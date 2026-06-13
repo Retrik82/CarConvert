@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.db.models.photo_job import PhotoJob
 from app.repositories.photo_job_repository import PhotoJobRepository
 from app.services.ai.desert_processor import process_desert_background
+from app.services.background_service import BackgroundService, process_photo_with_background
 from app.utils.image_utils import crop_to_frame_guide, to_data_url
 
 logger = logging.getLogger(__name__)
@@ -32,8 +33,21 @@ class JobService:
         image_bytes: bytes,
         mime_type: str,
         session_id: str | None = None,
+        *,
+        background_preset_id: str | None = None,
+        background_variant_id: str | None = None,
+        user_background_id: str | None = None,
+        user_background_variant_id: str | None = None,
     ) -> PhotoJob:
-        job = PhotoJob(user_id=user_id, session_id=session_id, status="queued")
+        job = PhotoJob(
+            user_id=user_id,
+            session_id=session_id,
+            status="queued",
+            background_preset_id=background_preset_id,
+            background_variant_id=background_variant_id,
+            user_background_id=user_background_id,
+            user_background_variant_id=user_background_variant_id,
+        )
         await self._jobs.create(job)
 
         job_dir = _job_dir(user_id, job.id)
@@ -97,7 +111,24 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                 logger.warning("Frame crop skipped for job %s: %s", job_id, exc)
 
             data_url = to_data_url(image_bytes, mime_type)
-            result_b64, result_mime = await process_desert_background(data_url, api_key)
+            background_service = BackgroundService(db)
+
+            if job.background_preset_id or job.user_background_id:
+                prompt, reference = await background_service.resolve_variant_for_job(
+                    preset_id=job.background_preset_id,
+                    preset_variant_id=job.background_variant_id,
+                    user_background_id=job.user_background_id,
+                    user_variant_id=job.user_background_variant_id,
+                    user_id=user_id,
+                )
+                result_b64, result_mime = await process_photo_with_background(
+                    data_url,
+                    prompt,
+                    reference,
+                    api_key,
+                )
+            else:
+                result_b64, result_mime = await process_desert_background(data_url, api_key)
 
             job_dir = _job_dir(user_id, job_id)
             ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(result_mime, ".jpg")
