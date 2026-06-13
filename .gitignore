@@ -1,0 +1,124 @@
+# =============================================================================
+# CarConvert — root .gitignore
+# Deploy: Render Blueprint читает render.yaml из репозитория (не игнорировать).
+# Секреты (OPENROUTER_API_KEY, JWT_SECRET) — только в Render Dashboard / локальный .env
+# =============================================================================
+
+# --- Secrets & local env (Render: Environment → envVars) ---
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Flutter local API overrides (prod URL — в dart_defines.prod.json, коммитится)
+mobile/dart_defines.local.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+*.stackdump
+
+# --- IDE / editors ---
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# VS Code — личные настройки; общие launch/tasks можно коммитить
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# Cursor — локальное состояние; skills/rules можно коммитить при необходимости
+.cursor/
+!.cursor/skills/
+!.cursor/skills/**
+
+# --- Python (backend/, server/) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+
+# Локальная БД и загрузки (Render: Postgres + disk /var/data/uploads)
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+server/data/
+data/uploads/
+
+# --- Node.js (client/) ---
+node_modules/
+client/dist/
+.npm/
+*.tsbuildinfo
+
+# --- Flutter (mobile/) ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+mobile/build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+**/macos/Flutter/ephemeral/
+**/.symlinks/
+**/GeneratedPluginRegistrant.*
+**/android/.gradle/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+*.class
+*.log
+*.symbols
+*.map.json
+migrate_working_dir/
+
+# Сборки приложения (APK/IPA — только локально / CI, не в Git)
+*.apk
+*.aab
+*.ipa
+*.app
+
+# --- Logs & temp ---
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+
+# --- Legacy server (deprecated) — те же правила, что у backend ---
+# server/venv и server/.env покрыты паттернами выше

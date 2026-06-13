@@ -1,6 +1,25 @@
+# Backend — дополнение к корневому .gitignore
+# Render: buildCommand pip install -r requirements.txt; UPLOAD_DIR=/var/data/uploads на диске
+
 .env
+.env.*
+!.env.example
+
 venv/
+.venv/
+
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Локальные uploads и SQLite (production — Postgres + persistent disk на Render)
 data/
 *.db
+*.sqlite
+*.sqlite3
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/

@@ -19,6 +19,7 @@ ADMIN_DISPLAY_NAME = "Administrator"
 
 class SeedService:
     def __init__(self, db: AsyncSession) -> None:
+        self._db = db
         self._config = AppConfigRepository(db)
         self._users = UserRepository(db)
 
