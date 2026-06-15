@@ -107,6 +107,46 @@ async def generate_full_scene(prompt: str, api_key: str | None = None) -> tuple[
     return encoded, mime_type
 
 
+async def generate_outdoor_scene(prompt: str, api_key: str | None = None) -> tuple[str, str]:
+    """Generate an empty outdoor environment (no car) for compositing."""
+    client = OpenRouterClient(api_key)
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Generate a photorealistic outdoor automotive photography environment. "
+                "No vehicles, no people, no text, no watermarks. "
+                "Landscape 16:9, natural lighting, ready for a car photoshoot."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ]
+    body = await client.chat_completion(
+        settings.process_model,
+        messages,
+        timeout=float(settings.process_timeout_sec),
+        max_tokens=1024,
+    )
+    from app.services.ai.openrouter_client import _extract_image_reference
+    import base64
+    import httpx
+
+    image_ref = _extract_image_reference(body)
+    if image_ref.startswith("data:image"):
+        header = image_ref.split(",", 1)[0]
+        mime_type = header.replace("data:", "").replace(";base64", "")
+        base64_data = image_ref.split(",", 1)[1]
+        return base64_data, mime_type
+
+    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
+        image_response = await http_client.get(image_ref)
+    if image_response.status_code >= 400:
+        raise RuntimeError(f"Failed to download generated scene ({image_response.status_code}).")
+    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
+    encoded = base64.b64encode(image_response.content).decode("utf-8")
+    return encoded, mime_type
+
+
 async def generate_empty_room(prompt: str, api_key: str | None = None) -> tuple[str, str]:
     """Generate an empty studio room (no car) for custom background creation."""
     client = OpenRouterClient(api_key)

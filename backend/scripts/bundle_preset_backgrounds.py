@@ -1,4 +1,8 @@
-"""Generate all preset scenes via OpenRouter AI (full photograph, no compositing)."""
+"""Regenerate preset scenes via OpenRouter AI (full photograph: room + BMW, no compositing).
+
+For bundled assets maintained in-repo, prefer generating scenes with Cursor image
+generation and installing them via install_ai_preset_scenes.py.
+"""
 
 from __future__ import annotations
 

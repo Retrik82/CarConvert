@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../core/theme/design_tokens.dart';
 import '../repositories/car_repository.dart';
 import '../widgets/before_after_slider.dart';
+import '../widgets/design_system/app_button.dart';
 import 'capture_screen.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -107,6 +109,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   Widget build(BuildContext context) {
     final hasOriginal = widget.originalBytes.isNotEmpty;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Render Result')),
@@ -114,7 +117,12 @@ class _ResultScreenState extends State<ResultScreen> {
         children: [
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                DesignTokens.spacing16,
+                DesignTokens.spacing16,
+                DesignTokens.spacing16,
+                DesignTokens.spacing8,
+              ),
               child: hasOriginal
                   ? BeforeAfterSlider(
                       beforeBytes: widget.originalBytes,
@@ -125,41 +133,49 @@ class _ResultScreenState extends State<ResultScreen> {
                     ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                DesignTokens.spacing16,
+                DesignTokens.spacing8,
+                DesignTokens.spacing16,
+                bottomInset > 0 ? DesignTokens.spacing8 : DesignTokens.spacing16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppButton(
+                    label: _saved ? 'Saved to My Cars' : 'Save to My Cars',
+                    icon: _saved ? Icons.check_rounded : Icons.save_outlined,
+                    loading: _saving,
                     onPressed: _saving || _saved ? null : _save,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(_saved ? Icons.check : Icons.save),
-                    label: Text(_saved ? 'Saved' : 'Save'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _delete,
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                  const SizedBox(height: DesignTokens.spacing12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppButton(
+                          label: 'Delete',
+                          icon: Icons.delete_outline,
+                          variant: AppButtonVariant.secondary,
+                          onPressed: _delete,
+                        ),
+                      ),
+                      const SizedBox(width: DesignTokens.spacing12),
+                      Expanded(
+                        child: AppButton(
+                          label: 'Re-render',
+                          icon: Icons.refresh_rounded,
+                          variant: AppButtonVariant.secondary,
+                          onPressed: _reRender,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: _reRender,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Re-render'),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

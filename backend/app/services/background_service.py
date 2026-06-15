@@ -16,7 +16,8 @@ from app.db.models.background import (
     UserBackgroundVariant,
 )
 from app.repositories.background_repository import BackgroundRepository
-from app.services.ai.background_processor import generate_full_scene, process_into_scene
+from app.services.ai.background_processor import generate_full_scene
+from app.services.user_car_pipeline import ResolvedBackground
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -123,7 +124,7 @@ class BackgroundService:
         user_variant_id: str | None,
         user_id: str,
         angle: str | None = None,
-    ) -> tuple[str, str | None]:
+    ) -> ResolvedBackground:
         selected_angle = angle or "three_quarter_left"
 
         if user_background_id:
@@ -137,14 +138,15 @@ class BackgroundService:
                 variant = await self._repo.get_user_background_variant(background.id, selected_angle)
             if variant is None:
                 raise ValueError("Background variant not found.")
-            prompt = (
-                f"{background.prompt} {variant.prompt_suffix} "
-                "Place the user's car into this exact studio scene, replacing the BMW."
-            ).strip()
+            prompt = f"{background.prompt} {variant.prompt_suffix}".strip()
             reference = _image_to_data_url(Path(variant.image_path)) if variant.image_path else None
             if reference is None:
                 raise ValueError("Scene reference image not found.")
-            return prompt, reference
+            return ResolvedBackground(
+                prompt=prompt,
+                angle=variant.angle,
+                reference_data_url=reference,
+            )
 
         if preset_id:
             preset = await self._repo.get_preset(preset_id)
@@ -157,18 +159,22 @@ class BackgroundService:
                 variant = await self._repo.get_preset_variant(preset.id, selected_angle)
             if variant is None:
                 raise ValueError("Background variant not found.")
-            prompt = (
-                f"{preset.prompt_template} {variant.prompt_suffix} "
-                "Place the user's car into this exact studio scene, replacing the BMW."
-            ).strip()
+            prompt = f"{preset.prompt_template} {variant.prompt_suffix}".strip()
             reference = _image_to_data_url(Path(variant.image_path)) if variant.image_path else None
-            if reference is None:
-                raise ValueError("Scene reference image not found.")
-            return prompt, reference
+            return ResolvedBackground(
+                prompt=prompt,
+                angle=variant.angle,
+                preset_slug=preset.slug,
+                reference_data_url=reference,
+            )
 
         from app.services.ai.desert_processor import DESERT_USER_PROMPT
 
-        return DESERT_USER_PROMPT, None
+        return ResolvedBackground(
+            prompt=DESERT_USER_PROMPT,
+            angle=selected_angle,
+            is_outdoor=True,
+        )
 
     async def create_user_background(
         self,
@@ -292,13 +298,9 @@ class BackgroundService:
 
 async def process_photo_with_background(
     source_data_url: str,
-    scene_prompt: str,
-    scene_reference_data_url: str,
+    resolved: ResolvedBackground,
     api_key: str,
 ) -> tuple[str, str]:
-    return await process_into_scene(
-        source_data_url,
-        scene_prompt,
-        scene_reference_data_url,
-        api_key,
-    )
+    from app.services.user_car_pipeline import process_user_car_photo
+
+    return await process_user_car_photo(source_data_url, resolved, api_key)
