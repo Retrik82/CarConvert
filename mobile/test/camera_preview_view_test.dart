@@ -27,5 +27,27 @@ void main() {
       expect(size.width, closeTo(400 * (16 / 9), 0.01));
       expect(size.width, lessThanOrEqualTo(900));
     });
+
+    test('cover fills portrait container width', () {
+      final size = coverSizeToAspectRatio(
+        maxWidth: 400,
+        maxHeight: 700,
+        aspectRatio: 9 / 16,
+      );
+
+      expect(size.width, closeTo(400, 0.01));
+      expect(size.height, greaterThanOrEqualTo(700));
+    });
+
+    test('cover fills landscape container width', () {
+      final size = coverSizeToAspectRatio(
+        maxWidth: 900,
+        maxHeight: 400,
+        aspectRatio: 16 / 9,
+      );
+
+      expect(size.width, closeTo(900, 0.01));
+      expect(size.height, greaterThanOrEqualTo(400));
+    });
   });
 }

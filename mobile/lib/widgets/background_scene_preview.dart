@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../core/assets/bundled_assets.dart';
 import '../models/background.dart';
 import 'authenticated_background_image.dart';
 
-/// Composed studio scene (room + BMW) served from the server.
+/// Composed studio scene — bundled presets load instantly from app assets.
 class BackgroundScenePreview extends StatelessWidget {
   final BackgroundPreset preset;
   final String? angle;
@@ -16,15 +17,33 @@ class BackgroundScenePreview extends StatelessWidget {
     this.borderRadius,
   });
 
+  BackgroundVariant? _variant() {
+    return angle != null ? preset.variantByAngle(angle!) : preset.defaultVariant;
+  }
+
   String? _scenePath() {
-    final variant = angle != null ? preset.variantByAngle(angle!) : preset.defaultVariant;
+    final variant = _variant();
     return variant?.previewUrl ?? preset.previewUrl;
+  }
+
+  String? _bundledAngle() {
+    if (preset.isCustom) return null;
+    final variant = _variant();
+    final resolved = variant?.angle ?? angle;
+    if (resolved == null || !BundledAssets.presetAngles.contains(resolved)) {
+      return null;
+    }
+    return resolved;
   }
 
   @override
   Widget build(BuildContext context) {
+    final bundledAngle = _bundledAngle();
+
     Widget child = AuthenticatedBackgroundImage(
       previewPath: _scenePath(),
+      presetSlug: bundledAngle != null ? preset.slug : null,
+      angle: bundledAngle,
       fit: BoxFit.contain,
     );
 

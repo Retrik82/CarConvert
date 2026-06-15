@@ -40,7 +40,7 @@ class CarOverlay extends StatelessWidget {
         final h = constraints.maxHeight;
 
         final padding = switch (style) {
-          CarOverlayStyle.hero => EdgeInsets.fromLTRB(w * 0.04, h * 0.06, w * 0.04, h * 0.08),
+          CarOverlayStyle.hero => EdgeInsets.fromLTRB(w * 0.06, h * 0.06, w * 0.06, h * 0.08),
           CarOverlayStyle.backgroundPreview => EdgeInsets.fromLTRB(w * 0.05, h * 0.06, w * 0.05, h * 0.24),
         };
 
@@ -48,11 +48,13 @@ class CarOverlay extends StatelessWidget {
           padding: padding,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: RemoteCarImage(
-              imagePath: imagePath,
-              fit: BoxFit.contain,
-              alignment: Alignment.bottomCenter,
-              tintColor: bodyColor,
+            child: ClipRect(
+              child: RemoteCarImage(
+                imagePath: imagePath,
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomCenter,
+                tintColor: bodyColor,
+              ),
             ),
           ),
         );

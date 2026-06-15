@@ -35,3 +35,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/cars/bmw_m4_g82/
+    - assets/backgrounds/presets/gray-showroom/
+    - assets/backgrounds/presets/auto-workshop/

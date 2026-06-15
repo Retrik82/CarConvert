@@ -6,12 +6,14 @@ class CaptureHintBar extends StatelessWidget {
   final String message;
   final bool isPerfect;
   final String arrowDirection;
+  final bool floating;
 
   const CaptureHintBar({
     super.key,
     required this.message,
     this.isPerfect = false,
     this.arrowDirection = 'none',
+    this.floating = false,
   });
 
   IconData? get _directionIcon {
@@ -32,15 +34,17 @@ class CaptureHintBar extends StatelessWidget {
     return AnimatedContainer(
       duration: DesignTokens.durationNormal,
       curve: DesignTokens.curveStandard,
-      padding: const EdgeInsets.symmetric(
-        horizontal: DesignTokens.spacing16,
-        vertical: DesignTokens.spacing12,
+      padding: EdgeInsets.symmetric(
+        horizontal: floating ? DesignTokens.spacing12 : DesignTokens.spacing16,
+        vertical: floating ? DesignTokens.spacing8 : DesignTokens.spacing12,
       ),
       decoration: BoxDecoration(
-        color: isPerfect ? const Color(0xE62E7D32) : Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(DesignTokens.radiusInput),
+        color: isPerfect
+            ? const Color(0xE62E7D32)
+            : (floating ? Colors.black.withValues(alpha: 0.55) : Colors.white.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(floating ? DesignTokens.radiusChip : DesignTokens.radiusInput),
         border: Border.all(
-          color: isPerfect ? const Color(0xFF66BB6A) : Colors.white.withValues(alpha: 0.16),
+          color: isPerfect ? const Color(0xFF66BB6A) : Colors.white.withValues(alpha: floating ? 0.22 : 0.16),
         ),
       ),
       child: Row(
@@ -59,11 +63,11 @@ class CaptureHintBar extends StatelessWidget {
           Flexible(
             child: Text(
               message,
-              maxLines: 2,
+              maxLines: floating ? 1 : 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: floating ? 13 : 14,
                 fontWeight: FontWeight.w600,
                 color: accent,
                 height: 1.3,

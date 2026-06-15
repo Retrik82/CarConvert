@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:image/image.dart' as img;
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -19,6 +18,7 @@ import '../repositories/background_repository.dart';
 import '../repositories/camera_repository.dart';
 import '../repositories/photo_repository.dart';
 import '../repositories/settings_repository.dart';
+import '../utils/camera_frame_encoder.dart';
 import '../utils/error_utils.dart';
 import '../utils/frame_crop.dart';
 import '../utils/money_format.dart';
@@ -50,7 +50,7 @@ class CaptureScreen extends StatefulWidget {
   State<CaptureScreen> createState() => _CaptureScreenState();
 }
 
-class _CaptureScreenState extends State<CaptureScreen> {
+class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserver {
   CameraController? _controller;
   final _camera = CameraRepository();
   final _picker = ImagePicker();
@@ -58,17 +58,22 @@ class _CaptureScreenState extends State<CaptureScreen> {
   String _status = 'Initializing...';
   String? _sessionId;
   bool _capturing = false;
-  Timer? _frameTimer;
   StreamSubscription? _hintSub;
   StreamSubscription? _statusSub;
   bool _streaming = false;
+  bool _encodingFrame = false;
+  int _lastFrameSentMs = 0;
   double _generationPrice = 0.10;
   CaptureMode _mode = CaptureMode.camera;
   Uint8List? _galleryPreview;
 
+  static const _frameIntervalMs = 500;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _unlockOrientations();
     _mode = widget.initialMode;
     if (_mode == CaptureMode.camera) _initCamera();
     _loadBilling();
@@ -86,8 +91,29 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _unlockOrientations() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  Future<void> _lockPortraitOrientations() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
   Future<void> _pauseCapture() async {
-    _stopFrameLoop();
+    await _stopImageStream();
     await _camera.disconnect();
   }
 
@@ -99,7 +125,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
         await _camera.connect(sessionId: _sessionId!, token: token);
       } catch (_) {}
     }
-    _startFrameLoop();
+    await _startImageStream();
   }
 
   Future<void> _loadBilling() async {
@@ -147,7 +173,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       _statusSub = _camera.status.listen((s) {
         if (mounted) setState(() => _status = s);
       });
-      if (widget.isActive) _startFrameLoop();
+      if (widget.isActive) await _startImageStream();
     } catch (e) {
       setState(() => _status = userFacingError(e));
     }
@@ -155,40 +181,75 @@ class _CaptureScreenState extends State<CaptureScreen> {
     if (mounted) setState(() {});
   }
 
-  void _startFrameLoop() {
-    if (_mode != CaptureMode.camera || !widget.isActive) return;
-    _frameTimer?.cancel();
+  Future<void> _startImageStream() async {
+    if (_mode != CaptureMode.camera || !widget.isActive || _streaming) return;
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    if (controller.value.isStreamingImages) return;
+
     _streaming = true;
-    _frameTimer = Timer.periodic(const Duration(milliseconds: 450), (_) => _sendPreviewFrame());
-  }
-
-  void _stopFrameLoop() {
-    _streaming = false;
-    _frameTimer?.cancel();
-  }
-
-  Future<void> _sendPreviewFrame() async {
-    if (!_streaming || _controller == null || !_controller!.value.isInitialized) return;
-    XFile? file;
     try {
-      file = await _controller!.takePicture();
-      final bytes = await file.readAsBytes();
-      final compressed = _compressFrame(bytes);
-      _camera.sendFrame(base64Encode(compressed));
-    } catch (_) {} finally {
-      if (file != null) {
-        try {
-          await File(file.path).delete();
-        } catch (_) {}
-      }
+      await controller.startImageStream(_onCameraImage);
+    } catch (_) {
+      _streaming = false;
     }
   }
 
-  Uint8List _compressFrame(Uint8List bytes) {
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return bytes;
-    final resized = img.copyResize(decoded, width: 640);
-    return Uint8List.fromList(img.encodeJpg(resized, quality: 65));
+  Future<void> _stopImageStream() async {
+    _streaming = false;
+    final controller = _controller;
+    if (controller != null && controller.value.isStreamingImages) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+    }
+  }
+
+  /// Image stream and still capture share the same camera session — both must
+  /// be fully idle before [CameraController.takePicture] is safe to call.
+  Future<void> _prepareForStillCapture() async {
+    _streaming = false;
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    if (controller.value.isStreamingImages) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+    }
+
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    while (DateTime.now().isBefore(deadline)) {
+      if (!controller.value.isStreamingImages && !_encodingFrame) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        if (!controller.value.isStreamingImages && !_encodingFrame) return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+  }
+
+  void _onCameraImage(CameraImage image) {
+    if (!_streaming || _encodingFrame) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastFrameSentMs < _frameIntervalMs) return;
+
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    _encodingFrame = true;
+    final sensorOrientation = controller.description.sensorOrientation;
+
+    encodeCameraFrameJpeg(
+      image,
+      sensorOrientation: sensorOrientation,
+    ).then((compressed) {
+      if (!_streaming || compressed == null) return;
+      _lastFrameSentMs = DateTime.now().millisecondsSinceEpoch;
+      _camera.sendFrame(base64Encode(compressed));
+    }).catchError((_) {}).whenComplete(() {
+      _encodingFrame = false;
+    });
   }
 
   bool _checkBalance() {
@@ -236,14 +297,20 @@ class _CaptureScreenState extends State<CaptureScreen> {
     if (_controller == null || _capturing) return;
     if (!_checkBalance()) return;
 
-    setState(() => _capturing = true);
-    _stopFrameLoop();
+    _capturing = true;
+    if (mounted) setState(() {});
 
     try {
-      final file = await _controller!.takePicture();
+      await _prepareForStillCapture();
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) {
+        throw StateError('Camera not ready');
+      }
+      final file = await controller.takePicture();
       try {
         final rawBytes = await file.readAsBytes();
-        final bytes = cropToFrameGuide(rawBytes);
+        final crop = _currentFrameCrop();
+        final bytes = cropToFrameGuide(rawBytes, crop: crop);
         await _processBytes(bytes);
       } finally {
         try {
@@ -257,14 +324,16 @@ class _CaptureScreenState extends State<CaptureScreen> {
         );
       }
     } finally {
+      _capturing = false;
       if (mounted) {
-        setState(() => _capturing = false);
-        if (_mode == CaptureMode.camera) _startFrameLoop();
+        setState(() {});
+        if (_mode == CaptureMode.camera && widget.isActive) await _startImageStream();
       }
     }
   }
 
   Future<void> _pickFromGallery() async {
+    if (_capturing) return;
     if (!_checkBalance()) return;
     try {
       final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
@@ -293,13 +362,17 @@ class _CaptureScreenState extends State<CaptureScreen> {
       _mode = mode;
       _galleryPreview = null;
       if (mode == CaptureMode.camera) {
-        _ensureCamera().then((_) {
-          if (mounted) _startFrameLoop();
+        _ensureCamera().then((_) async {
+          if (mounted) await _startImageStream();
         });
       } else {
-        _stopFrameLoop();
+        _stopImageStream();
       }
     });
+  }
+
+  FrameCropSpec _currentFrameCrop() {
+    return frameCropFor(MediaQuery.orientationOf(context));
   }
 
   String _hintMessage(AppStrings strings) {
@@ -323,11 +396,13 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   @override
   void dispose() {
-    _stopFrameLoop();
+    WidgetsBinding.instance.removeObserver(this);
+    _stopImageStream();
     _hintSub?.cancel();
     _statusSub?.cancel();
     _camera.dispose();
     _controller?.dispose();
+    _lockPortraitOrientations();
     super.dispose();
   }
 
@@ -340,48 +415,107 @@ class _CaptureScreenState extends State<CaptureScreen> {
     final isPerfect = _hint?.isPerfect == true;
     final hintMessage = _hintMessage(s);
     final arrowDirection = _hint?.overlay.arrow ?? 'none';
+    final frameCrop = _currentFrameCrop();
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _CaptureTopBar(
-              canPop: canPop,
-              title: s.captureTitle,
-              selectedBackground: selectedBackground,
-              chooseBackgroundLabel: s.chooseBackground,
-              onBack: () => Navigator.pop(context),
-              onBackgroundTap: _openBackgrounds,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(child: _buildViewport(ready, s, frameCrop)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.72),
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: _CaptureTopBar(
+                  canPop: canPop,
+                  title: s.captureTitle,
+                  selectedBackground: selectedBackground,
+                  chooseBackgroundLabel: s.chooseBackground,
+                  onBack: () => Navigator.pop(context),
+                  onBackgroundTap: _openBackgrounds,
+                ),
+              ),
             ),
-            Expanded(child: _buildViewport(ready, s)),
-            _CaptureBottomControls(
-              mode: _mode,
-              cameraLabel: s.captureCamera,
-              galleryLabel: s.captureGallery,
-              hintMessage: _mode == CaptureMode.camera ? hintMessage : s.selectGalleryPhoto,
-              isPerfect: isPerfect,
-              arrowDirection: arrowDirection,
-              shutterEnabled: !_capturing && ready,
-              shutterLoading: _capturing,
-              onModeChanged: _switchMode,
-              onShutter: _takePhoto,
-              onGalleryPick: _pickFromGallery,
+          ),
+          if (_mode == CaptureMode.camera)
+            Positioned(
+              left: DesignTokens.spacing16,
+              right: DesignTokens.spacing16,
+              top: isLandscape ? 64 : null,
+              bottom: isLandscape ? null : 148,
+              child: CaptureHintBar(
+                message: hintMessage,
+                isPerfect: isPerfect,
+                arrowDirection: arrowDirection,
+                floating: true,
+              ),
             ),
-          ],
-        ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: isLandscape ? 0.85 : 0.92),
+                    Colors.black.withValues(alpha: 0.45),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: _CaptureBottomControls(
+                  mode: _mode,
+                  cameraLabel: s.captureCamera,
+                  galleryLabel: s.captureGallery,
+                  hintMessage: _mode == CaptureMode.camera ? hintMessage : s.selectGalleryPhoto,
+                  isPerfect: isPerfect,
+                  arrowDirection: arrowDirection,
+                  shutterEnabled: !_capturing && ready,
+                  shutterLoading: _capturing,
+                  compact: isLandscape,
+                  showHint: _mode != CaptureMode.camera,
+                  onModeChanged: _switchMode,
+                  onShutter: _takePhoto,
+                  onGalleryPick: _pickFromGallery,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildViewport(bool ready, AppStrings s) {
+  Widget _buildViewport(bool ready, AppStrings s, FrameCropSpec frameCrop) {
     if (_mode == CaptureMode.camera) {
       return ColoredBox(
         color: Colors.black,
         child: ready && _controller != null
             ? CameraPreviewView(
                 controller: _controller!,
-                overlay: CaptureHintOverlay(hint: _hint),
+                fit: CameraPreviewFit.cover,
+                overlay: CaptureHintOverlay(hint: _hint, crop: frameCrop),
               )
             : Center(
                 child: Column(
@@ -444,9 +578,9 @@ class _CaptureTopBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DesignTokens.spacing8,
-        DesignTokens.spacing8,
+        DesignTokens.spacing4,
         DesignTokens.screenPaddingH,
-        DesignTokens.spacing12,
+        DesignTokens.spacing8,
       ),
       child: Row(
         children: [
@@ -511,6 +645,8 @@ class _CaptureBottomControls extends StatelessWidget {
   final String arrowDirection;
   final bool shutterEnabled;
   final bool shutterLoading;
+  final bool compact;
+  final bool showHint;
   final ValueChanged<CaptureMode> onModeChanged;
   final VoidCallback onShutter;
   final VoidCallback onGalleryPick;
@@ -524,6 +660,8 @@ class _CaptureBottomControls extends StatelessWidget {
     required this.arrowDirection,
     required this.shutterEnabled,
     required this.shutterLoading,
+    required this.compact,
+    required this.showHint,
     required this.onModeChanged,
     required this.onShutter,
     required this.onGalleryPick,
@@ -532,21 +670,23 @@ class _CaptureBottomControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         DesignTokens.screenPaddingH,
-        DesignTokens.spacing12,
+        compact ? DesignTokens.spacing8 : DesignTokens.spacing12,
         DesignTokens.screenPaddingH,
-        DesignTokens.spacing16,
+        compact ? DesignTokens.spacing8 : DesignTokens.spacing12,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CaptureHintBar(
-            message: hintMessage,
-            isPerfect: isPerfect,
-            arrowDirection: mode == CaptureMode.camera ? arrowDirection : 'none',
-          ),
-          const SizedBox(height: DesignTokens.spacing16),
+          if (showHint) ...[
+            CaptureHintBar(
+              message: hintMessage,
+              isPerfect: isPerfect,
+              arrowDirection: mode == CaptureMode.camera ? arrowDirection : 'none',
+            ),
+            SizedBox(height: compact ? DesignTokens.spacing8 : DesignTokens.spacing16),
+          ],
           if (mode == CaptureMode.camera)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -555,16 +695,18 @@ class _CaptureBottomControls extends StatelessWidget {
                   icon: Icons.photo_library_outlined,
                   onTap: () => onModeChanged(CaptureMode.gallery),
                   semanticLabel: galleryLabel,
+                  compact: compact,
                 ),
-                const SizedBox(width: DesignTokens.spacing32),
+                SizedBox(width: compact ? DesignTokens.spacing24 : DesignTokens.spacing32),
                 _ShutterButton(
                   enabled: shutterEnabled,
                   isPerfect: isPerfect,
                   loading: shutterLoading,
+                  compact: compact,
                   onTap: onShutter,
                 ),
-                const SizedBox(width: DesignTokens.spacing32),
-                const SizedBox(width: DesignTokens.minTapTarget),
+                SizedBox(width: compact ? DesignTokens.spacing24 : DesignTokens.spacing32),
+                SizedBox(width: compact ? 40 : DesignTokens.minTapTarget),
               ],
             )
           else
@@ -594,15 +736,19 @@ class _IconTap extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final String? semanticLabel;
+  final bool compact;
 
   const _IconTap({
     required this.icon,
     required this.onTap,
     this.semanticLabel,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final size = compact ? 40.0 : DesignTokens.minTapTarget;
+
     return Semantics(
       button: true,
       label: semanticLabel,
@@ -613,9 +759,9 @@ class _IconTap extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
           child: SizedBox(
-            width: DesignTokens.minTapTarget,
-            height: DesignTokens.minTapTarget,
-            child: Icon(icon, color: Colors.white, size: 22),
+            width: size,
+            height: size,
+            child: Icon(icon, color: Colors.white, size: compact ? 20 : 22),
           ),
         ),
       ),
@@ -627,17 +773,22 @@ class _ShutterButton extends StatelessWidget {
   final bool enabled;
   final bool isPerfect;
   final bool loading;
+  final bool compact;
   final VoidCallback onTap;
 
   const _ShutterButton({
     required this.enabled,
     required this.isPerfect,
     required this.loading,
+    required this.compact,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final outer = compact ? 60.0 : 72.0;
+    final inner = compact ? 48.0 : 58.0;
+
     return Semantics(
       button: true,
       enabled: enabled && !loading,
@@ -646,8 +797,8 @@ class _ShutterButton extends StatelessWidget {
         onTap: enabled && !loading ? onTap : null,
         child: AnimatedContainer(
           duration: DesignTokens.durationNormal,
-          width: 72,
-          height: 72,
+          width: outer,
+          height: outer,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
@@ -665,14 +816,14 @@ class _ShutterButton extends StatelessWidget {
           ),
           child: Center(
             child: loading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                ? SizedBox(
+                    width: compact ? 20 : 24,
+                    height: compact ? 20 : 24,
+                    child: const CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                   )
                 : Container(
-                    width: 58,
-                    height: 58,
+                    width: inner,
+                    height: inner,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isPerfect ? const Color(0xFF66BB6A) : Colors.white,

@@ -41,19 +41,52 @@ def _soft_spotlight(image: Image.Image, box: tuple[int, int, int, int], alpha: i
     return Image.alpha_composite(image.convert("RGBA"), spot).convert("RGB")
 
 
-def _floor_disc(image: Image.Image, *, center_x: int, colors: dict, width_ratio: float = 0.42) -> Image.Image:
-    """Subtle circular floor patch — no raised podium block."""
+def _round_podium(
+    image: Image.Image,
+    *,
+    center_x: int,
+    colors: dict,
+    width_ratio: float = 0.42,
+) -> Image.Image:
+    """Circular turntable podium — raised disc with rim and soft floor contact shadow."""
     disc_w = int(WIDTH * width_ratio)
-    disc_h = int(HEIGHT * 0.07)
-    top = FLOOR_LINE_Y - disc_h // 2
+    disc_h = int(HEIGHT * 0.09)
+    top = FLOOR_LINE_Y - int(disc_h * 0.62)
 
     overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
+
+    # Ground contact shadow
+    shadow_h = int(HEIGHT * 0.035)
+    draw.ellipse(
+        [
+            center_x - int(disc_w * 0.46),
+            FLOOR_LINE_Y - shadow_h // 3,
+            center_x + int(disc_w * 0.46),
+            FLOOR_LINE_Y + shadow_h,
+        ],
+        fill=(0, 0, 0, 42),
+    )
+
+    # Podium top surface
     draw.ellipse(
         [center_x - disc_w // 2, top, center_x + disc_w // 2, top + disc_h],
         fill=(*colors["disc"], 255),
     )
-    overlay = overlay.filter(ImageFilter.GaussianBlur(radius=6))
+
+    # Metallic rim
+    rim = colors.get("rim", tuple(max(0, c - 18) for c in colors["disc"]))
+    draw.ellipse(
+        [
+            center_x - disc_w // 2,
+            top + int(disc_h * 0.55),
+            center_x + disc_w // 2,
+            top + disc_h + int(disc_h * 0.18),
+        ],
+        fill=(*rim, 255),
+    )
+
+    overlay = overlay.filter(ImageFilter.GaussianBlur(radius=2))
     return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
 
 
@@ -64,7 +97,8 @@ def _palette(slug: str) -> dict[str, tuple[int, int, int]]:
             "wall_bottom": (34, 38, 46),
             "floor_near": (56, 60, 68),
             "floor_far": (40, 44, 52),
-            "disc": (64, 68, 76),
+            "disc": (78, 82, 90),
+            "rim": (58, 62, 70),
             "accent": (88, 96, 108),
             "lamp": (255, 244, 220),
         }
@@ -73,7 +107,8 @@ def _palette(slug: str) -> dict[str, tuple[int, int, int]]:
         "wall_bottom": (168, 170, 178),
         "floor_near": (214, 216, 222),
         "floor_far": (176, 178, 186),
-        "disc": (226, 228, 234),
+        "disc": (232, 234, 240),
+        "rim": (210, 212, 220),
         "accent": (196, 198, 206),
         "lamp": (255, 255, 255),
     }
@@ -98,30 +133,47 @@ def _workshop_ceiling_lights(image: Image.Image, colors: dict) -> Image.Image:
     return image
 
 
+def _workshop_details(draw: ImageDraw.ImageDraw, colors: dict) -> None:
+    """Background garage elements — kept subtle so the car stays the hero."""
+    lift_color = (52, 88, 148)
+    cabinet_color = (74, 78, 86)
+    for x in (int(WIDTH * 0.12), int(WIDTH * 0.78)):
+        draw.rectangle([x, int(HEIGHT * 0.18), x + 28, HORIZON_Y - 8], fill=lift_color)
+        draw.rectangle([x - 18, int(HEIGHT * 0.20), x + 46, int(HEIGHT * 0.26)], fill=lift_color)
+    draw.rectangle([int(WIDTH * 0.08), int(HEIGHT * 0.30), int(WIDTH * 0.22), HORIZON_Y - 12], fill=cabinet_color)
+    draw.rectangle([int(WIDTH * 0.74), int(HEIGHT * 0.28), int(WIDTH * 0.90), HORIZON_Y - 10], fill=cabinet_color)
+
+
 def _render_side(slug: str) -> Image.Image:
-    image, _draw, colors = _base_studio(slug)
+    image, draw, colors = _base_studio(slug)
     if slug == "auto-workshop":
         image = _workshop_ceiling_lights(image, colors)
+        draw = ImageDraw.Draw(image)
+        _workshop_details(draw, colors)
 
     image = _soft_spotlight(image, (int(WIDTH * 0.15), 20, int(WIDTH * 0.85), int(HEIGHT * 0.55)), alpha=55)
-    return _floor_disc(image, center_x=WIDTH // 2, colors=colors, width_ratio=0.50)
+    return _round_podium(image, center_x=WIDTH // 2, colors=colors, width_ratio=0.50)
 
 
 def _render_front_rear(slug: str) -> Image.Image:
     image, draw, colors = _base_studio(slug)
     if slug == "auto-workshop":
         image = _workshop_ceiling_lights(image, colors)
+        draw = ImageDraw.Draw(image)
+        _workshop_details(draw, colors)
 
     # Subtle back wall panel
     draw.rectangle([int(WIDTH * 0.22), int(HEIGHT * 0.14), int(WIDTH * 0.78), HORIZON_Y], fill=colors["wall_bottom"])
     image = _soft_spotlight(image, (WIDTH // 2 - 340, 16, WIDTH // 2 + 340, int(HEIGHT * 0.50)), alpha=65)
-    return _floor_disc(image, center_x=WIDTH // 2, colors=colors, width_ratio=0.34)
+    return _round_podium(image, center_x=WIDTH // 2, colors=colors, width_ratio=0.34)
 
 
 def _render_three_quarter(slug: str, *, left: bool) -> Image.Image:
-    image, _draw, colors = _base_studio(slug)
+    image, draw, colors = _base_studio(slug)
     if slug == "auto-workshop":
         image = _workshop_ceiling_lights(image, colors)
+        draw = ImageDraw.Draw(image)
+        _workshop_details(draw, colors)
 
     spot_x = int(WIDTH * (0.44 if left else 0.56))
     image = _soft_spotlight(
@@ -130,24 +182,41 @@ def _render_three_quarter(slug: str, *, left: bool) -> Image.Image:
         alpha=48,
     )
     disc_x = int(WIDTH * (0.48 if left else 0.52))
-    return _floor_disc(image, center_x=disc_x, colors=colors, width_ratio=0.38)
+    return _round_podium(image, center_x=disc_x, colors=colors, width_ratio=0.38)
 
 
 def _render_interior(slug: str) -> Image.Image:
     colors = _palette(slug)
-    image = Image.new("RGB", (WIDTH, HEIGHT), (28, 30, 36))
+    image = Image.new("RGB", (WIDTH, HEIGHT), colors["wall_bottom"])
     draw = ImageDraw.Draw(image)
-    _gradient_vertical(draw, (0, 0, WIDTH, HEIGHT), (50, 54, 62), (20, 22, 28))
+    _gradient_vertical(draw, (0, 0, WIDTH, HEIGHT), colors["wall_top"], colors["wall_bottom"])
 
+    if slug == "auto-workshop":
+        image = _workshop_ceiling_lights(image, colors)
+        draw = ImageDraw.Draw(image)
+        draw.rectangle([0, int(HEIGHT * 0.58), WIDTH, HEIGHT], fill=colors["floor_near"])
+
+    # Dashboard silhouette — driver perspective, aligned with exterior camera height.
+    dash_top = int(HEIGHT * 0.38)
     draw.rounded_rectangle(
-        [int(WIDTH * 0.10), int(HEIGHT * 0.40), int(WIDTH * 0.90), int(HEIGHT * 0.76)],
-        radius=24,
-        fill=(38, 42, 50),
+        [int(WIDTH * 0.06), dash_top, int(WIDTH * 0.94), int(HEIGHT * 0.82)],
+        radius=20,
+        fill=(32, 34, 40) if slug == "auto-workshop" else (48, 50, 58),
+    )
+    draw.rounded_rectangle(
+        [int(WIDTH * 0.12), dash_top + 18, int(WIDTH * 0.42), int(HEIGHT * 0.58)],
+        radius=14,
+        fill=(18, 20, 26),
     )
     draw.ellipse(
-        [int(WIDTH * 0.38), int(HEIGHT * 0.54), int(WIDTH * 0.62), int(HEIGHT * 0.80)],
-        outline=(100, 106, 118),
-        width=3,
+        [int(WIDTH * 0.40), int(HEIGHT * 0.50), int(WIDTH * 0.60), int(HEIGHT * 0.78)],
+        outline=(96, 100, 112),
+        width=4,
+    )
+    draw.rounded_rectangle(
+        [int(WIDTH * 0.58), dash_top + 28, int(WIDTH * 0.88), int(HEIGHT * 0.54)],
+        radius=10,
+        fill=(22, 24, 30),
     )
     return _soft_spotlight(image, (WIDTH // 2 - 260, 36, WIDTH // 2 + 260, int(HEIGHT * 0.52)), alpha=55)
 

@@ -42,7 +42,7 @@ def _content_bbox(car: Image.Image) -> tuple[int, int, int, int]:
 
 
 def _strip_baked_shadow(car: Image.Image) -> Image.Image:
-    """Remove the PNG's baked-in floor shadow — compositor draws its own."""
+    """Remove semi-transparent floor shadow baked into the PNG — keep solid car pixels."""
     car = car.convert("RGBA")
     pixels = car.load()
     width, height = car.size
@@ -50,14 +50,15 @@ def _strip_baked_shadow(car: Image.Image) -> Image.Image:
     if not bbox:
         return car
 
-    shadow_zone_top = bbox[1] + int((bbox[3] - bbox[1]) * 0.72)
+    shadow_zone_top = bbox[1] + int((bbox[3] - bbox[1]) * 0.78)
     for y in range(shadow_zone_top, height):
         for x in range(width):
             r, g, b, a = pixels[x, y]
             if a == 0:
                 continue
             brightness = (r + g + b) / 3
-            if brightness < 95 or a < 210:
+            # Only strip faint ground shadow — never opaque body or wheel pixels.
+            if a < 185 and brightness < 110:
                 pixels[x, y] = (0, 0, 0, 0)
     return car
 

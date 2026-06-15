@@ -2,18 +2,21 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../config/env.dart';
 import '../repositories/background_repository.dart';
 import '../core/theme/app_tokens.dart';
 
 class AuthenticatedBackgroundImage extends StatefulWidget {
   final String? previewPath;
+  final String? presetSlug;
+  final String? angle;
   final BoxFit fit;
   final BorderRadius? borderRadius;
 
   const AuthenticatedBackgroundImage({
     super.key,
     required this.previewPath,
+    this.presetSlug,
+    this.angle,
     this.fit = BoxFit.cover,
     this.borderRadius,
   });
@@ -34,16 +37,26 @@ class _AuthenticatedBackgroundImageState extends State<AuthenticatedBackgroundIm
   @override
   void didUpdateWidget(covariant AuthenticatedBackgroundImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.previewPath != widget.previewPath) {
+    if (oldWidget.previewPath != widget.previewPath ||
+        oldWidget.presetSlug != widget.presetSlug ||
+        oldWidget.angle != widget.angle) {
       _future = _load();
     }
   }
 
   Future<Uint8List?> _load() async {
     final path = widget.previewPath;
-    if (path == null || path.isEmpty) return null;
+    if ((path == null || path.isEmpty) &&
+        (widget.presetSlug == null || widget.angle == null)) {
+      return null;
+    }
+
     try {
-      return await BackgroundRepository.instance.fetchImageBytes(path);
+      return await BackgroundRepository.instance.fetchImageBytes(
+        path ?? '',
+        presetSlug: widget.presetSlug,
+        angle: widget.angle,
+      );
     } catch (_) {
       return null;
     }
@@ -68,6 +81,7 @@ class _AuthenticatedBackgroundImageState extends State<AuthenticatedBackgroundIm
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
+            filterQuality: FilterQuality.high,
           );
         }
 
@@ -92,10 +106,4 @@ class _AuthenticatedBackgroundImageState extends State<AuthenticatedBackgroundIm
           : Icon(Icons.image_outlined, color: tokens.textTertiary, size: 28),
     );
   }
-}
-
-String backgroundPreviewUrl(String? previewPath) {
-  if (previewPath == null) return '';
-  if (previewPath.startsWith('http')) return previewPath;
-  return '${Env.apiBaseUrl}$previewPath';
 }

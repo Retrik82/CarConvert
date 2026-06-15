@@ -2,6 +2,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+enum CameraPreviewFit { contain, cover }
+
 /// Matches [CameraPreview] intrinsic sizing (portrait uses inverted sensor ratio).
 double cameraPreviewDisplayAspectRatio(CameraController controller) {
   if (!controller.value.isInitialized) return 9 / 16;
@@ -45,15 +47,36 @@ Size fitSizeToAspectRatio({
   return Size(width, width / aspectRatio);
 }
 
-/// Shows [CameraPreview] without extra aspect-ratio wrappers (avoids horizontal stretch).
+Size coverSizeToAspectRatio({
+  required double maxWidth,
+  required double maxHeight,
+  required double aspectRatio,
+}) {
+  if (maxWidth <= 0 || maxHeight <= 0 || aspectRatio <= 0) {
+    return Size.zero;
+  }
+
+  final containerRatio = maxWidth / maxHeight;
+  if (containerRatio > aspectRatio) {
+    final width = maxWidth;
+    return Size(width, width / aspectRatio);
+  }
+
+  final height = maxHeight;
+  return Size(height * aspectRatio, height);
+}
+
+/// Full-bleed or contained [CameraPreview] with optional overlay.
 class CameraPreviewView extends StatelessWidget {
   final CameraController controller;
   final Widget? overlay;
+  final CameraPreviewFit fit;
 
   const CameraPreviewView({
     super.key,
     required this.controller,
     this.overlay,
+    this.fit = CameraPreviewFit.cover,
   });
 
   @override
@@ -67,29 +90,46 @@ class CameraPreviewView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final previewRatio = cameraPreviewDisplayAspectRatio(controller);
-        final previewSize = fitSizeToAspectRatio(
-          maxWidth: constraints.maxWidth,
-          maxHeight: constraints.maxHeight,
-          aspectRatio: previewRatio,
-        );
+        final previewSize = switch (fit) {
+          CameraPreviewFit.contain => fitSizeToAspectRatio(
+              maxWidth: constraints.maxWidth,
+              maxHeight: constraints.maxHeight,
+              aspectRatio: previewRatio,
+            ),
+          CameraPreviewFit.cover => coverSizeToAspectRatio(
+              maxWidth: constraints.maxWidth,
+              maxHeight: constraints.maxHeight,
+              aspectRatio: previewRatio,
+            ),
+        };
 
         if (previewSize == Size.zero) {
           return CameraPreview(controller, child: overlay);
         }
 
-        return Center(
-          child: SizedBox(
-            width: previewSize.width,
-            height: previewSize.height,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CameraPreview(controller),
-                if (overlay != null) overlay!,
-              ],
-            ),
+        final child = SizedBox(
+          width: previewSize.width,
+          height: previewSize.height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CameraPreview(controller),
+              if (overlay != null) overlay!,
+            ],
           ),
         );
+
+        if (fit == CameraPreviewFit.cover) {
+          return ClipRect(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              child: child,
+            ),
+          );
+        }
+
+        return Center(child: child);
       },
     );
   }
