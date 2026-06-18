@@ -89,6 +89,7 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
         if (mounted) setState(() {});
       }
     } catch (_) {}
+  }
 
   @override
   void didUpdateWidget(CaptureScreen oldWidget) {
