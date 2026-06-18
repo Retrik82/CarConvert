@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 
 /// Backward-compatible facade. Prefer `context.tokens` in new code.
 class AppTheme {
   static const white = Color(0xFFFFFFFF);
-  static const background = Color(0xFFF4F2EF);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceMuted = Color(0xFFF8F7F5);
-  static const textPrimary = Color(0xFF0D0D0F);
-  static const textSecondary = Color(0xFF5C5C66);
-  static const textTertiary = Color(0xFF9494A0);
-  static const accent = Color(0xFF0D0D0F);
-  static const border = Color(0xFFE4E2DE);
-  static const borderFocus = Color(0xFF0D0D0F);
-  static const error = Color(0xFFC0392B);
-  static const success = Color(0xFF1B7F4A);
+  static const background = DesignTokens.backgroundWhite;
+  static const surface = DesignTokens.backgroundWhite;
+  static const surfaceMuted = Color(0xFFF1F5F9);
+  static const textPrimary = DesignTokens.textDark;
+  static const textSecondary = DesignTokens.textMuted;
+  static const textTertiary = Color(0xFF94A3B8);
+  static const accent = DesignTokens.primaryBlue;
+  static const border = DesignTokens.borderLight;
+  static const borderFocus = DesignTokens.primaryBlue;
+  static const error = Color(0xFFDC2626);
+  static const success = Color(0xFF16A34A);
 
   static const spacingScreenH = 24.0;
   static const spacingSection = 32.0;
   static const spacingElement = 16.0;
 
   static const radiusCard = 24.0;
-  static const radiusButton = 20.0;
+  static const radiusButton = 16.0;
   static const radiusInput = 16.0;
 
   static const durationShort = Duration(milliseconds: 250);

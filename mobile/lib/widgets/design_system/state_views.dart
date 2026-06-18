@@ -34,11 +34,17 @@ class EmptyStateView extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: tokens.surfaceMuted,
+                gradient: tokens.primaryGradient,
                 shape: BoxShape.circle,
-                border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: tokens.accent.withValues(alpha: 0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              child: Icon(icon, size: 32, color: tokens.textTertiary),
+              child: Icon(icon, size: 32, color: tokens.onAccent),
             ),
             const SizedBox(height: DesignTokens.spacing24),
             Text(

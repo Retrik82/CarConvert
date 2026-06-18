@@ -9,6 +9,7 @@ import '../core/theme/design_tokens.dart';
 import '../models/car.dart';
 import '../repositories/car_repository.dart';
 import '../widgets/design_system/state_views.dart';
+import '../widgets/rename_dialog.dart';
 import 'capture_screen.dart';
 import 'car_detail_screen.dart';
 
@@ -38,6 +39,20 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
     });
   }
 
+  Future<void> _renameCar(Car car) async {
+    final s = context.strings;
+    final name = await showRenameDialog(
+      context,
+      title: s.renameCar,
+      label: s.carName,
+      hint: s.carNameHint,
+      initialValue: car.name,
+    );
+    if (name == null) return;
+    await CarRepository.instance.updateCarName(car.id, name);
+    _load();
+  }
+
   void _openCapture(BuildContext context) {
     Navigator.push(
       context,
@@ -58,10 +73,25 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
           IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openCapture(context),
-        icon: const Icon(Icons.camera_alt_outlined),
-        label: Text(s.takePhoto),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(DesignTokens.radiusButton),
+          boxShadow: [
+            BoxShadow(
+              color: tokens.accent.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: () => _openCapture(context),
+          backgroundColor: tokens.accent,
+          foregroundColor: tokens.onAccent,
+          elevation: 0,
+          icon: const Icon(Icons.camera_alt_outlined),
+          label: Text(s.takePhoto),
+        ),
       ),
       body: _loading
           ? Padding(
@@ -98,8 +128,9 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => CarDetailScreen(carId: car.id)),
-                          );
+                          ).then((_) => _load());
                         },
+                        onRename: () => _renameCar(car),
                       );
                     },
                   ),
@@ -111,12 +142,18 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
 class _CarListTile extends StatelessWidget {
   final Car car;
   final VoidCallback onTap;
+  final VoidCallback onRename;
 
-  const _CarListTile({required this.car, required this.onTap});
+  const _CarListTile({
+    required this.car,
+    required this.onTap,
+    required this.onRename,
+  });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final s = context.strings;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: DesignTokens.spacing12),
@@ -170,6 +207,11 @@ class _CarListTile extends StatelessWidget {
                   ),
                 ),
                 Icon(Icons.chevron_right_rounded, color: tokens.textTertiary),
+                IconButton(
+                  icon: Icon(Icons.drive_file_rename_outline_rounded, size: 20, color: tokens.textTertiary),
+                  tooltip: s.rename,
+                  onPressed: onRename,
+                ),
               ],
             ),
           ),

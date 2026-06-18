@@ -4,7 +4,6 @@ import '../core/l10n/app_strings.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
 import '../models/background.dart';
-import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
@@ -14,6 +13,7 @@ import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/state_views.dart';
 import '../widgets/form_fields.dart';
+import 'background_generation_screen.dart';
 
 class BackgroundsScreen extends StatefulWidget {
   final VoidCallback? onSelected;
@@ -28,7 +28,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   final _repo = BackgroundRepository.instance;
   BackgroundCatalog? _catalog;
   bool _loading = true;
-  bool _creating = false;
   String? _error;
 
   @override
@@ -114,11 +113,8 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                 ),
                 const SizedBox(height: DesignTokens.spacing16),
                 AppButton(
-                  label: '${s.generate} ${MoneyFormat.usd(catalog.customBackgroundPriceUsd)}',
-                  loading: _creating,
-                  onPressed: _creating
-                      ? null
-                      : () async {
+                  label: s.generate,
+                  onPressed: () async {
                           if (!formKey.currentState!.validate()) return;
                           Navigator.pop(ctx);
                           await _createCustom(nameController.text.trim(), promptController.text.trim());
@@ -133,31 +129,26 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 
   Future<void> _createCustom(String name, String prompt) async {
-    setState(() {
-      _creating = true;
-      _error = null;
-    });
-    try {
-      await AuthRepository.instance.refreshCurrentUser();
-      final user = AuthRepository.instance.currentUser;
-      final price = _catalog?.customBackgroundPriceUsd ?? 0.5;
-      if (user != null && user.balance < price) {
-        throw Exception(
-          'Insufficient balance. Need ${MoneyFormat.usd(price)}, available ${MoneyFormat.usd(user.balance)}',
-        );
-      }
-      final preset = await _repo.createCustomBackground(name: name, prompt: prompt);
-      _repo.clearImageCache();
-      await AuthRepository.instance.refreshCurrentUser();
+    final catalog = _catalog;
+    if (catalog == null) return;
+
+    final selected = await Navigator.push<SelectedBackground?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BackgroundGenerationScreen(
+          name: name,
+          prompt: prompt,
+          priceUsd: catalog.customBackgroundPriceUsd,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (selected != null) {
+      widget.onSelected?.call();
+      Navigator.pop(context, selected);
+    } else {
       await _load();
-      if (!mounted) return;
-      _selectPreset(preset);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userFacingError(e))));
-      }
-    } finally {
-      if (mounted) setState(() => _creating = false);
     }
   }
 
@@ -173,7 +164,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
         title: Text(s.backgroundsTitle),
         actions: [
           TextButton.icon(
-            onPressed: _creating ? null : _showCreateSheet,
+            onPressed: _showCreateSheet,
             icon: const Icon(Icons.auto_awesome_outlined, size: 18),
             label: Text(s.customBackground),
           ),
@@ -301,7 +292,7 @@ class _BackgroundCard extends StatelessWidget {
                 DesignTokens.spacing12,
                 0,
               ),
-              child: BackgroundAnglesGallery(preset: preset),
+              child: BackgroundAnglesGallery(preset: preset, enableZoom: true),
             ),
             Padding(
               padding: const EdgeInsets.all(DesignTokens.spacing16),

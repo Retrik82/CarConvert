@@ -14,13 +14,26 @@ abstract final class DesignTokens {
   static const minTapTarget = 48.0;
 
   static const radiusCard = 24.0;
-  static const radiusButton = 20.0;
+  static const radiusButton = 16.0;
   static const radiusInput = 16.0;
   static const radiusChip = 12.0;
-  static const radiusHero = 28.0;
+  static const radiusHero = 24.0;
+
+  static const primaryBlue = Color(0xFF2563EB);
+  static const primaryPurple = Color(0xFF7C3AED);
+  static const textDark = Color(0xFF0F172A);
+  static const textMuted = Color(0xFF64748B);
+  static const borderLight = Color(0xFFE5E7EB);
+  static const backgroundWhite = Color(0xFFFFFFFF);
+
+  static const primaryGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryBlue, primaryPurple],
+  );
 
   static const durationFast = Duration(milliseconds: 200);
-  static const durationNormal = Duration(milliseconds: 350);
+  static const durationNormal = Duration(milliseconds: 300);
   static const durationSlow = Duration(milliseconds: 550);
   static const durationTheme = Duration(milliseconds: 650);
 

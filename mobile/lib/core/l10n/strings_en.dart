@@ -285,4 +285,88 @@ class StringsEn extends AppStrings {
 
   @override
   String get errorGeneric => 'Something went wrong';
+
+  @override
+  String get processingTitle => 'Processing';
+
+  @override
+  String get renderResultTitle => 'Render Result';
+
+  @override
+  String get saveToMyCars => 'Save to My Cars';
+
+  @override
+  String get savedToMyCars => 'Saved to My Cars';
+
+  @override
+  String get downloadPhoto => 'Download photo';
+
+  @override
+  String get photoSaved => 'Photo saved to gallery';
+
+  @override
+  String get photoSaveFailed => 'Failed to save photo';
+
+  @override
+  String get deleteRender => 'Delete';
+
+  @override
+  String get reRender => 'Re-render';
+
+  @override
+  String get beforeLabel => 'Before';
+
+  @override
+  String get afterLabel => 'After';
+
+  @override
+  String get pinchToZoom => 'Pinch to zoom';
+
+  @override
+  String get backgroundGeneratingTitle => 'Generating background';
+
+  @override
+  String get backgroundGeneratingStatus => 'Creating your studio scene with AI…';
+
+  @override
+  String get backgroundGeneratingAngles => 'Rendering 7 camera angles…';
+
+  @override
+  String get backgroundGenerated => 'Background ready!';
+
+  @override
+  String get backgroundResultPreview => 'Preview — all angles';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get renameCar => 'Rename car';
+
+  @override
+  String get renameRender => 'Rename render';
+
+  @override
+  String get renderName => 'Render name';
+
+  @override
+  String get renderNameHint => 'e.g. Front view, Studio gray';
+
+  @override
+  String get carName => 'Car name';
+
+  @override
+  String get carNameHint => 'e.g. BMW M4';
+
+  @override
+  String get renderHistory => 'Render History';
+
+  @override
+  String get addRender => 'Add Render';
+
+  @override
+  String get deleteCar => 'Delete Car';
+
+  @override
+  String get preview => 'Preview';
 }

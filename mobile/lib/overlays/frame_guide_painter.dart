@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/capture_chrome.dart';
 import '../utils/frame_crop.dart';
 
 class FrameGuidePainter extends CustomPainter {
@@ -29,7 +30,7 @@ class FrameGuidePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = guideRect(size, crop: crop);
     final rrect = guideRRect(size, crop: crop);
-    final borderColor = isPerfect ? const Color(0xFF66BB6A) : Colors.white;
+    final borderColor = isPerfect ? CaptureChrome.perfect : CaptureChrome.accent;
 
     final dimPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -46,6 +47,15 @@ class FrameGuidePainter extends CustomPainter {
       ..strokeWidth = 2;
 
     canvas.drawRRect(rrect, borderPaint);
+
+    if (!isPerfect) {
+      final glowPaint = Paint()
+        ..color = CaptureChrome.accentGlow
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawRRect(rrect, glowPaint);
+    }
 
     const cornerLen = 24.0;
     final cornerPaint = Paint()

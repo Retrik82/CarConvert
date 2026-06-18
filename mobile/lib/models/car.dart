@@ -1,6 +1,7 @@
 class RenderResult {
   final String id;
   final String jobId;
+  final String? name;
   final String? originalPath;
   final String? renderedPath;
   final DateTime createdAt;
@@ -9,16 +10,20 @@ class RenderResult {
   RenderResult({
     required this.id,
     required this.jobId,
+    this.name,
     this.originalPath,
     this.renderedPath,
     required this.createdAt,
     this.qualityScore,
   });
 
+  String displayName(String fallback) => (name != null && name!.trim().isNotEmpty) ? name!.trim() : fallback;
+
   factory RenderResult.fromJson(Map<String, dynamic> json) {
     return RenderResult(
       id: json['id'] as String,
       jobId: json['job_id'] as String,
+      name: json['name'] as String?,
       originalPath: json['original_path'] as String?,
       renderedPath: json['rendered_path'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -31,11 +36,24 @@ class RenderResult {
   Map<String, dynamic> toJson() => {
         'id': id,
         'job_id': jobId,
+        'name': name,
         'original_path': originalPath,
         'rendered_path': renderedPath,
         'created_at': createdAt.toIso8601String(),
         'quality_score': qualityScore,
       };
+
+  RenderResult copyWith({String? name}) {
+    return RenderResult(
+      id: id,
+      jobId: jobId,
+      name: name ?? this.name,
+      originalPath: originalPath,
+      renderedPath: renderedPath,
+      createdAt: createdAt,
+      qualityScore: qualityScore,
+    );
+  }
 }
 
 class Car {

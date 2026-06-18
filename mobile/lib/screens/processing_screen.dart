@@ -3,11 +3,15 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../models/background.dart';
 import '../repositories/photo_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
+import '../core/theme/page_transitions.dart';
+import '../widgets/design_system/app_button.dart';
 import 'result_screen.dart';
 
 class ProcessingScreen extends StatefulWidget {
@@ -90,8 +94,8 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => ResultScreen(
+          AppPageTransitions.fadeSlide(
+            page: ResultScreen(
               originalBytes: widget.imageBytes,
               resultBase64: result.imageBase64!,
               mimeType: result.mimeType ?? 'image/png',
@@ -119,71 +123,136 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Scaffold(
+      backgroundColor: tokens.background,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Processing'),
+        title: Text(context.strings.processingTitle),
       ),
-      body: Center(
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 72,
-                height: 72,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  value: !_hasError && _progress > 0 && _progress < 100 ? _progress / 100 : null,
+              const SizedBox(height: DesignTokens.spacing24),
+              Expanded(
+                child: _ImagePreview(
+                  imageBytes: widget.imageBytes,
+                  progress: _progress,
+                  hasError: _hasError,
+                  tokens: tokens,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spacing32),
               Text(
                 _hasError ? 'Something went wrong' : 'Rendering your car...',
-                style: AppTheme.textStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                style: tokens.textStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
-              if (!_hasError)
+              const SizedBox(height: DesignTokens.spacing16),
+              if (!_hasError) ...[
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusInput),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
                   child: LinearProgressIndicator(
                     value: _progress / 100,
-                    minHeight: 6,
-                    backgroundColor: AppTheme.surfaceMuted,
-                    color: AppTheme.accent,
+                    minHeight: 8,
+                    backgroundColor: tokens.surfaceMuted,
+                    color: tokens.accent,
                   ),
                 ),
-              if (!_hasError) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: DesignTokens.spacing8),
                 Text(
                   '${_progress.round()}%',
-                  style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                  style: tokens.textStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: tokens.textSecondary,
+                  ),
                 ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: DesignTokens.spacing12),
               Text(
                 _status,
                 textAlign: TextAlign.center,
-                style: AppTheme.textStyle(
+                style: tokens.textStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: _hasError ? Colors.redAccent : AppTheme.textTertiary,
+                  color: _hasError ? tokens.error : tokens.textTertiary,
                 ),
               ),
               if (_hasError) ...[
-                const SizedBox(height: 24),
-                FilledButton.icon(
+                const SizedBox(height: DesignTokens.spacing24),
+                AppButton(
+                  label: 'Try again',
+                  icon: Icons.refresh_rounded,
                   onPressed: _start,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Try again'),
                 ),
               ],
+              SizedBox(height: MediaQuery.paddingOf(context).bottom + DesignTokens.spacing24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImagePreview extends StatelessWidget {
+  final Uint8List imageBytes;
+  final double progress;
+  final bool hasError;
+  final AppTokens tokens;
+
+  const _ImagePreview({
+    required this.imageBytes,
+    required this.progress,
+    required this.hasError,
+    required this.tokens,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
+        boxShadow: tokens.elevatedShadow,
+        border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+        color: tokens.textPrimary.withValues(alpha: 0.92),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.memory(imageBytes, fit: BoxFit.contain, alignment: Alignment.center),
+            if (!hasError)
+              Container(
+                color: tokens.textPrimary.withValues(alpha: 0.35),
+                child: Center(
+                  child: SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      value: progress > 0 && progress < 100 ? progress / 100 : null,
+                      color: Colors.white,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
+                ),
+              ),
+            if (hasError)
+              Container(
+                color: tokens.error.withValues(alpha: 0.15),
+                child: Icon(Icons.error_outline_rounded, size: 56, color: tokens.error),
+              ),
+          ],
         ),
       ),
     );

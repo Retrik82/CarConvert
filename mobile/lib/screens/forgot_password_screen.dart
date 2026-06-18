@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
+import '../widgets/app_logo.dart';
+import '../widgets/design_system/app_button.dart';
 import '../widgets/form_fields.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -45,45 +48,56 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Forgot Password')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Enter your email and we will send a reset link if the account exists.',
-                style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              appTextField(
-                context: context,
-                controller: _email,
-                label: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                validator: Validators.email,
-              ),
-              if (_error != null) appFormMessage(_error!, isError: true),
-              if (_sent)
-                appFormMessage(
-                  'If an account exists, a reset link has been sent.',
-                  isError: false,
+      backgroundColor: tokens.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Forgot Password'),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: AppLogo(iconSize: 36, titleSize: 20, showTagline: false)),
+                const SizedBox(height: DesignTokens.spacing24),
+                Text(
+                  'Enter your email and we will send a reset link if the account exists.',
+                  style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                 ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: _loading || _sent ? null : _send,
-                child: _loading
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Send reset link'),
-              ),
-            ],
+                const SizedBox(height: DesignTokens.spacing24),
+                appTextField(
+                  context: context,
+                  controller: _email,
+                  label: 'Email',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: Validators.email,
+                ),
+                if (_error != null) appFormMessage(_error!, isError: true, context: context),
+                if (_sent)
+                  appFormMessage(
+                    'If an account exists, a reset link has been sent.',
+                    isError: false,
+                    context: context,
+                  ),
+                const Spacer(),
+                AppButton(
+                  label: 'Send reset link',
+                  icon: Icons.mail_outline_rounded,
+                  loading: _loading,
+                  onPressed: _loading || _sent ? null : _send,
+                ),
+                const SizedBox(height: DesignTokens.spacing32),
+              ],
+            ),
           ),
         ),
       ),

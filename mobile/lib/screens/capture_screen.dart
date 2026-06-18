@@ -10,7 +10,9 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../core/l10n/app_strings.dart';
 import '../core/l10n/hint_localizer.dart';
+import '../core/theme/capture_chrome.dart';
 import '../core/theme/design_tokens.dart';
+import '../core/theme/page_transitions.dart';
 import '../models/background.dart';
 import '../models/hint_response.dart';
 import '../repositories/auth_repository.dart';
@@ -285,8 +287,8 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
     final selectedBackground = BackgroundRepository.instance.selected;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ProcessingScreen(
+      AppPageTransitions.fadeSlide(
+        page: ProcessingScreen(
           imageBytes: bytes,
           sessionId: _sessionId,
           carId: widget.carId,
@@ -300,7 +302,7 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
   Future<void> _openBackgrounds() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const BackgroundsScreen()),
+      AppPageTransitions.fadeSlide(page: const BackgroundsScreen()),
     );
     if (mounted) setState(() {});
   }
@@ -533,11 +535,11 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    const CircularProgressIndicator(color: CaptureChrome.accent, strokeWidth: 2.5),
                     const SizedBox(height: DesignTokens.spacing16),
                     Text(
                       _status == 'Initializing...' ? s.advisorConnecting : _status,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                      style: const TextStyle(color: CaptureChrome.textMuted, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -556,11 +558,11 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.photo_library_outlined, size: 56, color: Colors.white.withValues(alpha: 0.35)),
+          Icon(Icons.photo_library_outlined, size: 56, color: CaptureChrome.accent.withValues(alpha: 0.6)),
           const SizedBox(height: DesignTokens.spacing12),
           Text(
             s.selectGalleryPhoto,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 15),
+            style: const TextStyle(color: CaptureChrome.textMuted, fontSize: 15),
           ),
         ],
       ),
@@ -625,7 +627,13 @@ class _CaptureTopBar extends StatelessWidget {
                 height: DesignTokens.minTapTarget,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                  border: Border.all(color: CaptureChrome.borderAccent),
+                  boxShadow: [
+                    BoxShadow(
+                      color: CaptureChrome.accentGlow,
+                      blurRadius: 8,
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(DesignTokens.radiusChip - 1),
@@ -635,7 +643,7 @@ class _CaptureTopBar extends StatelessWidget {
                         )
                       : Icon(
                           Icons.wallpaper_outlined,
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: CaptureChrome.accent,
                           size: 22,
                         ),
                 ),
@@ -734,7 +742,7 @@ class _CaptureBottomControls extends StatelessWidget {
                   onPressed: () => onModeChanged(CaptureMode.camera),
                   icon: const Icon(Icons.camera_alt_outlined, size: 18),
                   label: Text(cameraLabel),
-                  style: TextButton.styleFrom(foregroundColor: Colors.white.withValues(alpha: 0.75)),
+                  style: TextButton.styleFrom(foregroundColor: CaptureChrome.accent),
                 ),
               ],
             ),
@@ -765,15 +773,19 @@ class _IconTap extends StatelessWidget {
       button: true,
       label: semanticLabel,
       child: Material(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: CaptureChrome.iconGlass,
         borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
-          child: SizedBox(
+          child: Container(
             width: size,
             height: size,
-            child: Icon(icon, color: Colors.white, size: compact ? 20 : 22),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+              border: Border.all(color: CaptureChrome.borderGlass),
+            ),
+            child: Icon(icon, color: CaptureChrome.textPrimary, size: compact ? 20 : 22),
           ),
         ),
       ),
@@ -814,31 +826,30 @@ class _ShutterButton extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: isPerfect ? const Color(0xFF66BB6A) : Colors.white,
+              color: isPerfect ? CaptureChrome.perfect : CaptureChrome.accent,
               width: 3,
             ),
-            boxShadow: isPerfect
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF66BB6A).withValues(alpha: 0.35),
-                      blurRadius: 16,
-                    ),
-                  ]
-                : null,
+            boxShadow: [
+              BoxShadow(
+                color: (isPerfect ? CaptureChrome.perfectGlow : CaptureChrome.accentGlow),
+                blurRadius: 16,
+              ),
+            ],
           ),
           child: Center(
             child: loading
                 ? SizedBox(
                     width: compact ? 20 : 24,
                     height: compact ? 20 : 24,
-                    child: const CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    child: const CircularProgressIndicator(strokeWidth: 2.5, color: CaptureChrome.accent),
                   )
                 : Container(
                     width: inner,
                     height: inner,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isPerfect ? const Color(0xFF66BB6A) : Colors.white,
+                      gradient: isPerfect ? null : CaptureChrome.primaryGradient,
+                      color: isPerfect ? CaptureChrome.perfect : null,
                     ),
                   ),
           ),

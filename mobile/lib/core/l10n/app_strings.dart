@@ -146,6 +146,40 @@ abstract class AppStrings {
   String get emptyCarsSubtitle;
   String get errorGeneric;
 
+  // Processing & results
+  String get processingTitle;
+  String get renderResultTitle;
+  String get saveToMyCars;
+  String get savedToMyCars;
+  String get downloadPhoto;
+  String get photoSaved;
+  String get photoSaveFailed;
+  String get deleteRender;
+  String get reRender;
+  String get beforeLabel;
+  String get afterLabel;
+  String get pinchToZoom;
+
+  // Background generation
+  String get backgroundGeneratingTitle;
+  String get backgroundGeneratingStatus;
+  String get backgroundGeneratingAngles;
+  String get backgroundGenerated;
+  String get backgroundResultPreview;
+
+  // Gallery / My Cars
+  String get rename;
+  String get renameCar;
+  String get renameRender;
+  String get renderName;
+  String get renderNameHint;
+  String get carName;
+  String get carNameHint;
+  String get renderHistory;
+  String get addRender;
+  String get deleteCar;
+  String get preview;
+
   static AppStrings of(Locale locale) {
     return switch (AppLanguage.fromLocale(locale)) {
       AppLanguage.en => StringsEn(),

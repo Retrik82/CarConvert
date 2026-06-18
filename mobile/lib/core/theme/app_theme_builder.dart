@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../preferences/app_preferences.dart';
 import 'app_tokens.dart';
 import 'design_tokens.dart';
+import 'page_transitions.dart';
 
 class AppThemeBuilder {
   static ThemeData build(AppTokens tokens) {
@@ -52,20 +53,20 @@ class AppThemeBuilder {
         backgroundColor: tokens.surface,
         elevation: 0,
         height: 72,
-        indicatorColor: tokens.surfaceMuted,
+        indicatorColor: tokens.accentMuted.withValues(alpha: tokens.isDark ? 0.4 : 1),
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return tokens.textStyle(
             fontSize: 12,
-            fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
-            color: selected ? tokens.textPrimary : tokens.textTertiary,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected ? tokens.accent : tokens.textTertiary,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? tokens.textPrimary : tokens.textTertiary,
+            color: selected ? tokens.accent : tokens.textTertiary,
             size: 24,
           );
         }),
@@ -152,8 +153,8 @@ class AppThemeBuilder {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: FadeSlidePageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeSlidePageTransitionsBuilder(),
         },
       ),
     );

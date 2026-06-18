@@ -34,10 +34,11 @@ class _AppButtonState extends State<AppButton> {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final enabled = widget.onPressed != null && !widget.loading;
+    final isPrimary = widget.variant == AppButtonVariant.primary;
 
     final (bg, fg, border) = switch (widget.variant) {
-      AppButtonVariant.primary => (tokens.accent, tokens.onAccent, Colors.transparent),
-      AppButtonVariant.secondary => (Colors.transparent, tokens.textPrimary, tokens.border),
+      AppButtonVariant.primary => (null, tokens.onAccent, Colors.transparent),
+      AppButtonVariant.secondary => (tokens.surface, tokens.textPrimary, tokens.border),
       AppButtonVariant.ghost => (Colors.transparent, tokens.textSecondary, Colors.transparent),
     };
 
@@ -51,11 +52,18 @@ class _AppButtonState extends State<AppButton> {
       ),
       transform: Matrix4.identity()..scale(_pressed ? 0.98 : 1.0),
       decoration: BoxDecoration(
-        color: enabled ? bg : bg.withValues(alpha: 0.4),
+        color: isPrimary ? null : (enabled ? bg : bg?.withValues(alpha: 0.4)),
+        gradient: isPrimary && enabled ? tokens.primaryGradient : null,
         borderRadius: BorderRadius.circular(DesignTokens.radiusButton),
         border: Border.all(color: border.withValues(alpha: enabled ? 1 : 0.4)),
-        boxShadow: widget.variant == AppButtonVariant.primary && enabled && !tokens.isDark
-            ? tokens.cardShadow
+        boxShadow: isPrimary && enabled
+            ? [
+                BoxShadow(
+                  color: tokens.accent.withValues(alpha: 0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ]
             : null,
       ),
       child: Row(
@@ -81,7 +89,7 @@ class _AppButtonState extends State<AppButton> {
                 textAlign: TextAlign.center,
                 style: tokens.textStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   color: enabled ? fg : fg.withValues(alpha: 0.5),
                 ),
               ),

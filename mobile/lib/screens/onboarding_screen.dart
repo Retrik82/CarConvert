@@ -4,8 +4,10 @@ import '../core/l10n/app_strings.dart';
 import '../core/theme/app_theme_builder.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
+import '../widgets/app_logo.dart';
+import '../core/theme/page_transitions.dart';
 import '../widgets/design_system/app_button.dart';
-import '../widgets/design_system/car_hero.dart';
+import '../widgets/design_system/hero_before_after.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
 import 'forgot_password_screen.dart';
 import 'login_screen.dart';
@@ -22,27 +24,14 @@ class OnboardingScreen extends StatelessWidget {
   });
 
   void _pushAuthScreen(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => screen,
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: DesignTokens.curveEmphasized),
-            child: SlideTransition(
-              position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(animation),
-              child: child,
-            ),
-          );
-        },
-      ),
-    );
+    Navigator.push(context, AppPageTransitions.fadeSlide(page: screen));
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final s = context.strings;
+    final appName = s.appName;
 
     return Scaffold(
       backgroundColor: tokens.background,
@@ -51,11 +40,56 @@ class OnboardingScreen extends StatelessWidget {
           children: [
             PremiumTopBar(settings: settings),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: DesignTokens.durationTheme,
-                child: CarHero(
-                  key: ValueKey(tokens.isDark),
-                  height: MediaQuery.sizeOf(context).height * 0.38,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+                child: Column(
+                  children: [
+                    const AppLogo(iconSize: 44, titleSize: 26),
+                    const SizedBox(height: DesignTokens.spacing24),
+                    HeroBeforeAfter(
+                      height: MediaQuery.sizeOf(context).height * 0.32,
+                    ),
+                    const SizedBox(height: DesignTokens.spacing32),
+                    GradientHighlightText(
+                      text: s.welcomeTitle,
+                      highlight: appName,
+                      baseStyle: tokens.textStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: DesignTokens.spacing8),
+                    Text(
+                      s.welcomeSubtitle,
+                      textAlign: TextAlign.center,
+                      style: tokens.textStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: DesignTokens.spacing24),
+                    FeatureHighlightRow(
+                      features: [
+                        FeatureHighlight(
+                          icon: Icons.auto_fix_high_rounded,
+                          title: s.takePhoto.split(' ').first,
+                          subtitle: s.startCapture,
+                        ),
+                        FeatureHighlight(
+                          icon: Icons.crop_square_rounded,
+                          title: s.chooseBackground.split(' ').first,
+                          subtitle: s.backgroundSelected,
+                        ),
+                        FeatureHighlight(
+                          icon: Icons.bolt_rounded,
+                          title: s.fromGallery.split(' ').first,
+                          subtitle: s.dashboardSubtitle.split('.').first,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -64,22 +98,9 @@ class OnboardingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    s.welcomeTitle,
-                    style: tokens.textStyle(fontSize: 28, fontWeight: FontWeight.w600, letterSpacing: -0.5),
-                  ),
-                  const SizedBox(height: DesignTokens.spacing8),
-                  Text(
-                    s.welcomeSubtitle,
-                    style: tokens.textStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: tokens.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: DesignTokens.spacing32),
                   AppButton(
                     label: s.login,
+                    icon: Icons.mail_outline_rounded,
                     onPressed: () => _pushAuthScreen(
                       context,
                       LoginScreen(onLoggedIn: onLoggedIn),
@@ -89,6 +110,7 @@ class OnboardingScreen extends StatelessWidget {
                   AppButton(
                     label: s.register,
                     variant: AppButtonVariant.secondary,
+                    icon: Icons.person_add_outlined,
                     onPressed: () => _pushAuthScreen(
                       context,
                       RegisterScreen(onRegistered: onLoggedIn),

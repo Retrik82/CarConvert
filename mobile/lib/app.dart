@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/l10n/app_strings.dart';
 import 'core/theme/app_theme_builder.dart';
+import 'core/theme/app_tokens.dart';
 import 'core/theme/design_tokens.dart';
 import 'screens/admin_shell.dart';
 import 'screens/onboarding_screen.dart';
@@ -12,7 +13,7 @@ import 'screens/user_shell.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/car_asset_repository.dart';
 import 'repositories/car_repository.dart';
-import 'widgets/design_system/car_hero.dart';
+import 'widgets/app_logo.dart';
 
 enum AppDestination { login, userHome, adminHome }
 
@@ -21,17 +22,23 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppTokens>() ?? AppTokens.light;
+
     return Scaffold(
+      backgroundColor: tokens.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CarHero(height: 180, animate: true),
+            const AppLogo(iconSize: 56, titleSize: 32),
             const SizedBox(height: DesignTokens.spacing48),
-            const SizedBox(
+            SizedBox(
               width: 32,
               height: 32,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: tokens.accent,
+              ),
             ),
           ],
         ),

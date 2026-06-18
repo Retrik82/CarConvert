@@ -6,8 +6,9 @@ import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
+import '../core/theme/page_transitions.dart';
 import '../widgets/design_system/app_card.dart';
-import '../widgets/design_system/car_hero.dart';
+import '../widgets/design_system/hero_before_after.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
 import 'backgrounds_screen.dart';
 import 'capture_screen.dart';
@@ -52,14 +53,11 @@ class WelcomeScreen extends StatelessWidget {
   void _openCapture(BuildContext context, CaptureMode mode) {
     Navigator.push(
       context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => CaptureScreen(
+      AppPageTransitions.fadeSlide(
+        page: CaptureScreen(
           initialMode: mode,
           onBalanceChanged: onBalanceChanged,
         ),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
       ),
     );
   }
@@ -67,7 +65,7 @@ class WelcomeScreen extends StatelessWidget {
   void _openBackgrounds(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const BackgroundsScreen()),
+      AppPageTransitions.fadeSlide(page: const BackgroundsScreen()),
     );
   }
 
@@ -104,7 +102,7 @@ class WelcomeScreen extends StatelessWidget {
                         children: [
                           Text(
                             s.greeting(name),
-                            style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w600, letterSpacing: -0.6),
+                            style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.6),
                           ),
                           const SizedBox(height: DesignTokens.spacing8),
                           Text(
@@ -116,13 +114,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: DesignTokens.spacing24),
-                          AnimatedSwitcher(
-                            duration: DesignTokens.durationTheme,
-                            child: CarHero(
-                              key: ValueKey(tokens.isDark),
-                              height: 200,
-                            ),
-                          ),
+                          HeroBeforeAfter(height: 220),
                           const SizedBox(height: DesignTokens.spacing24),
                         ],
                       ),
@@ -137,7 +129,15 @@ class WelcomeScreen extends StatelessWidget {
                             padding: const EdgeInsets.all(DesignTokens.spacing16),
                             child: Row(
                               children: [
-                                Icon(Icons.check_circle_outline, color: tokens.success, size: 22),
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    gradient: tokens.primaryGradient,
+                                    borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                                  ),
+                                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                                ),
                                 const SizedBox(width: DesignTokens.spacing12),
                                 Expanded(
                                   child: Column(
@@ -155,7 +155,7 @@ class WelcomeScreen extends StatelessWidget {
                                         selectedBackground.displayName,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                        style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w600),
                                       ),
                                     ],
                                   ),
@@ -243,20 +243,21 @@ class _ActionCard extends StatelessWidget {
     return AppCard(
       onTap: onTap,
       elevated: highlighted,
-      padding: const EdgeInsets.all(DesignTokens.spacing16),
+      padding: const EdgeInsets.all(DesignTokens.spacing24),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: highlighted ? tokens.accent : tokens.surfaceMuted,
-              borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+              gradient: highlighted ? tokens.primaryGradient : null,
+              color: highlighted ? null : tokens.accentMuted.withValues(alpha: tokens.isDark ? 0.3 : 1),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusInput),
             ),
             child: Icon(
               icon,
-              color: highlighted ? tokens.onAccent : tokens.textPrimary,
-              size: 22,
+              color: highlighted ? tokens.onAccent : tokens.accent,
+              size: 24,
             ),
           ),
           const SizedBox(width: DesignTokens.spacing16),
@@ -270,7 +271,7 @@ class _ActionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   maxLines: 2,

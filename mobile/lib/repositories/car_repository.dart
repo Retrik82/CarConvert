@@ -44,6 +44,7 @@ class CarRepository {
     Uint8List? renderedBytes,
     String renderedExt = 'png',
     double? qualityScore,
+    String? renderName,
   }) async {
     Car car;
     if (carId != null) {
@@ -62,6 +63,7 @@ class CarRepository {
     final render = RenderResult(
       id: files.renderId,
       jobId: jobId,
+      name: renderName,
       originalPath: files.originalPath,
       renderedPath: files.renderedPath,
       createdAt: DateTime.now(),
@@ -105,6 +107,18 @@ class CarRepository {
     final car = getById(carId);
     if (car == null) return;
     final updated = car.copyWith(name: name);
+    _cars = _cars.map((c) => c.id == carId ? updated : c).toList();
+    await _local.saveCars(_cars);
+  }
+
+  Future<void> updateRenderName(String carId, String renderId, String name) async {
+    final car = getById(carId);
+    if (car == null) return;
+    final updated = car.copyWith(
+      renders: car.renders
+          .map((r) => r.id == renderId ? r.copyWith(name: name.trim()) : r)
+          .toList(),
+    );
     _cars = _cars.map((c) => c.id == carId ? updated : c).toList();
     await _local.saveCars(_cars);
   }

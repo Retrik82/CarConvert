@@ -155,6 +155,9 @@ class SegmentedControl<T> extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: active ? tokens.surface : Colors.transparent,
                   borderRadius: BorderRadius.circular(DesignTokens.radiusButton - 4),
+                  border: active
+                      ? Border.all(color: tokens.accent.withValues(alpha: 0.3))
+                      : null,
                   boxShadow: active && !tokens.isDark
                       ? [
                           BoxShadow(
@@ -173,7 +176,7 @@ class SegmentedControl<T> extends StatelessWidget {
                   style: tokens.textStyle(
                     fontSize: 13,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                    color: active ? tokens.textPrimary : tokens.textSecondary,
+                    color: active ? tokens.accent : tokens.textSecondary,
                   ),
                 ),
               ),

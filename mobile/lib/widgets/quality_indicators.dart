@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/capture_chrome.dart';
+import '../core/theme/design_tokens.dart';
+
 class QualityLabels {
   final String framing;
   final String lighting;
@@ -29,20 +32,20 @@ class QualityIndicators extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(DesignTokens.spacing16),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.48),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: CaptureChrome.surfaceGlass,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusInput),
+        border: Border.all(color: CaptureChrome.borderAccent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           _scoreRow(labels.framing, framingScore),
-          const SizedBox(height: 10),
+          const SizedBox(height: DesignTokens.spacing12),
           _scoreRow(labels.lighting, lightingScore),
-          const SizedBox(height: 10),
+          const SizedBox(height: DesignTokens.spacing12),
           _scoreRow(labels.focus, focusScore),
         ],
       ),
@@ -51,10 +54,10 @@ class QualityIndicators extends StatelessWidget {
 
   Widget _scoreRow(String label, double score) {
     final color = score >= 0.75
-        ? const Color(0xFF66BB6A)
+        ? CaptureChrome.perfect
         : score >= 0.5
-            ? Colors.white.withValues(alpha: 0.85)
-            : const Color(0xFFE57373);
+            ? CaptureChrome.accent
+            : CaptureChrome.warning;
 
     return Row(
       children: [
@@ -62,7 +65,11 @@ class QualityIndicators extends StatelessWidget {
           width: 72,
           child: Text(
             label,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.white.withValues(alpha: 0.7)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: CaptureChrome.textMuted,
+            ),
           ),
         ),
         Expanded(
@@ -76,7 +83,7 @@ class QualityIndicators extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: DesignTokens.spacing8),
         Text(
           '${(score * 100).round()}%',
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/settings_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
 import '../utils/validators.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/design_system/app_button.dart';
+import '../widgets/design_system/app_card.dart';
 import '../widgets/form_fields.dart';
 
 class PricingScreen extends StatefulWidget {
@@ -88,7 +91,10 @@ class _PricingScreenState extends State<PricingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Scaffold(
+      backgroundColor: tokens.background,
       appBar: AppBar(
         title: const Text('App Pricing'),
         actions: [
@@ -101,92 +107,103 @@ class _PricingScreenState extends State<PricingScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: tokens.accent))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.spacingScreenH),
+              padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const AppLogo(iconSize: 56, titleSize: 24),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: DesignTokens.spacing8),
                     Text(
                       'Admin: ${AuthRepository.instance.currentUser?.email ?? ''}',
                       textAlign: TextAlign.center,
-                      style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                      style: tokens.textStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: tokens.textSecondary,
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingSection),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: AppTheme.cardDecoration(),
+                    const SizedBox(height: DesignTokens.spacing32),
+                    AppCard(
+                      elevated: true,
+                      padding: const EdgeInsets.all(DesignTokens.spacing24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Generation price',
-                            style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                            style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: DesignTokens.spacing8),
                           Text(
                             'Current: ${MoneyFormat.pricePerGeneration(_currentPrice)}',
-                            style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                            style: tokens.textStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: tokens.textSecondary,
+                            ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: DesignTokens.spacing16),
                           TextFormField(
                             controller: _priceController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: Validators.price,
-                            style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppTheme.textPrimary),
+                            style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w400),
                             decoration: appInputDecoration('Generation price (USD)', hint: '0.10'),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingElement),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: AppTheme.cardDecoration(),
+                    const SizedBox(height: DesignTokens.spacing16),
+                    AppCard(
+                      elevated: true,
+                      padding: const EdgeInsets.all(DesignTokens.spacing24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Custom background price',
-                            style: AppTheme.textStyle(fontSize: 18, fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                            style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: DesignTokens.spacing8),
                           Text(
                             'Current: ${MoneyFormat.usd(_currentCustomBackgroundPrice)}',
-                            style: AppTheme.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                            style: tokens.textStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: tokens.textSecondary,
+                            ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: DesignTokens.spacing16),
                           TextFormField(
                             controller: _customBackgroundPriceController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: Validators.price,
-                            style: AppTheme.textStyle(fontSize: 16, fontWeight: FontWeight.w400, color: AppTheme.textPrimary),
+                            style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w400),
                             decoration: appInputDecoration('Custom background price (USD)', hint: '0.50'),
                           ),
                         ],
                       ),
                     ),
-                    if (_error != null) appFormMessage(_error!, isError: true),
-                    if (_success != null) appFormMessage(_success!, isError: false),
-                    const SizedBox(height: AppTheme.spacingSection),
-                    FilledButton(
+                    if (_error != null) appFormMessage(_error!, isError: true, context: context),
+                    if (_success != null) appFormMessage(_success!, isError: false, context: context),
+                    const SizedBox(height: DesignTokens.spacing32),
+                    AppButton(
+                      label: 'Save',
+                      loading: _saving,
                       onPressed: _saving ? null : _save,
-                      child: _saving
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Save'),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: DesignTokens.spacing16),
                     Text(
                       'Generation price applies per render. Custom background price is charged once when a user creates a personal background.',
-                      style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textTertiary),
+                      style: tokens.textStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: tokens.textTertiary,
+                      ),
                     ),
                   ],
                 ),

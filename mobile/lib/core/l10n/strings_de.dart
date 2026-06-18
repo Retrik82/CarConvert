@@ -285,4 +285,88 @@ class StringsDe extends AppStrings {
 
   @override
   String get errorGeneric => 'Etwas ist schiefgelaufen';
+
+  @override
+  String get processingTitle => 'Verarbeitung';
+
+  @override
+  String get renderResultTitle => 'Render-Ergebnis';
+
+  @override
+  String get saveToMyCars => 'In Meine Autos speichern';
+
+  @override
+  String get savedToMyCars => 'In Meine Autos gespeichert';
+
+  @override
+  String get downloadPhoto => 'Foto herunterladen';
+
+  @override
+  String get photoSaved => 'Foto in Galerie gespeichert';
+
+  @override
+  String get photoSaveFailed => 'Foto konnte nicht gespeichert werden';
+
+  @override
+  String get deleteRender => 'Löschen';
+
+  @override
+  String get reRender => 'Neu rendern';
+
+  @override
+  String get beforeLabel => 'Vorher';
+
+  @override
+  String get afterLabel => 'Nachher';
+
+  @override
+  String get pinchToZoom => 'Zum Zoomen zusammenziehen';
+
+  @override
+  String get backgroundGeneratingTitle => 'Hintergrund wird erstellt';
+
+  @override
+  String get backgroundGeneratingStatus => 'Studio-Szene wird mit KI erstellt…';
+
+  @override
+  String get backgroundGeneratingAngles => '7 Kamerawinkel werden gerendert…';
+
+  @override
+  String get backgroundGenerated => 'Hintergrund fertig!';
+
+  @override
+  String get backgroundResultPreview => 'Vorschau — alle Winkel';
+
+  @override
+  String get rename => 'Umbenennen';
+
+  @override
+  String get renameCar => 'Auto umbenennen';
+
+  @override
+  String get renameRender => 'Render umbenennen';
+
+  @override
+  String get renderName => 'Render-Name';
+
+  @override
+  String get renderNameHint => 'z.B. Frontansicht, Graues Studio';
+
+  @override
+  String get carName => 'Autoname';
+
+  @override
+  String get carNameHint => 'z.B. BMW M4';
+
+  @override
+  String get renderHistory => 'Render-Verlauf';
+
+  @override
+  String get addRender => 'Render hinzufügen';
+
+  @override
+  String get deleteCar => 'Auto löschen';
+
+  @override
+  String get preview => 'Vorschau';
 }

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
+import '../widgets/app_logo.dart';
+import '../widgets/design_system/app_button.dart';
 import '../widgets/form_fields.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -57,60 +62,81 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final s = context.strings;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              appTextField(
-                context: context,
-                controller: _name,
-                label: 'Name',
-                validator: (v) => Validators.required(v, 'Name'),
-              ),
-              const SizedBox(height: 16),
-              appTextField(
-                context: context,
-                controller: _email,
-                label: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                validator: Validators.email,
-              ),
-              const SizedBox(height: 16),
-              appTextField(
-                context: context,
-                controller: _password,
-                label: 'Password',
-                obscureText: true,
-                validator: Validators.password,
-              ),
-              const SizedBox(height: 16),
-              appTextField(
-                context: context,
-                controller: _confirmPassword,
-                label: 'Confirm password',
-                obscureText: true,
-                validator: (v) => Validators.confirmPassword(v, _password.text),
-              ),
-              if (_error != null) appFormMessage(_error!, isError: true),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : _register,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Register'),
+      backgroundColor: tokens.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: AppLogo(iconSize: 36, titleSize: 20, showTagline: false)),
+                const SizedBox(height: DesignTokens.spacing24),
+                Text(
+                  s.register,
+                  style: tokens.textStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                 ),
-              ),
-            ],
+                const SizedBox(height: DesignTokens.spacing8),
+                Text(
+                  s.appTagline,
+                  style: tokens.textStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: DesignTokens.spacing32),
+                appTextField(
+                  context: context,
+                  controller: _name,
+                  label: 'Name',
+                  validator: (v) => Validators.required(v, 'Name'),
+                ),
+                const SizedBox(height: DesignTokens.spacing16),
+                appTextField(
+                  context: context,
+                  controller: _email,
+                  label: 'Email',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: Validators.email,
+                ),
+                const SizedBox(height: DesignTokens.spacing16),
+                appTextField(
+                  context: context,
+                  controller: _password,
+                  label: s.password,
+                  obscureText: true,
+                  validator: Validators.password,
+                ),
+                const SizedBox(height: DesignTokens.spacing16),
+                appTextField(
+                  context: context,
+                  controller: _confirmPassword,
+                  label: 'Confirm password',
+                  obscureText: true,
+                  validator: (v) => Validators.confirmPassword(v, _password.text),
+                ),
+                if (_error != null) appFormMessage(_error!, isError: true, context: context),
+                const SizedBox(height: DesignTokens.spacing32),
+                AppButton(
+                  label: s.register,
+                  loading: _loading,
+                  onPressed: _loading ? null : _register,
+                ),
+                const SizedBox(height: DesignTokens.spacing32),
+              ],
+            ),
           ),
         ),
       ),

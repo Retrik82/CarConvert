@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../core/theme/app_tokens.dart';
+import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/profile_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/validators.dart';
+import '../widgets/design_system/app_button.dart';
 import '../widgets/form_fields.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -82,50 +84,68 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final name = _name.text;
+
     return Scaffold(
+      backgroundColor: tokens.background,
       appBar: AppBar(title: const Text('Edit Profile')),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
+              const SizedBox(height: DesignTokens.spacing24),
               GestureDetector(
                 onTap: _pickAvatar,
                 child: Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: AppTheme.surfaceMuted,
-                      backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
-                          ? FileImage(File(_avatarPath!))
-                          : null,
-                      child: _avatarPath == null || !File(_avatarPath!).existsSync()
-                          ? Text(
-                              (name.isNotEmpty ? name[0] : '?').toUpperCase(),
-                              style: AppTheme.textStyle(fontSize: 32, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-                            )
-                          : null,
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: tokens.primaryGradient,
+                      ),
+                      child: CircleAvatar(
+                        radius: 48,
+                        backgroundColor: tokens.surfaceMuted,
+                        backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
+                            ? FileImage(File(_avatarPath!))
+                            : null,
+                        child: _avatarPath == null || !File(_avatarPath!).existsSync()
+                            ? Text(
+                                (name.isNotEmpty ? name[0] : '?').toUpperCase(),
+                                style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w700),
+                              )
+                            : null,
+                      ),
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
-                        child: const Icon(Icons.camera_alt_outlined, size: 16, color: AppTheme.white),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: tokens.primaryGradient,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt_outlined, size: 16, color: Colors.white),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DesignTokens.spacing8),
               Text(
                 'Tap to change avatar',
-                style: AppTheme.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: AppTheme.textSecondary),
+                style: tokens.textStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  color: tokens.textSecondary,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spacing24),
               appTextField(
                 context: context,
                 controller: _name,
@@ -133,19 +153,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 validator: (v) => Validators.required(v, 'Name'),
               ),
               const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save'),
-                ),
+              AppButton(
+                label: 'Save',
+                loading: _saving,
+                onPressed: _saving ? null : _save,
               ),
+              const SizedBox(height: DesignTokens.spacing32),
             ],
           ),
         ),

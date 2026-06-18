@@ -127,18 +127,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: DesignTokens.spacing24),
                   Center(
-                    child: CircleAvatar(
-                      radius: 48,
-                      backgroundColor: tokens.surfaceMuted,
-                      backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
-                          ? FileImage(File(_avatarPath!))
-                          : null,
-                      child: _avatarPath == null || !File(_avatarPath!).existsSync()
-                          ? Text(
-                              (name.isNotEmpty ? name[0] : '?').toUpperCase(),
-                              style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w600),
-                            )
-                          : null,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: tokens.primaryGradient,
+                      ),
+                      child: CircleAvatar(
+                        radius: 48,
+                        backgroundColor: tokens.surfaceMuted,
+                        backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
+                            ? FileImage(File(_avatarPath!))
+                            : null,
+                        child: _avatarPath == null || !File(_avatarPath!).existsSync()
+                            ? Text(
+                                (name.isNotEmpty ? name[0] : '?').toUpperCase(),
+                                style: tokens.textStyle(fontSize: 32, fontWeight: FontWeight.w700),
+                              )
+                            : null,
+                      ),
                     ),
                   ),
                   const SizedBox(height: DesignTokens.spacing16),

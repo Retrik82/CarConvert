@@ -50,7 +50,15 @@ class _UserShellState extends State<UserShell> {
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: tokens.surface,
           border: Border(top: BorderSide(color: tokens.border.withValues(alpha: 0.5))),
+          boxShadow: [
+            BoxShadow(
+              color: tokens.shadow.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: NavigationBar(
           selectedIndex: _index,

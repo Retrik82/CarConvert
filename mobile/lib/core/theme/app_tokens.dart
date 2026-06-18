@@ -14,6 +14,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color textSecondary;
   final Color textTertiary;
   final Color accent;
+  final Color accentSecondary;
   final Color accentMuted;
   final Color onAccent;
   final Color border;
@@ -43,6 +44,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.textSecondary,
     required this.textTertiary,
     required this.accent,
+    required this.accentSecondary,
     required this.accentMuted,
     required this.onAccent,
     required this.border,
@@ -64,46 +66,47 @@ class AppTokens extends ThemeExtension<AppTokens> {
   });
 
   static const light = AppTokens(
-    background: Color(0xFFF4F2EF),
-    backgroundElevated: Color(0xFFEBE8E4),
-    surface: Color(0xFFFFFFFF),
-    surfaceMuted: Color(0xFFF8F7F5),
+    background: DesignTokens.backgroundWhite,
+    backgroundElevated: Color(0xFFF8FAFC),
+    surface: DesignTokens.backgroundWhite,
+    surfaceMuted: Color(0xFFF1F5F9),
     surfaceGlass: Color(0xCCFFFFFF),
-    textPrimary: Color(0xFF0D0D0F),
-    textSecondary: Color(0xFF5C5C66),
-    textTertiary: Color(0xFF9494A0),
-    accent: Color(0xFF0D0D0F),
-    accentMuted: Color(0xFF2A2A32),
+    textPrimary: DesignTokens.textDark,
+    textSecondary: DesignTokens.textMuted,
+    textTertiary: Color(0xFF94A3B8),
+    accent: DesignTokens.primaryBlue,
+    accentSecondary: DesignTokens.primaryPurple,
+    accentMuted: Color(0xFFDBEAFE),
     onAccent: Color(0xFFFFFFFF),
-    border: Color(0xFFE4E2DE),
-    borderSubtle: Color(0xFFF0EEEA),
-    error: Color(0xFFC0392B),
-    success: Color(0xFF1B7F4A),
-    shadow: Color(0x1A0D0D0F),
-    glow: Color(0x33B8B4AC),
-    heroAmbient: Color(0xFFE8E4DE),
-    heroFloor: Color(0xFFD8D4CE),
-    heroPodium: Color(0xFFF0EEEA),
-    carBodyLight: Color(0xFFF5F5F7),
-    carBodyDark: Color(0xFFD8D8DC),
+    border: DesignTokens.borderLight,
+    borderSubtle: Color(0xFFF1F5F9),
+    error: Color(0xFFDC2626),
+    success: Color(0xFF16A34A),
+    shadow: Color(0x1A2563EB),
+    glow: Color(0x332563EB),
+    heroAmbient: Color(0xFFEFF6FF),
+    heroFloor: Color(0xFFE2E8F0),
+    heroPodium: Color(0xFFF8FAFC),
+    carBodyLight: Color(0xFFF1F5F9),
+    carBodyDark: Color(0xFFCBD5E1),
     carHighlight: Color(0xFFFFFFFF),
     carReflection: Color(0x66FFFFFF),
     cardShadow: [
       BoxShadow(
-        color: Color(0x140D0D0F),
+        color: Color(0x0F2563EB),
         blurRadius: 32,
         offset: Offset(0, 12),
         spreadRadius: -4,
       ),
       BoxShadow(
-        color: Color(0x0A0D0D0F),
+        color: Color(0x080F172A),
         blurRadius: 8,
         offset: Offset(0, 2),
       ),
     ],
     elevatedShadow: [
       BoxShadow(
-        color: Color(0x200D0D0F),
+        color: Color(0x1A2563EB),
         blurRadius: 48,
         offset: Offset(0, 20),
         spreadRadius: -8,
@@ -113,29 +116,30 @@ class AppTokens extends ThemeExtension<AppTokens> {
   );
 
   static const dark = AppTokens(
-    background: Color(0xFF08080A),
-    backgroundElevated: Color(0xFF121216),
-    surface: Color(0xFF16161C),
-    surfaceMuted: Color(0xFF1C1C24),
-    surfaceGlass: Color(0x9916161C),
-    textPrimary: Color(0xFFF2F2F4),
-    textSecondary: Color(0xFF9898A4),
-    textTertiary: Color(0xFF646470),
-    accent: Color(0xFFF2F2F4),
-    accentMuted: Color(0xFFC8C8D0),
-    onAccent: Color(0xFF08080A),
-    border: Color(0xFF2A2A34),
-    borderSubtle: Color(0xFF1E1E26),
-    error: Color(0xFFE57373),
-    success: Color(0xFF66BB6A),
+    background: Color(0xFF0F172A),
+    backgroundElevated: Color(0xFF1E293B),
+    surface: Color(0xFF1E293B),
+    surfaceMuted: Color(0xFF334155),
+    surfaceGlass: Color(0x991E293B),
+    textPrimary: Color(0xFFF8FAFC),
+    textSecondary: Color(0xFF94A3B8),
+    textTertiary: Color(0xFF64748B),
+    accent: Color(0xFF3B82F6),
+    accentSecondary: Color(0xFF8B5CF6),
+    accentMuted: Color(0xFF1E3A5F),
+    onAccent: Color(0xFFFFFFFF),
+    border: Color(0xFF334155),
+    borderSubtle: Color(0xFF1E293B),
+    error: Color(0xFFF87171),
+    success: Color(0xFF4ADE80),
     shadow: Color(0x66000000),
-    glow: Color(0x33FFFFFF),
-    heroAmbient: Color(0xFF1A1A22),
-    heroFloor: Color(0xFF0E0E12),
-    heroPodium: Color(0xFF22222C),
-    carBodyLight: Color(0xFF3A3A42),
-    carBodyDark: Color(0xFF0A0A0C),
-    carHighlight: Color(0xFF6A6A74),
+    glow: Color(0x333B82F6),
+    heroAmbient: Color(0xFF1E293B),
+    heroFloor: Color(0xFF0F172A),
+    heroPodium: Color(0xFF334155),
+    carBodyLight: Color(0xFF475569),
+    carBodyDark: Color(0xFF1E293B),
+    carHighlight: Color(0xFF94A3B8),
     carReflection: Color(0x33FFFFFF),
     cardShadow: [
       BoxShadow(
@@ -147,7 +151,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     ],
     elevatedShadow: [
       BoxShadow(
-        color: Color(0x66000000),
+        color: Color(0x663B82F6),
         blurRadius: 40,
         offset: Offset(0, 16),
         spreadRadius: -8,
@@ -155,6 +159,12 @@ class AppTokens extends ThemeExtension<AppTokens> {
     ],
     isDark: true,
   );
+
+  LinearGradient get primaryGradient => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [accent, accentSecondary],
+      );
 
   TextStyle textStyle({
     required double fontSize,
@@ -179,15 +189,15 @@ class AppTokens extends ThemeExtension<AppTokens> {
   }
 
   TextTheme get textTheme => TextTheme(
-        displayLarge: textStyle(fontSize: 36, fontWeight: FontWeight.w600, letterSpacing: -0.8),
-        displayMedium: textStyle(fontSize: 32, fontWeight: FontWeight.w600, letterSpacing: -0.6),
-        headlineMedium: textStyle(fontSize: 24, fontWeight: FontWeight.w500, letterSpacing: -0.3),
-        titleLarge: textStyle(fontSize: 20, fontWeight: FontWeight.w500),
-        titleMedium: textStyle(fontSize: 18, fontWeight: FontWeight.w500),
+        displayLarge: textStyle(fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: -0.8),
+        displayMedium: textStyle(fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.6),
+        headlineMedium: textStyle(fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.3),
+        titleLarge: textStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        titleMedium: textStyle(fontSize: 18, fontWeight: FontWeight.w600),
         bodyLarge: textStyle(fontSize: 16, fontWeight: FontWeight.w400, color: textPrimary),
         bodyMedium: textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: textSecondary),
         bodySmall: textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: textTertiary),
-        labelLarge: textStyle(fontSize: 16, fontWeight: FontWeight.w500, color: onAccent),
+        labelLarge: textStyle(fontSize: 16, fontWeight: FontWeight.w600, color: onAccent),
       );
 
   BoxDecoration cardDecoration({Color? color, bool elevated = false}) {
@@ -210,6 +220,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     Color? textSecondary,
     Color? textTertiary,
     Color? accent,
+    Color? accentSecondary,
     Color? accentMuted,
     Color? onAccent,
     Color? border,
@@ -239,6 +250,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
       textSecondary: textSecondary ?? this.textSecondary,
       textTertiary: textTertiary ?? this.textTertiary,
       accent: accent ?? this.accent,
+      accentSecondary: accentSecondary ?? this.accentSecondary,
       accentMuted: accentMuted ?? this.accentMuted,
       onAccent: onAccent ?? this.onAccent,
       border: border ?? this.border,
@@ -273,6 +285,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textTertiary: Color.lerp(textTertiary, other.textTertiary, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
+      accentSecondary: Color.lerp(accentSecondary, other.accentSecondary, t)!,
       accentMuted: Color.lerp(accentMuted, other.accentMuted, t)!,
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
       border: Color.lerp(border, other.border, t)!,

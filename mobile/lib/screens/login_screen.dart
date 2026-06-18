@@ -6,6 +6,7 @@ import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/car_hero.dart';
 import '../widgets/form_fields.dart';
@@ -74,11 +75,13 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: DesignTokens.spacing8),
-                CarHero(height: 160, animate: false),
+                const Center(child: AppLogo(iconSize: 40, titleSize: 22, showTagline: false)),
+                const SizedBox(height: DesignTokens.spacing24),
+                CarHero(height: 140, animate: false),
                 const SizedBox(height: DesignTokens.spacing32),
                 Text(
                   s.login,
-                  style: tokens.textStyle(fontSize: 28, fontWeight: FontWeight.w600, letterSpacing: -0.5),
+                  style: tokens.textStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                 ),
                 const SizedBox(height: DesignTokens.spacing8),
                 Text(

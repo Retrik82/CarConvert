@@ -4,6 +4,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_theme_builder.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/design_tokens.dart';
+import '../app_logo.dart';
 
 class ThemeSwitcher extends StatelessWidget {
   final AppSettingsController controller;
@@ -43,11 +44,12 @@ class ThemeSwitcher extends StatelessWidget {
               width: 26,
               height: 26,
               decoration: BoxDecoration(
-                color: isDark ? tokens.textPrimary : tokens.accent,
+                gradient: isDark ? null : tokens.primaryGradient,
+                color: isDark ? tokens.textPrimary : null,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: tokens.shadow.withValues(alpha: 0.25),
+                    color: tokens.accent.withValues(alpha: 0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -56,7 +58,7 @@ class ThemeSwitcher extends StatelessWidget {
               child: Icon(
                 isDark ? Icons.nightlight_round : Icons.wb_sunny_outlined,
                 size: 14,
-                color: isDark ? tokens.onAccent : tokens.onAccent,
+                color: tokens.onAccent,
               ),
             ),
           ),
@@ -105,7 +107,7 @@ class LanguageSwitcher extends StatelessWidget {
                       lang.fullName,
                       style: tokens.textStyle(
                         fontSize: 14,
-                        fontWeight: lang == current ? FontWeight.w500 : FontWeight.w400,
+                        fontWeight: lang == current ? FontWeight.w600 : FontWeight.w400,
                         color: lang == current ? tokens.textPrimary : tokens.textSecondary,
                       ),
                     ),
@@ -128,7 +130,7 @@ class LanguageSwitcher extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.language_rounded, size: 18, color: tokens.textSecondary),
+            Icon(Icons.language_rounded, size: 18, color: tokens.accent),
             const SizedBox(width: 6),
             Text(
               current.label,
@@ -144,11 +146,13 @@ class LanguageSwitcher extends StatelessWidget {
 class PremiumTopBar extends StatelessWidget {
   final AppSettingsController settings;
   final Widget? trailing;
+  final bool showBrand;
 
   const PremiumTopBar({
     super.key,
     required this.settings,
     this.trailing,
+    this.showBrand = false,
   });
 
   @override
@@ -160,13 +164,100 @@ class PremiumTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          LanguageSwitcher(controller: settings),
-          const Spacer(),
+          if (showBrand)
+            const Expanded(
+              child: AppLogo(iconSize: 36, titleSize: 20, showTagline: false, centered: false),
+            )
+          else
+            LanguageSwitcher(controller: settings),
+          if (!showBrand) const Spacer(),
           ThemeSwitcher(controller: settings),
           if (trailing != null) ...[
             const SizedBox(width: DesignTokens.spacing8),
             trailing!,
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class FeatureHighlightRow extends StatelessWidget {
+  final List<FeatureHighlight> features;
+
+  const FeatureHighlightRow({super.key, required this.features});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: features
+          .map(
+            (f) => Expanded(
+              child: _FeatureItem(feature: f),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class FeatureHighlight {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const FeatureHighlight({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+}
+
+class _FeatureItem extends StatelessWidget {
+  final FeatureHighlight feature;
+
+  const _FeatureItem({required this.feature});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacing4),
+      child: Column(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: tokens.accentMuted.withValues(alpha: tokens.isDark ? 0.3 : 1),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+            ),
+            child: ShaderMask(
+              shaderCallback: (bounds) => tokens.primaryGradient.createShader(bounds),
+              child: Icon(feature.icon, size: 22, color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spacing8),
+          Text(
+            feature.title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: tokens.textStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            feature.subtitle,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: tokens.textStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w400,
+              color: tokens.textSecondary,
+            ),
+          ),
         ],
       ),
     );

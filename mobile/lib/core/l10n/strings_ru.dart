@@ -285,4 +285,88 @@ class StringsRu extends AppStrings {
 
   @override
   String get errorGeneric => 'Что-то пошло не так';
+
+  @override
+  String get processingTitle => 'Обработка';
+
+  @override
+  String get renderResultTitle => 'Результат рендера';
+
+  @override
+  String get saveToMyCars => 'Сохранить в Мои авто';
+
+  @override
+  String get savedToMyCars => 'Сохранено в Мои авто';
+
+  @override
+  String get downloadPhoto => 'Скачать фото';
+
+  @override
+  String get photoSaved => 'Фото сохранено в галерею';
+
+  @override
+  String get photoSaveFailed => 'Не удалось сохранить фото';
+
+  @override
+  String get deleteRender => 'Удалить';
+
+  @override
+  String get reRender => 'Перерендерить';
+
+  @override
+  String get beforeLabel => 'До';
+
+  @override
+  String get afterLabel => 'После';
+
+  @override
+  String get pinchToZoom => 'Сведите пальцы для увеличения';
+
+  @override
+  String get backgroundGeneratingTitle => 'Генерация фона';
+
+  @override
+  String get backgroundGeneratingStatus => 'Создаём студийную сцену с помощью ИИ…';
+
+  @override
+  String get backgroundGeneratingAngles => 'Рендерим 7 ракурсов…';
+
+  @override
+  String get backgroundGenerated => 'Фон готов!';
+
+  @override
+  String get backgroundResultPreview => 'Превью — все ракурсы';
+
+  @override
+  String get rename => 'Переименовать';
+
+  @override
+  String get renameCar => 'Переименовать авто';
+
+  @override
+  String get renameRender => 'Переименовать рендер';
+
+  @override
+  String get renderName => 'Название рендера';
+
+  @override
+  String get renderNameHint => 'напр. Вид спереди, Серая студия';
+
+  @override
+  String get carName => 'Название авто';
+
+  @override
+  String get carNameHint => 'напр. BMW M4';
+
+  @override
+  String get renderHistory => 'История рендеров';
+
+  @override
+  String get addRender => 'Добавить рендер';
+
+  @override
+  String get deleteCar => 'Удалить авто';
+
+  @override
+  String get preview => 'Превью';
 }

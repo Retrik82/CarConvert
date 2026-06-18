@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/capture_chrome.dart';
 import '../core/theme/design_tokens.dart';
 
 class CaptureHintBar extends StatelessWidget {
@@ -28,7 +29,7 @@ class CaptureHintBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = isPerfect ? const Color(0xFF66BB6A) : Colors.white;
+    final accent = isPerfect ? CaptureChrome.perfect : CaptureChrome.accent;
     final directionIcon = _directionIcon;
 
     return AnimatedContainer(
@@ -40,18 +41,29 @@ class CaptureHintBar extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: isPerfect
-            ? const Color(0xE62E7D32)
-            : (floating ? Colors.black.withValues(alpha: 0.55) : Colors.white.withValues(alpha: 0.1)),
+            ? CaptureChrome.perfect.withValues(alpha: 0.22)
+            : (floating ? CaptureChrome.surfaceGlass : Colors.white.withValues(alpha: 0.08)),
         borderRadius: BorderRadius.circular(floating ? DesignTokens.radiusChip : DesignTokens.radiusInput),
         border: Border.all(
-          color: isPerfect ? const Color(0xFF66BB6A) : Colors.white.withValues(alpha: floating ? 0.22 : 0.16),
+          color: isPerfect
+              ? CaptureChrome.perfect.withValues(alpha: 0.7)
+              : (floating ? CaptureChrome.borderAccent : CaptureChrome.borderGlass),
         ),
+        boxShadow: floating && !isPerfect
+            ? [
+                BoxShadow(
+                  color: CaptureChrome.accentGlow,
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            isPerfect ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+            isPerfect ? Icons.check_circle_rounded : Icons.auto_awesome_rounded,
             color: accent,
             size: 20,
           ),
@@ -69,7 +81,7 @@ class CaptureHintBar extends StatelessWidget {
               style: TextStyle(
                 fontSize: floating ? 13 : 14,
                 fontWeight: FontWeight.w600,
-                color: accent,
+                color: isPerfect ? CaptureChrome.perfect : CaptureChrome.textPrimary,
                 height: 1.3,
               ),
             ),
