@@ -77,7 +77,7 @@ class StringsRu extends AppStrings {
   String get backgroundsTitle => 'Фоны';
 
   @override
-  String get backgroundsIntro => 'Выберите студийное окружение перед съёмкой. Каждая сцена поддерживает 7 ракурсов.';
+  String get backgroundsIntro => 'Выберите тип фона перед съёмкой. На карточке — 7 ракурсов машины для демонстрации.';
 
   @override
   String get sharedBackgrounds => 'Общие фоны';

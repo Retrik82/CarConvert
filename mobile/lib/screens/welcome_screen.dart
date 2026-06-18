@@ -152,7 +152,7 @@ class WelcomeScreen extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        '${selectedBackground.displayName} · ${selectedBackground.variant.angleLabel}',
+                                        selectedBackground.displayName,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500),

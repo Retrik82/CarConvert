@@ -77,7 +77,7 @@ class StringsEn extends AppStrings {
   String get backgroundsTitle => 'Backgrounds';
 
   @override
-  String get backgroundsIntro => 'Pick the studio environment before capture. Each scene supports 7 camera angles.';
+  String get backgroundsIntro => 'Pick a background type before capture. Each card shows 7 car angles as a preview.';
 
   @override
   String get sharedBackgrounds => 'Shared backgrounds';

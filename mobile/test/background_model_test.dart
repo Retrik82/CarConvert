@@ -37,7 +37,7 @@ void main() {
   });
 
   group('SelectedBackground', () {
-    test('previewUrl prefers variant url', () {
+    test('previewUrl prefers preset url then variant default', () {
       const selected = SelectedBackground(
         preset: BackgroundPreset(
           id: 'p1',
@@ -46,10 +46,25 @@ void main() {
           previewUrl: '/preset.jpg',
           variants: [BackgroundVariant(id: 'v1', angle: 'front', previewUrl: '/variant.jpg')],
         ),
-        variant: BackgroundVariant(id: 'v1', angle: 'front', previewUrl: '/variant.jpg'),
       );
 
-      expect(selected.previewUrl, '/variant.jpg');
+      expect(selected.previewUrl, '/preset.jpg');
+      expect(selected.presetId, 'p1');
+      expect(selected.userBackgroundId, isNull);
+    });
+
+    test('custom preset maps to user background id', () {
+      const selected = SelectedBackground(
+        preset: BackgroundPreset(
+          id: 'ub1',
+          slug: 'ub1',
+          name: 'My Garage',
+          isCustom: true,
+        ),
+      );
+
+      expect(selected.presetId, isNull);
+      expect(selected.userBackgroundId, 'ub1');
     });
   });
 }

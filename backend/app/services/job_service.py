@@ -112,12 +112,16 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
             data_url = to_data_url(image_bytes, mime_type)
             background_service = BackgroundService(db)
 
+            from app.services.ai.angle_classifier import classify_car_angle
+
+            detected_angle = await classify_car_angle(data_url, api_key)
             resolved = await background_service.resolve_variant_for_job(
                 preset_id=job.background_preset_id,
                 preset_variant_id=job.background_variant_id,
                 user_background_id=job.user_background_id,
                 user_variant_id=job.user_background_variant_id,
                 user_id=user_id,
+                angle=detected_angle,
             )
             result_b64, result_mime = await process_photo_with_background(
                 data_url,

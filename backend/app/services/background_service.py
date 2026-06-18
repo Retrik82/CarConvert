@@ -126,54 +126,32 @@ class BackgroundService:
         angle: str | None = None,
     ) -> ResolvedBackground:
         selected_angle = angle or "three_quarter_left"
+        angle_suffix = ANGLE_PROMPT_SUFFIXES.get(selected_angle, "")
 
         if user_background_id:
             background = await self._repo.get_user_background(user_background_id, user_id)
             if not background:
                 raise ValueError("Custom background not found.")
-            variant = None
-            if user_variant_id:
-                variant = await self._repo.get_user_variant(user_variant_id)
-            if variant is None or variant.background_id != background.id:
-                variant = await self._repo.get_user_background_variant(background.id, selected_angle)
-            if variant is None:
-                raise ValueError("Background variant not found.")
-            prompt = f"{background.prompt} {variant.prompt_suffix}".strip()
-            reference = _image_to_data_url(Path(variant.image_path)) if variant.image_path else None
-            if reference is None:
-                raise ValueError("Scene reference image not found.")
-            return ResolvedBackground(
-                prompt=prompt,
-                angle=variant.angle,
-                reference_data_url=reference,
-            )
+            prompt = f"{background.prompt} {angle_suffix}".strip()
+            return ResolvedBackground(prompt=prompt, angle=selected_angle)
 
+        preset = None
         if preset_id:
             preset = await self._repo.get_preset(preset_id)
             if not preset:
                 raise ValueError("Background preset not found.")
-            variant = None
-            if preset_variant_id:
-                variant = await self._repo.get_variant(preset_variant_id)
-            if variant is None or variant.preset_id != preset.id:
-                variant = await self._repo.get_preset_variant(preset.id, selected_angle)
-            if variant is None:
-                raise ValueError("Background variant not found.")
-            prompt = f"{preset.prompt_template} {variant.prompt_suffix}".strip()
-            reference = _image_to_data_url(Path(variant.image_path)) if variant.image_path else None
-            return ResolvedBackground(
-                prompt=prompt,
-                angle=variant.angle,
-                preset_slug=preset.slug,
-                reference_data_url=reference,
-            )
 
-        from app.services.ai.desert_processor import DESERT_USER_PROMPT
+        if preset is None:
+            presets = await self._repo.list_active_presets()
+            if not presets:
+                raise ValueError("No background presets configured.")
+            preset = presets[0]
 
+        prompt = f"{preset.prompt_template} {angle_suffix}".strip()
         return ResolvedBackground(
-            prompt=DESERT_USER_PROMPT,
+            prompt=prompt,
             angle=selected_angle,
-            is_outdoor=True,
+            preset_slug=preset.slug,
         )
 
     async def create_user_background(

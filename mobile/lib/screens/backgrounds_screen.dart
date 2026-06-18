@@ -8,6 +8,7 @@ import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
+import '../widgets/background_angles_gallery.dart';
 import '../widgets/background_scene_preview.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
@@ -26,20 +27,9 @@ class BackgroundsScreen extends StatefulWidget {
 class _BackgroundsScreenState extends State<BackgroundsScreen> {
   final _repo = BackgroundRepository.instance;
   BackgroundCatalog? _catalog;
-  String _selectedAngle = 'three_quarter_left';
   bool _loading = true;
   bool _creating = false;
   String? _error;
-
-  static const _angles = [
-    ('three_quarter_left', '3/4 L'),
-    ('three_quarter_right', '3/4 R'),
-    ('left', 'Left'),
-    ('right', 'Right'),
-    ('front', 'Front'),
-    ('rear', 'Rear'),
-    ('interior', 'Inside'),
-  ];
 
   @override
   void initState() {
@@ -59,9 +49,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
       setState(() {
         _catalog = catalog;
         if (_repo.selected == null && catalog.presets.isNotEmpty) {
-          final preset = catalog.presets.first;
-          final variant = preset.defaultVariant;
-          if (variant != null) _repo.select(preset, variant);
+          _repo.select(catalog.presets.first);
         }
       });
     } catch (e) {
@@ -72,9 +60,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 
   void _selectPreset(BackgroundPreset preset) {
-    final variant = preset.variantByAngle(_selectedAngle) ?? preset.defaultVariant;
-    if (variant == null) return;
-    _repo.select(preset, variant);
+    _repo.select(preset);
     widget.onSelected?.call();
     if (mounted) Navigator.pop(context, _repo.selected);
   }
@@ -206,15 +192,9 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                         s.backgroundsIntro,
                         style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                       ),
-                      const SizedBox(height: DesignTokens.spacing16),
-                      _AngleSelector(
-                        angles: _angles,
-                        selectedAngle: _selectedAngle,
-                        onChanged: (a) => setState(() => _selectedAngle = a),
-                      ),
                       if (selected != null) ...[
                         const SizedBox(height: DesignTokens.spacing16),
-                        _SelectedBanner(selected: selected, angle: _selectedAngle),
+                        _SelectedBanner(selected: selected),
                       ],
                       const SizedBox(height: DesignTokens.spacing24),
                       if (_catalog!.presets.isNotEmpty) ...[
@@ -223,7 +203,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                         ..._catalog!.presets.map(
                           (preset) => _BackgroundCard(
                             preset: preset,
-                            selectedAngle: _selectedAngle,
                             isSelected: selected?.preset.id == preset.id && !preset.isCustom,
                             onSelect: () => _selectPreset(preset),
                           ),
@@ -236,7 +215,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                         ..._catalog!.custom.map(
                           (preset) => _BackgroundCard(
                             preset: preset,
-                            selectedAngle: _selectedAngle,
                             isSelected: selected?.preset.id == preset.id,
                             onSelect: () => _selectPreset(preset),
                           ),
@@ -250,55 +228,10 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 }
 
-class _AngleSelector extends StatelessWidget {
-  final List<(String, String)> angles;
-  final String selectedAngle;
-  final ValueChanged<String> onChanged;
-
-  const _AngleSelector({
-    required this.angles,
-    required this.selectedAngle,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.tokens;
-
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: angles.length,
-        separatorBuilder: (_, __) => const SizedBox(width: DesignTokens.spacing8),
-        itemBuilder: (context, index) {
-          final (angle, label) = angles[index];
-          final selected = angle == selectedAngle;
-          return FilterChip(
-            label: Text(label),
-            selected: selected,
-            onSelected: (_) => onChanged(angle),
-            selectedColor: tokens.accent,
-            checkmarkColor: tokens.onAccent,
-            labelStyle: tokens.textStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: selected ? tokens.onAccent : tokens.textPrimary,
-            ),
-            side: BorderSide(color: tokens.border),
-            backgroundColor: tokens.surface,
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _SelectedBanner extends StatelessWidget {
   final SelectedBackground selected;
-  final String angle;
 
-  const _SelectedBanner({required this.selected, required this.angle});
+  const _SelectedBanner({required this.selected});
 
   @override
   Widget build(BuildContext context) {
@@ -317,25 +250,16 @@ class _SelectedBanner extends StatelessWidget {
               height: 64,
               child: BackgroundScenePreview(
                 preset: selected.preset,
-                angle: angle,
+                angle: 'three_quarter_left',
                 borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
               ),
             ),
           ),
           const SizedBox(width: DesignTokens.spacing12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${s.backgroundSelected}: ${selected.displayName}',
-                  style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  selected.variant.angleLabel,
-                  style: tokens.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: tokens.textSecondary),
-                ),
-              ],
+            child: Text(
+              '${s.backgroundSelected}: ${selected.displayName}',
+              style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
           ),
           Icon(Icons.check_circle_rounded, color: tokens.success, size: 22),
@@ -347,13 +271,11 @@ class _SelectedBanner extends StatelessWidget {
 
 class _BackgroundCard extends StatelessWidget {
   final BackgroundPreset preset;
-  final String selectedAngle;
   final bool isSelected;
   final VoidCallback onSelect;
 
   const _BackgroundCard({
     required this.preset,
-    required this.selectedAngle,
     required this.isSelected,
     required this.onSelect,
   });
@@ -362,7 +284,6 @@ class _BackgroundCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final s = context.strings;
-    final variant = preset.variantByAngle(selectedAngle) ?? preset.defaultVariant;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: DesignTokens.spacing12),
@@ -373,15 +294,14 @@ class _BackgroundCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusCard)),
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: BackgroundScenePreview(
-                  preset: preset,
-                  angle: selectedAngle,
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                DesignTokens.spacing12,
+                DesignTokens.spacing12,
+                DesignTokens.spacing12,
+                0,
               ),
+              child: BackgroundAnglesGallery(preset: preset),
             ),
             Padding(
               padding: const EdgeInsets.all(DesignTokens.spacing16),
@@ -415,28 +335,6 @@ class _BackgroundCard extends StatelessWidget {
                     Text(
                       preset.description!,
                       style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: tokens.textSecondary),
-                    ),
-                  ],
-                  if (variant != null) ...[
-                    const SizedBox(height: DesignTokens.spacing12),
-                    Wrap(
-                      spacing: DesignTokens.spacing8,
-                      runSpacing: DesignTokens.spacing8,
-                      children: preset.variants
-                          .map(
-                            (v) => Chip(
-                              label: Text(v.angleLabel),
-                              backgroundColor: v.angle == selectedAngle ? tokens.accent : tokens.surfaceMuted,
-                              labelStyle: tokens.textStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: v.angle == selectedAngle ? tokens.onAccent : tokens.textPrimary,
-                              ),
-                              side: BorderSide.none,
-                              visualDensity: VisualDensity.compact,
-                            ),
-                          )
-                          .toList(),
                     ),
                   ],
                   const SizedBox(height: DesignTokens.spacing12),

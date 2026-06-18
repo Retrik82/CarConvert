@@ -20,8 +20,8 @@ class BackgroundRepository {
 
   SelectedBackground? get selected => _selected;
 
-  void select(BackgroundPreset preset, BackgroundVariant variant) {
-    _selected = SelectedBackground(preset: preset, variant: variant);
+  void select(BackgroundPreset preset) {
+    _selected = SelectedBackground(preset: preset);
   }
 
   void clearSelection() {

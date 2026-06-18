@@ -77,7 +77,7 @@ class StringsDe extends AppStrings {
   String get backgroundsTitle => 'Hintergründe';
 
   @override
-  String get backgroundsIntro => 'Wählen Sie die Studio-Umgebung vor der Aufnahme. Jede Szene unterstützt 7 Kamerawinkel.';
+  String get backgroundsIntro => 'Wählen Sie den Hintergrundtyp vor der Aufnahme. Jede Karte zeigt 7 Fahrzeugwinkel als Vorschau.';
 
   @override
   String get sharedBackgrounds => 'Geteilte Hintergründe';

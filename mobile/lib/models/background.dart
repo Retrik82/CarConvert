@@ -118,24 +118,17 @@ class BackgroundCatalog {
   List<BackgroundPreset> get all => [...presets, ...custom];
 }
 
+/// User selects a background type only — angle is detected from the photo at processing time.
 class SelectedBackground {
   final BackgroundPreset preset;
-  final BackgroundVariant variant;
 
-  const SelectedBackground({
-    required this.preset,
-    required this.variant,
-  });
+  const SelectedBackground({required this.preset});
 
   String? get presetId => preset.isCustom ? null : preset.id;
 
-  String? get presetVariantId => preset.isCustom ? null : variant.id;
-
   String? get userBackgroundId => preset.isCustom ? preset.id : null;
-
-  String? get userVariantId => preset.isCustom ? variant.id : null;
 
   String get displayName => preset.name;
 
-  String? get previewUrl => variant.previewUrl ?? preset.previewUrl;
+  String? get previewUrl => preset.previewUrl ?? preset.defaultVariant?.previewUrl;
 }

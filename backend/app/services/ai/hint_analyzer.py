@@ -40,27 +40,48 @@ HINT_TO_COLOR: dict[str, str] = {
     "no_car_detected": "red",
 }
 
-HINT_SYSTEM_PROMPT = """You are an expert automotive photography assistant analyzing a live camera frame.
-Evaluate car position, centering, distance, angle, lighting, and composition inside the guide frame.
-Respond ONLY with valid JSON (no markdown) in this exact schema:
+HINT_SYSTEM_PROMPT = """You are an expert automotive photography coach helping a user position their car inside a live camera guide frame.
+
+The on-screen guide is a rounded rectangle in the CENTER of the image (roughly 84% width, 48% height in portrait).
+The user must move the PHONE so the entire car fits inside this rectangle and is well centered.
+
+Your job: give ONE clear next-step instruction to improve framing.
+
+Respond ONLY with valid JSON (no markdown):
 {
   "hint": "move_left|move_right|move_closer|move_back|raise_phone|lower_phone|align_car|rotate_slightly|perfect_frame|no_car_detected",
-  "message": "short instruction in Russian",
+  "message": "short actionable instruction in Russian (max 8 words)",
   "confidence": 0.85,
   "scores": {"centering": 0.0-1.0, "distance": 0.0-1.0, "angle": 0.0-1.0},
   "overlay": {"arrow": "left|right|up|down|none", "color": "yellow|green|red"}
 }
-Rules:
-- confidence and scores MUST be decimals between 0.0 and 1.0 (never 0-100).
-- move_left => overlay.arrow must be "left"; move_right => "right"; move_closer/raise_phone => "up"; move_back/lower_phone => "down".
-- hint=perfect_frame => overlay.color=green, arrow=none.
-- no_car_detected => overlay.color=red."""
+
+Decision rules (apply in order):
+1. No car or only a tiny part visible → no_car_detected
+2. Car too small inside guide (< ~55% of guide area) → move_closer
+3. Car too large / cropped by guide edges → move_back
+4. Car center clearly left of guide center → move_left
+5. Car center clearly right of guide center → move_right
+6. Car too low in guide / roof cut off → raise_phone
+7. Car too high / wheels cut off → lower_phone
+8. Car roughly centered but yaw/roll off → rotate_slightly or align_car
+9. Car fills ~70-90% of guide, centered, fully visible → perfect_frame
+
+Formatting rules:
+- confidence and scores MUST be decimals 0.0-1.0 (never 0-100)
+- move_left → arrow left; move_right → arrow right
+- move_closer / raise_phone → arrow up; move_back / lower_phone → arrow down
+- perfect_frame → color green, arrow none
+- no_car_detected → color red
+- Prefer move_left/move_right/move_closer/move_back over align_car when possible
+- message examples: "Сместись левее", "Подойди ближе", "Отойди назад", "Центрируй машину", "Идеально! Снимай"
+"""
 
 
 def _default_hint() -> HintResponse:
     return HintResponse(
         hint="align_car",
-        message="Наведи камеру на машину",
+        message="Центрируй машину в рамке",
         confidence=0.35,
         scores=HintScores(centering=0.35, distance=0.35, angle=0.35),
         overlay=HintOverlay(arrow="none", color="yellow"),
@@ -97,6 +118,10 @@ def _normalize_hint(raw: Any) -> HintType:
         "right": "move_right",
         "closer": "move_closer",
         "back": "move_back",
+        "forward": "move_closer",
+        "away": "move_back",
+        "center": "align_car",
+        "centre": "align_car",
         "perfect": "perfect_frame",
         "no_car": "no_car_detected",
     }
@@ -143,9 +168,10 @@ def _build_hint_response(data: dict[str, Any]) -> HintResponse:
             "raise_phone": "Подними телефон",
             "lower_phone": "Опусти телефон",
             "rotate_slightly": "Поверни камеру",
+            "align_car": "Центрируй машину в рамке",
             "perfect_frame": "Идеально! Можно снимать",
             "no_car_detected": "Машина не видна в кадре",
-        }.get(hint, "Выровняй машину в рамке")
+        }.get(hint, "Центрируй машину в рамке")
 
     return HintResponse(
         hint=hint,
@@ -169,8 +195,9 @@ async def _request_hint_text(client: OpenRouterClient, image_data_url: str, use_
                 {
                     "type": "text",
                     "text": (
-                        "Analyze this camera frame. The car should fill the central guide frame. "
-                        "Return JSON only."
+                        "Look at the car relative to the central guide frame. "
+                        "Tell the user how to move the phone (left/right/closer/back/up/down) "
+                        "so the whole car fits inside the frame. Return JSON only."
                     ),
                 },
                 {"type": "image_url", "image_url": {"url": image_data_url}},

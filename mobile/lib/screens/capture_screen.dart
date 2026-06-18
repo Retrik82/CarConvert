@@ -77,7 +77,18 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
     _mode = widget.initialMode;
     if (_mode == CaptureMode.camera) _initCamera();
     _loadBilling();
+    _ensureDefaultBackground();
   }
+
+  Future<void> _ensureDefaultBackground() async {
+    if (BackgroundRepository.instance.selected != null) return;
+    try {
+      final catalog = await BackgroundRepository.instance.fetchCatalog();
+      if (catalog.presets.isNotEmpty) {
+        BackgroundRepository.instance.select(catalog.presets.first);
+        if (mounted) setState(() {});
+      }
+    } catch (_) {}
 
   @override
   void didUpdateWidget(CaptureScreen oldWidget) {

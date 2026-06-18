@@ -1,25 +1,17 @@
-"""Cut out the user's car and composite it onto the selected background."""
+"""Cut out the user's car and composite it onto a freshly generated background."""
 
 from __future__ import annotations
 
 import base64
 import io
 import logging
-import tempfile
 from dataclasses import dataclass
-from pathlib import Path
-
-from PIL import Image
 
 from app.config import get_settings
 from app.db.models.background import ANGLE_PROMPT_SUFFIXES
-from app.services.ai.background_processor import generate_empty_room, generate_outdoor_scene
+from app.services.ai.background_processor import generate_empty_room
 from app.services.ai.car_extractor import extract_car_cutout
 from app.services.ai.openrouter_client import OpenRouterClient, _extract_image_reference
-from app.services.background_asset_service import PRESET_SLUGS
-from app.services.preset_background_renderer import render_preset_background
-from app.services.scene_compositor import composite_car_on_room
-from app.utils.image_utils import to_data_url
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -44,28 +36,6 @@ class ResolvedBackground:
     prompt: str
     angle: str
     preset_slug: str | None = None
-    reference_data_url: str | None = None
-    is_outdoor: bool = False
-
-
-def _encode_image(image: Image.Image, mime_type: str = "image/jpeg") -> tuple[str, str]:
-    buffer = io.BytesIO()
-    if mime_type == "image/png":
-        image.save(buffer, format="PNG", optimize=True)
-    else:
-        image.convert("RGB").save(buffer, format="JPEG", quality=92, optimize=True)
-        mime_type = "image/jpeg"
-    return base64.b64encode(buffer.getvalue()).decode("utf-8"), mime_type
-
-
-def _render_preset_room(preset_slug: str, angle: str) -> Image.Image:
-    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-    try:
-        render_preset_background(preset_slug, tmp_path, angle)
-        return Image.open(tmp_path).convert("RGB")
-    finally:
-        tmp_path.unlink(missing_ok=True)
 
 
 async def _ai_composite_cutout_on_scene(
@@ -115,6 +85,13 @@ async def _ai_composite_cutout_on_scene(
     return encoded, mime_type
 
 
+def _build_scene_generation_prompt(resolved: ResolvedBackground) -> str:
+    angle_suffix = ANGLE_PROMPT_SUFFIXES.get(resolved.angle, "")
+    if resolved.angle == "interior":
+        return f"{resolved.prompt} {angle_suffix} Interior cabin view, no people, no vehicle."
+    return f"{resolved.prompt} {angle_suffix} Empty studio environment, no vehicle, no people."
+
+
 async def process_user_car_photo(
     source_data_url: str,
     resolved: ResolvedBackground,
@@ -123,63 +100,24 @@ async def process_user_car_photo(
     """
     Pipeline:
     1. Extract vehicle cutout from user photo.
-    2. Resolve target background (procedural preset room, reference scene, or generated scene).
-    3. Composite cutout onto background (programmatic for studio presets, AI for others).
+    2. Generate a fresh empty background matching the detected car angle.
+    3. AI-composite the cutout onto the new background.
     """
     logger.info(
-        "Processing user car: angle=%s preset=%s outdoor=%s",
+        "Processing user car: angle=%s preset=%s",
         resolved.angle,
         resolved.preset_slug,
-        resolved.is_outdoor,
     )
 
     cutout_bytes, cutout_mime = await extract_car_cutout(source_data_url, api_key)
+    from app.utils.image_utils import to_data_url
+
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
-    car_image = Image.open(io.BytesIO(cutout_bytes)).convert("RGBA")
 
-    # Studio preset — procedural empty room + deterministic composite.
-    if (
-        resolved.preset_slug
-        and resolved.preset_slug in PRESET_SLUGS
-        and resolved.angle != "interior"
-    ):
-        room = _render_preset_room(resolved.preset_slug, resolved.angle)
-        result = composite_car_on_room(room, car_image, resolved.angle)
-        return _encode_image(result)
-
-    # Interior or custom/user backgrounds — AI composite with reference or generated scene.
-    if resolved.angle == "interior" or resolved.reference_data_url:
-        scene_url = resolved.reference_data_url
-        if scene_url is None:
-            room_b64, room_mime = await generate_empty_room(
-                f"{resolved.prompt} Interior cabin view, no people, no vehicle.",
-                api_key,
-            )
-            scene_url = f"data:{room_mime};base64,{room_b64}"
-        return await _ai_composite_cutout_on_scene(
-            cutout_data_url,
-            scene_url,
-            resolved.prompt,
-            api_key,
-        )
-
-    # Outdoor / default desert — generate scene then AI composite.
-    if resolved.is_outdoor:
-        from app.services.ai.desert_processor import DESERT_USER_PROMPT
-
-        outdoor_prompt = resolved.prompt or DESERT_USER_PROMPT
-        scene_b64, scene_mime = await generate_outdoor_scene(
-            f"{outdoor_prompt} Empty environment, no vehicle, no people.",
-            api_key,
-        )
-    else:
-        angle_suffix = ANGLE_PROMPT_SUFFIXES.get(resolved.angle, "")
-        scene_b64, scene_mime = await generate_empty_room(
-            f"{resolved.prompt} {angle_suffix} Empty studio, no vehicle.",
-            api_key,
-        )
-
+    scene_prompt = _build_scene_generation_prompt(resolved)
+    scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
     scene_url = f"data:{scene_mime};base64,{scene_b64}"
+
     return await _ai_composite_cutout_on_scene(
         cutout_data_url,
         scene_url,
