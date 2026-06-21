@@ -166,42 +166,21 @@ class AppThemeBuilder {
 
 class AppSettingsController extends ChangeNotifier {
   AppSettingsController({
-    ThemeMode themeMode = ThemeMode.system,
     Locale locale = const Locale('en'),
-  })  : _themeMode = themeMode,
-        _locale = locale;
+  }) : _locale = locale;
 
-  ThemeMode _themeMode;
   Locale _locale;
 
-  ThemeMode get themeMode => _themeMode;
+  ThemeMode get themeMode => ThemeMode.light;
   Locale get locale => _locale;
 
-  bool get isDarkModeExplicit => _themeMode == ThemeMode.dark;
-
-  ThemeData themeFor(Brightness platformBrightness) {
-    final dark = _themeMode == ThemeMode.dark ||
-        (_themeMode == ThemeMode.system && platformBrightness == Brightness.dark);
-    return AppThemeBuilder.build(dark ? AppTokens.dark : AppTokens.light);
-  }
+  ThemeData themeFor(Brightness platformBrightness) => AppThemeBuilder.light;
 
   Future<void> load() async {
     final prefs = AppPreferences.instance;
-    _themeMode = await prefs.loadThemeMode();
+    await prefs.saveThemeMode(ThemeMode.light);
     _locale = await prefs.loadLocale() ?? const Locale('en');
     notifyListeners();
-  }
-
-  Future<void> setThemeMode(ThemeMode mode) async {
-    if (_themeMode == mode) return;
-    _themeMode = mode;
-    await AppPreferences.instance.saveThemeMode(mode);
-    notifyListeners();
-  }
-
-  Future<void> toggleTheme() async {
-    final next = isDarkModeExplicit ? ThemeMode.light : ThemeMode.dark;
-    await setThemeMode(next);
   }
 
   Future<void> setLocale(Locale locale) async {

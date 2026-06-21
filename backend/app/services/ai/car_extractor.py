@@ -26,14 +26,26 @@ CAR_EXTRACT_USER_PROMPT = (
     "Keep every vehicle detail exactly as photographed."
 )
 
+INTERIOR_EXTRACT_USER_PROMPT = (
+    "Extract the car interior cabin visible in this photo. "
+    "Return PNG with transparent background outside the cabin glass and body. "
+    "Preserve dashboard, seats, steering wheel, and trim exactly as photographed."
+)
 
-async def extract_car_cutout(source_data_url: str, api_key: str | None = None) -> tuple[bytes, str]:
-    """Return raw PNG bytes and mime type for the isolated vehicle."""
+
+async def extract_car_cutout(
+    source_data_url: str,
+    api_key: str | None = None,
+    *,
+    angle: str = "three_quarter_left",
+) -> tuple[bytes, str]:
+    """Return raw PNG bytes and mime type for the isolated vehicle or cabin."""
     client = OpenRouterClient(api_key)
+    user_prompt = INTERIOR_EXTRACT_USER_PROMPT if angle == "interior" else CAR_EXTRACT_USER_PROMPT
     base64_data, mime_type = await client.generate_image(
         model=settings.process_model,
         system_prompt=CAR_EXTRACT_SYSTEM_PROMPT,
-        user_text=CAR_EXTRACT_USER_PROMPT,
+        user_text=user_prompt,
         source_data_url=source_data_url,
         timeout=float(settings.process_timeout_sec),
     )

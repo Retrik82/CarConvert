@@ -84,6 +84,7 @@ class BackgroundPresetOut(BaseModel):
     slug: str
     name: str
     description: str | None = None
+    prompt_template: str | None = None
     preview_url: str | None = None
     variants: list[BackgroundVariantOut] = Field(default_factory=list)
     is_custom: bool = False

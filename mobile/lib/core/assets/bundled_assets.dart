@@ -6,6 +6,8 @@ class BundledAssets {
 
   static const carRoot = 'assets/cars/bmw_m4_g82';
   static const backgroundRoot = 'assets/backgrounds/presets';
+  static const brandingRoot = 'assets/branding';
+  static const marketingRoot = 'assets/marketing';
 
   static const presetSlugs = {'gray-showroom', 'auto-workshop'};
 
@@ -19,12 +21,23 @@ class BundledAssets {
     'three_quarter_right',
   };
 
+  static const appLogo = '$brandingRoot/app_logo.png';
+  static const authHero = '$brandingRoot/auth_hero.jpg';
+  static const carStreetOutdoor = '$marketingRoot/car_street_outdoor.jpg';
+  static const carShowroomGray = '$marketingRoot/car_showroom_gray.jpg';
+  static const carWorkshopStudio = '$marketingRoot/car_workshop_studio.jpg';
+
+  /// Cohesive before/after marketing image for the selected preset slug.
+  static String afterMarketingImageForPreset(String? slug) {
+    if (slug == 'auto-workshop') return carWorkshopStudio;
+    return carShowroomGray;
+  }
+
   static String? carAssetPath(CarViewAngle angle, CarPaintVariant paint) {
     return '$carRoot/${_carStem(angle)}_${paint.name}.png';
   }
 
   static String? carAssetPathFromApiPath(String apiPath) {
-    // /cars/image/bmw_m4_g82/side_right/white
     final parts = apiPath.split('/');
     if (parts.length < 5 || parts[1] != 'cars' || parts[2] != 'image') {
       return null;

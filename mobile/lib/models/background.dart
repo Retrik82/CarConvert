@@ -44,6 +44,7 @@ class BackgroundPreset {
   final String slug;
   final String name;
   final String? description;
+  final String? generationPrompt;
   final String? previewUrl;
   final List<BackgroundVariant> variants;
   final bool isCustom;
@@ -53,6 +54,7 @@ class BackgroundPreset {
     required this.slug,
     required this.name,
     this.description,
+    this.generationPrompt,
     this.previewUrl,
     this.variants = const [],
     this.isCustom = false,
@@ -65,6 +67,7 @@ class BackgroundPreset {
       slug: json['slug'] as String? ?? json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
+      generationPrompt: json['prompt_template'] as String? ?? json['prompt'] as String?,
       previewUrl: json['preview_url'] as String?,
       variants: variantsJson
           .map((item) => BackgroundVariant.fromJson(item as Map<String, dynamic>))

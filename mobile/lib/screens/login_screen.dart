@@ -6,11 +6,11 @@ import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
-import '../widgets/app_logo.dart';
 import '../widgets/design_system/app_button.dart';
-import '../widgets/design_system/car_hero.dart';
+import '../widgets/design_system/auth_hero_background.dart';
 import '../widgets/form_fields.dart';
 import 'forgot_password_screen.dart';
+
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoggedIn;
 
@@ -75,9 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: DesignTokens.spacing8),
-                const Center(child: AppLogo(iconSize: 40, titleSize: 22, showTagline: false)),
-                const SizedBox(height: DesignTokens.spacing24),
-                CarHero(height: 140, animate: false),
+                const AuthHeroBackground(height: 180),
                 const SizedBox(height: DesignTokens.spacing32),
                 Text(
                   s.login,

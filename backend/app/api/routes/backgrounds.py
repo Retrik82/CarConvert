@@ -36,6 +36,7 @@ def _preset_to_out(preset, *, is_custom: bool = False) -> BackgroundPresetOut:
         slug=getattr(preset, "slug", preset.id),
         name=preset.name,
         description=getattr(preset, "description", None),
+        prompt_template=getattr(preset, "prompt_template", None) or getattr(preset, "prompt", None),
         preview_url=_variant_preview_url(preview_id),
         variants=[
             BackgroundVariantOut(

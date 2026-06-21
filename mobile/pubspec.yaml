@@ -40,3 +40,5 @@ flutter:
     - assets/cars/bmw_m4_g82/
     - assets/backgrounds/presets/gray-showroom/
     - assets/backgrounds/presets/auto-workshop/
+    - assets/branding/
+    - assets/marketing/

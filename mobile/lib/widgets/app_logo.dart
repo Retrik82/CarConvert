@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/assets/bundled_assets.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
@@ -9,6 +10,7 @@ class AppLogo extends StatelessWidget {
   final double titleSize;
   final bool showTagline;
   final bool centered;
+  final bool useImageLogo;
 
   const AppLogo({
     super.key,
@@ -16,6 +18,7 @@ class AppLogo extends StatelessWidget {
     this.titleSize = 28,
     this.showTagline = true,
     this.centered = true,
+    this.useImageLogo = false,
   });
 
   @override
@@ -31,26 +34,36 @@ class AppLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
-        Container(
-          width: iconSize,
-          height: iconSize,
-          decoration: BoxDecoration(
-            gradient: tokens.primaryGradient,
-            borderRadius: BorderRadius.circular(iconSize * 0.28),
-            boxShadow: [
-              BoxShadow(
-                color: tokens.accent.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+        useImageLogo
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(iconSize * 0.28),
+                child: Image.asset(
+                  BundledAssets.appLogo,
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.cover,
+                ),
+              )
+            : Container(
+                width: iconSize,
+                height: iconSize,
+                decoration: BoxDecoration(
+                  gradient: tokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(iconSize * 0.28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: tokens.accent.withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  size: iconSize * 0.5,
+                  color: tokens.onAccent,
+                ),
               ),
-            ],
-          ),
-          child: Icon(
-            Icons.auto_awesome_rounded,
-            size: iconSize * 0.5,
-            color: tokens.onAccent,
-          ),
-        ),
         SizedBox(height: DesignTokens.spacing12),
         Row(
           mainAxisSize: centered ? MainAxisSize.min : MainAxisSize.max,

@@ -13,8 +13,10 @@ import '../repositories/settings_repository.dart';
 import '../utils/money_format.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
+import '../widgets/design_system/logout_confirm_dialog.dart';
 import '../widgets/design_system/summary_panel.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
+import 'beginner_guide_screen.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -71,24 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    final s = context.strings;
-    final tokens = context.tokens;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.logoutConfirmTitle),
-        content: Text(s.logoutConfirmBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: tokens.error),
-            child: Text(s.logout),
-          ),
-        ],
-      ),
-    );
+    final confirmed = await showLogoutConfirmDialog(context);
     if (confirmed != true || !mounted) return;
 
     await AuthRepository.instance.logout();
@@ -202,7 +187,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Expanded(
                               child: Text(s.theme, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                             ),
-                            ThemeSwitcher(controller: widget.settings),
+                            Text(
+                              s.themeLight,
+                              style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w500, color: tokens.textSecondary),
+                            ),
                           ],
                         ),
                         const Divider(height: DesignTokens.spacing32),
@@ -213,6 +201,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             LanguageSwitcher(controller: widget.settings),
                           ],
+                        ),
+                        const Divider(height: DesignTokens.spacing32),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.menu_book_outlined, color: tokens.accent),
+                          title: Text(s.guideReplay, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                          trailing: Icon(Icons.chevron_right_rounded, color: tokens.textTertiary),
+                          onTap: () => BeginnerGuideScreen.open(context),
                         ),
                       ],
                     ),

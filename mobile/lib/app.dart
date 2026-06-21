@@ -30,7 +30,7 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const AppLogo(iconSize: 56, titleSize: 32),
+            const AppLogo(iconSize: 56, titleSize: 32, useImageLogo: true),
             const SizedBox(height: DesignTokens.spacing48),
             SizedBox(
               width: 32,
@@ -171,8 +171,7 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
             GlobalCupertinoLocalizations.delegate,
           ],
           theme: AppThemeBuilder.light,
-          darkTheme: AppThemeBuilder.dark,
-          themeMode: _settings.themeMode,
+          themeMode: ThemeMode.light,
           themeAnimationDuration: DesignTokens.durationTheme,
           themeAnimationCurve: DesignTokens.curveStandard,
           home: _buildHome(),

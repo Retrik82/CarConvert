@@ -10,7 +10,7 @@ import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
-import '../widgets/background_angles_gallery.dart';
+import '../widgets/background_preview_grid.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
 
@@ -308,7 +308,9 @@ class _ResultBody extends StatelessWidget {
                 ),
                 const SizedBox(height: DesignTokens.spacing12),
                 Expanded(
-                  child: BackgroundAnglesGallery(preset: preset, itemHeight: 120),
+                  child: SingleChildScrollView(
+                    child: BackgroundPreviewGrid(preset: preset),
+                  ),
                 ),
               ],
             ),

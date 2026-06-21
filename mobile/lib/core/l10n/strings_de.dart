@@ -338,6 +338,58 @@ class StringsDe extends AppStrings {
   String get backgroundResultPreview => 'Vorschau — alle Winkel';
 
   @override
+  String get backgroundAnglesTitle => 'Alle Kamerawinkel';
+
+  @override
+  String get backgroundGenerationPrompt => 'KI-Szenenbeschreibung';
+
+  @override
+  String get backgroundTapToExpand => 'Tippen für Details';
+
+  @override
+  String get guideTitle => 'Erste Schritte';
+
+  @override
+  String get guideSkip => 'Überspringen';
+
+  @override
+  String get guideNext => 'Weiter';
+
+  @override
+  String get guideFinish => 'Aufnahme starten';
+
+  @override
+  String get guideReplay => 'Anleitung anzeigen';
+
+  @override
+  String get guideStep1Title => 'Jedes Autofoto transformieren';
+
+  @override
+  String get guideStep1Body =>
+      'Ziehen Sie den Schieberegler — RenderWheels zeigt, wie eine Straßenaufnahme zum Studio-Render wird.';
+
+  @override
+  String get guideStep2Title => 'Studio wählen';
+
+  @override
+  String get guideStep2Body =>
+      'Wählen Sie vor der Aufnahme einen Hintergrund. Jedes Preset hat 7 konsistente Winkel.';
+
+  @override
+  String get guideStep3Title => 'Dem Berater folgen';
+
+  @override
+  String get guideStep3Body =>
+      'Beim Fotografieren links, rechts, näher oder weiter — die KI führt Sie zum perfekten Rahmen.';
+
+  @override
+  String get guideStep4Title => 'In Meine Autos speichern';
+
+  @override
+  String get guideStep4Body =>
+      'Jeder Render wird dauerhaft gespeichert. Autos benennen, Fotos hinzufügen und exportieren.';
+
+  @override
   String get rename => 'Umbenennen';
 
   @override

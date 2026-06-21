@@ -28,9 +28,11 @@ PRESET_DEFINITIONS = (
         "name": "Gray Showroom",
         "description": "Minimalist gray studio with a central podium",
         "prompt_template": (
-            "Minimalist gray automotive showroom with a white BMW M4 Coupe on a central round "
-            "light-gray podium, soft diffused studio lighting, clean modern interior, subtle shadows, "
-            "premium product showcase, monochromatic gray palette, photorealistic, luxury presentation"
+            "Minimalist luxury gray automotive showroom studio. Smooth concrete walls and floor, "
+            "soft diffused ceiling lighting, monochromatic gray palette, premium presentation space. "
+            "A single round light-gray podium/platform centered in frame. "
+            "Empty environment ready for a vehicle — no car, no people, no text. "
+            "Photorealistic, landscape 16:9, professional automotive photography lighting."
         ),
         "sort_order": 1,
         "tint": (180, 180, 185),
@@ -40,9 +42,11 @@ PRESET_DEFINITIONS = (
         "name": "Auto Workshop",
         "description": "Modern professional car service garage",
         "prompt_template": (
-            "Modern professional car service garage with a white BMW M4 Coupe on a low platform, "
-            "clean industrial environment, vehicle lifts, tool cabinets, concrete floor, "
-            "bright ceiling lights, realistic automotive workshop, photorealistic, high detail"
+            "Modern professional automotive service garage. Clean industrial interior, concrete floor, "
+            "bright ceiling workshop lights, tool cabinets and vehicle lift in the background, "
+            "organized workspace. A low circular platform/podium where a car would be displayed. "
+            "Empty environment — no vehicle, no people, no text. "
+            "Photorealistic, landscape 16:9, professional workshop photography."
         ),
         "sort_order": 2,
         "tint": (120, 130, 145),
@@ -133,7 +137,19 @@ class BackgroundService:
             if not background:
                 raise ValueError("Custom background not found.")
             prompt = f"{background.prompt} {angle_suffix}".strip()
-            return ResolvedBackground(prompt=prompt, angle=selected_angle)
+            scene_path: str | None = None
+            for variant in background.variants:
+                if variant.angle == selected_angle and variant.image_path:
+                    path = Path(variant.image_path)
+                    if path.is_file():
+                        scene_path = str(path)
+                        break
+            return ResolvedBackground(
+                prompt=prompt,
+                angle=selected_angle,
+                user_background_id=background.id,
+                scene_image_path=scene_path,
+            )
 
         preset = None
         if preset_id:
@@ -148,10 +164,14 @@ class BackgroundService:
             preset = presets[0]
 
         prompt = f"{preset.prompt_template} {angle_suffix}".strip()
+        from app.services.background_asset_service import ensure_preset_scene
+
+        scene_path = ensure_preset_scene(preset.slug, selected_angle)
         return ResolvedBackground(
             prompt=prompt,
             angle=selected_angle,
             preset_slug=preset.slug,
+            scene_image_path=str(scene_path),
         )
 
     async def create_user_background(
@@ -166,6 +186,9 @@ class BackgroundService:
 
         root = backgrounds_root() / "users" / user_id / background.id
         preview_variant: UserBackgroundVariant | None = None
+        failed_angles: list[str] = []
+
+        from app.services.ai_scene_generator import generate_custom_scene_ai
 
         for angle in VARIANT_ANGLES:
             suffix = ANGLE_PROMPT_SUFFIXES[angle]
@@ -177,24 +200,33 @@ class BackgroundService:
             await self._repo.add_user_variant(variant)
 
             scene_path = root / f"{angle}.jpg"
-            try:
-                from app.services.ai_scene_generator import generate_custom_scene_ai
+            last_error: Exception | None = None
+            for attempt in range(2):
+                try:
+                    await generate_custom_scene_ai(prompt.strip(), angle, scene_path, api_key)
+                    variant.image_path = str(scene_path)
+                    if preview_variant is None or angle == "three_quarter_left":
+                        preview_variant = variant
+                    last_error = None
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning(
+                        "Custom scene attempt %s for %s failed: %s",
+                        attempt + 1,
+                        angle,
+                        exc,
+                    )
 
-                await generate_custom_scene_ai(prompt.strip(), angle, scene_path, api_key)
-                variant.image_path = str(scene_path)
-                if preview_variant is None or angle == "three_quarter_left":
-                    preview_variant = variant
-            except Exception as exc:
-                logger.warning("Failed to generate custom scene %s: %s", angle, exc)
-                _write_placeholder_image(
-                    scene_path,
-                    title=name.strip(),
-                    subtitle=angle.replace("_", " ").title(),
-                    tint=(90, 90, 95),
-                )
-                variant.image_path = str(scene_path)
-                if preview_variant is None:
-                    preview_variant = variant
+            if last_error is not None:
+                failed_angles.append(angle)
+
+        if failed_angles:
+            raise RuntimeError(
+                "Background generation failed for angles: "
+                + ", ".join(failed_angles)
+                + ". Check OPENROUTER_API_KEY and model availability."
+            )
 
         if preview_variant:
             background.preview_variant_id = preview_variant.id

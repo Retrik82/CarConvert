@@ -1,17 +1,18 @@
-"""Cut out the user's car and composite it onto a freshly generated background."""
+"""Cut out the user's vehicle from a photo and composite onto the selected background scene."""
 
 from __future__ import annotations
 
 import base64
-import io
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 from app.config import get_settings
 from app.db.models.background import ANGLE_PROMPT_SUFFIXES
-from app.services.ai.background_processor import generate_empty_room
+from app.services.ai.background_processor import generate_empty_room, process_into_scene
 from app.services.ai.car_extractor import extract_car_cutout
 from app.services.ai.openrouter_client import OpenRouterClient, _extract_image_reference
+from app.utils.image_utils import to_data_url
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -36,6 +37,8 @@ class ResolvedBackground:
     prompt: str
     angle: str
     preset_slug: str | None = None
+    user_background_id: str | None = None
+    scene_image_path: str | None = None
 
 
 async def _ai_composite_cutout_on_scene(
@@ -92,6 +95,17 @@ def _build_scene_generation_prompt(resolved: ResolvedBackground) -> str:
     return f"{resolved.prompt} {angle_suffix} Empty studio environment, no vehicle, no people."
 
 
+def _load_scene_data_url(resolved: ResolvedBackground) -> str | None:
+    if not resolved.scene_image_path:
+        return None
+    path = Path(resolved.scene_image_path)
+    if not path.is_file() or path.stat().st_size < 1000:
+        return None
+    suffix = path.suffix.lower()
+    mime = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/png"
+    return to_data_url(path.read_bytes(), mime)
+
+
 async def process_user_car_photo(
     source_data_url: str,
     resolved: ResolvedBackground,
@@ -99,28 +113,43 @@ async def process_user_car_photo(
 ) -> tuple[str, str]:
     """
     Pipeline:
-    1. Extract vehicle cutout from user photo.
-    2. Generate a fresh empty background matching the detected car angle.
-    3. AI-composite the cutout onto the new background.
+    1. Extract vehicle (or interior cabin) cutout from user photo.
+    2. Composite onto the selected background reference scene for the detected angle.
+    3. Fall back to generating an empty room only when no reference scene exists.
     """
     logger.info(
-        "Processing user car: angle=%s preset=%s",
+        "Processing user car: angle=%s preset=%s custom=%s",
         resolved.angle,
         resolved.preset_slug,
+        resolved.user_background_id,
     )
 
-    cutout_bytes, cutout_mime = await extract_car_cutout(source_data_url, api_key)
-    from app.utils.image_utils import to_data_url
-
+    cutout_bytes, cutout_mime = await extract_car_cutout(
+        source_data_url,
+        api_key,
+        angle=resolved.angle,
+    )
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
 
-    scene_prompt = _build_scene_generation_prompt(resolved)
-    scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
-    scene_url = f"data:{scene_mime};base64,{scene_b64}"
+    scene_data_url = _load_scene_data_url(resolved)
+    if scene_data_url is None:
+        logger.warning("No reference scene for %s — generating empty room", resolved.angle)
+        scene_prompt = _build_scene_generation_prompt(resolved)
+        scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
+        scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
 
-    return await _ai_composite_cutout_on_scene(
-        cutout_data_url,
-        scene_url,
-        resolved.prompt,
-        api_key,
-    )
+    try:
+        return await _ai_composite_cutout_on_scene(
+            cutout_data_url,
+            scene_data_url,
+            resolved.prompt,
+            api_key,
+        )
+    except Exception as exc:
+        logger.warning("Cutout composite failed (%s), retrying with process_into_scene", exc)
+        return await process_into_scene(
+            cutout_data_url,
+            resolved.prompt,
+            scene_data_url,
+            api_key,
+        )

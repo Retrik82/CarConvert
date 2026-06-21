@@ -54,7 +54,7 @@ def build_full_scene_prompt(
         )
 
     if custom_prompt:
-        base = custom_prompt.strip()
+        base = f"{custom_prompt.strip()} {CAR_SUBJECT}"
     elif slug:
         base = PRESET_SCENE_BASE.get(slug, PRESET_SCENE_BASE["gray-showroom"])
     else:

@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../core/assets/bundled_assets.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/design_tokens.dart';
-import 'car_assets.dart';
-import 'car_overlay.dart';
 
-/// Decorative before/after showcase using bundled car and background assets.
+/// Before/after showcase using cohesive marketing photos (same car angle/position).
 class HeroBeforeAfter extends StatefulWidget {
   final double height;
+  final String? afterPresetSlug;
 
-  const HeroBeforeAfter({super.key, this.height = 240});
+  const HeroBeforeAfter({
+    super.key,
+    this.height = 240,
+    this.afterPresetSlug,
+  });
 
   @override
   State<HeroBeforeAfter> createState() => _HeroBeforeAfterState();
@@ -22,8 +26,9 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final beforeBg = BundledAssets.presetBackgroundAssetPath('auto-workshop', 'three_quarter_right');
-    final afterBg = BundledAssets.presetBackgroundAssetPath('gray-showroom', 'three_quarter_right');
+    final s = context.strings;
+    final beforePath = BundledAssets.carStreetOutdoor;
+    final afterPath = BundledAssets.afterMarketingImageForPreset(widget.afterPresetSlug);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -41,17 +46,15 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _SceneLayer(
-                  backgroundPath: afterBg,
-                  tokens: tokens,
-                  dim: false,
-                ),
+                Image.asset(afterPath, fit: BoxFit.cover),
                 ClipRect(
                   clipper: _LeftClipper(dividerX),
-                  child: _SceneLayer(
-                    backgroundPath: beforeBg,
-                    tokens: tokens,
-                    dim: true,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(beforePath, fit: BoxFit.cover),
+                      Container(color: tokens.textPrimary.withValues(alpha: 0.08)),
+                    ],
                   ),
                 ),
                 Positioned(
@@ -86,12 +89,12 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
                 Positioned(
                   top: DesignTokens.spacing12,
                   left: DesignTokens.spacing12,
-                  child: _Badge(label: 'Before', tokens: tokens, gradient: false),
+                  child: _Badge(label: s.beforeLabel, tokens: tokens, gradient: false),
                 ),
                 Positioned(
                   top: DesignTokens.spacing12,
                   right: DesignTokens.spacing12,
-                  child: _Badge(label: 'After', tokens: tokens, gradient: true),
+                  child: _Badge(label: s.afterLabel, tokens: tokens, gradient: true),
                 ),
                 GestureDetector(
                   onHorizontalDragUpdate: (details) {
@@ -111,38 +114,6 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
           ),
         );
       },
-    );
-  }
-}
-
-class _SceneLayer extends StatelessWidget {
-  final String? backgroundPath;
-  final AppTokens tokens;
-  final bool dim;
-
-  const _SceneLayer({
-    required this.backgroundPath,
-    required this.tokens,
-    required this.dim,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (backgroundPath != null)
-          Image.asset(backgroundPath!, fit: BoxFit.cover)
-        else
-          Container(color: tokens.surfaceMuted),
-        if (dim)
-          Container(color: tokens.textPrimary.withValues(alpha: 0.15)),
-        CarOverlay(
-          view: CarViewAngle.threeQuarterRight,
-          tokens: tokens,
-          style: CarOverlayStyle.hero,
-        ),
-      ],
     );
   }
 }

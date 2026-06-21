@@ -7,7 +7,7 @@ import '../models/background.dart';
 import '../repositories/background_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
-import '../widgets/background_angles_gallery.dart';
+import '../widgets/background_preview_grid.dart';
 import '../widgets/background_scene_preview.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
@@ -115,10 +115,10 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                 AppButton(
                   label: s.generate,
                   onPressed: () async {
-                          if (!formKey.currentState!.validate()) return;
-                          Navigator.pop(ctx);
-                          await _createCustom(nameController.text.trim(), promptController.text.trim());
-                        },
+                    if (!formKey.currentState!.validate()) return;
+                    Navigator.pop(ctx);
+                    await _createCustom(nameController.text.trim(), promptController.text.trim());
+                  },
                 ),
               ],
             ),
@@ -236,13 +236,15 @@ class _SelectedBanner extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
-            child: SizedBox(
-              width: 64,
-              height: 64,
-              child: BackgroundScenePreview(
-                preset: selected.preset,
-                angle: 'three_quarter_left',
-                borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: SizedBox(
+                width: 96,
+                child: BackgroundScenePreview(
+                  preset: selected.preset,
+                  angle: 'three_quarter_left',
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                ),
               ),
             ),
           ),
@@ -277,22 +279,52 @@ class _BackgroundCard extends StatelessWidget {
     final s = context.strings;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: DesignTokens.spacing12),
+      padding: const EdgeInsets.only(bottom: DesignTokens.spacing16),
       child: AppCard(
         selected: isSelected,
         padding: EdgeInsets.zero,
-        onTap: onSelect,
+        onTap: () => openBackgroundDetailSheet(
+          context,
+          preset: preset,
+          isSelected: isSelected,
+          onSelect: onSelect,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                DesignTokens.spacing12,
-                DesignTokens.spacing12,
-                DesignTokens.spacing12,
-                0,
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  BackgroundScenePreview(
+                    preset: preset,
+                    angle: 'three_quarter_left',
+                  ),
+                  Positioned(
+                    right: DesignTokens.spacing12,
+                    bottom: DesignTokens.spacing12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            s.backgroundTapToExpand,
+                            style: tokens.textStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              child: BackgroundAnglesGallery(preset: preset, enableZoom: true),
             ),
             Padding(
               padding: const EdgeInsets.all(DesignTokens.spacing16),

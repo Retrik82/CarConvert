@@ -44,10 +44,11 @@ class OnboardingScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
                 child: Column(
                   children: [
-                    const AppLogo(iconSize: 44, titleSize: 26),
+                    const AppLogo(iconSize: 44, titleSize: 26, useImageLogo: true),
                     const SizedBox(height: DesignTokens.spacing24),
                     HeroBeforeAfter(
                       height: MediaQuery.sizeOf(context).height * 0.32,
+                      afterPresetSlug: 'gray-showroom',
                     ),
                     const SizedBox(height: DesignTokens.spacing32),
                     GradientHighlightText(

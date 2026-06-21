@@ -4,41 +4,18 @@ import '../core/l10n/app_strings.dart';
 import '../core/theme/app_theme_builder.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
+import '../core/theme/page_transitions.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
-import '../core/theme/page_transitions.dart';
 import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/hero_before_after.dart';
+import '../widgets/design_system/logout_confirm_dialog.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
 import 'backgrounds_screen.dart';
+import 'beginner_guide_screen.dart';
 import 'capture_screen.dart';
 
-Future<void> _confirmLogout(BuildContext context, VoidCallback onLogout) async {
-  final s = context.strings;
-  final tokens = context.tokens;
-
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(s.logoutConfirmTitle),
-      content: Text(s.logoutConfirmBody),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          style: FilledButton.styleFrom(backgroundColor: tokens.error),
-          child: Text(s.logout),
-        ),
-      ],
-    ),
-  );
-  if (confirmed != true || !context.mounted) return;
-
-  await AuthRepository.instance.logout();
-  onLogout();
-}
-
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   final AppSettingsController settings;
   final VoidCallback? onBalanceChanged;
   final VoidCallback? onLogout;
@@ -50,13 +27,34 @@ class WelcomeScreen extends StatelessWidget {
     this.onLogout,
   });
 
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BeginnerGuideScreen.showIfNeeded(context);
+    });
+  }
+
+  Future<void> _confirmLogout() async {
+    if (widget.onLogout == null) return;
+    final confirmed = await showLogoutConfirmDialog(context);
+    if (confirmed != true || !mounted) return;
+    await AuthRepository.instance.logout();
+    widget.onLogout!();
+  }
+
   void _openCapture(BuildContext context, CaptureMode mode) {
     Navigator.push(
       context,
       AppPageTransitions.fadeSlide(
         page: CaptureScreen(
           initialMode: mode,
-          onBalanceChanged: onBalanceChanged,
+          onBalanceChanged: widget.onBalanceChanged,
         ),
       ),
     );
@@ -66,7 +64,7 @@ class WelcomeScreen extends StatelessWidget {
     Navigator.push(
       context,
       AppPageTransitions.fadeSlide(page: const BackgroundsScreen()),
-    );
+    ).then((_) => setState(() {}));
   }
 
   @override
@@ -76,6 +74,7 @@ class WelcomeScreen extends StatelessWidget {
     final user = AuthRepository.instance.currentUser;
     final name = user?.displayName ?? 'there';
     final selectedBackground = BackgroundRepository.instance.selected;
+    final afterSlug = selectedBackground?.preset.slug ?? 'gray-showroom';
 
     return Scaffold(
       backgroundColor: tokens.background,
@@ -83,13 +82,22 @@ class WelcomeScreen extends StatelessWidget {
         child: Column(
           children: [
             PremiumTopBar(
-              settings: settings,
-              trailing: onLogout != null
-                  ? IconButton(
+              settings: widget.settings,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.menu_book_outlined),
+                    tooltip: s.guideReplay,
+                    onPressed: () => BeginnerGuideScreen.open(context),
+                  ),
+                  if (widget.onLogout != null)
+                    IconButton(
                       icon: const Icon(Icons.more_horiz_rounded),
-                      onPressed: () => _showAccountMenu(context),
-                    )
-                  : null,
+                      onPressed: _showAccountMenu,
+                    ),
+                ],
+              ),
             ),
             Expanded(
               child: CustomScrollView(
@@ -114,7 +122,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: DesignTokens.spacing24),
-                          HeroBeforeAfter(height: 220),
+                          HeroBeforeAfter(height: 220, afterPresetSlug: afterSlug),
                           const SizedBox(height: DesignTokens.spacing24),
                         ],
                       ),
@@ -198,7 +206,7 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  void _showAccountMenu(BuildContext context) {
+  void _showAccountMenu() {
     final s = context.strings;
     showModalBottomSheet<void>(
       context: context,
@@ -207,11 +215,19 @@ class WelcomeScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.menu_book_outlined),
+              title: Text(s.guideReplay),
+              onTap: () {
+                Navigator.pop(ctx);
+                BeginnerGuideScreen.open(context);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: Text(s.logout),
               onTap: () {
                 Navigator.pop(ctx);
-                if (onLogout != null) _confirmLogout(context, onLogout!);
+                _confirmLogout();
               },
             ),
           ],
@@ -251,7 +267,7 @@ class _ActionCard extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               gradient: highlighted ? tokens.primaryGradient : null,
-              color: highlighted ? null : tokens.accentMuted.withValues(alpha: tokens.isDark ? 0.3 : 1),
+              color: highlighted ? null : tokens.accentMuted,
               borderRadius: BorderRadius.circular(DesignTokens.radiusInput),
             ),
             child: Icon(
