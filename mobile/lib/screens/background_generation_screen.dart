@@ -76,9 +76,17 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
     _progressTimer = Timer.periodic(const Duration(milliseconds: 400), (_) => _tickProgress());
 
     try {
-      await AuthRepository.instance.refreshCurrentUser();
+      // Warm up Render (cold start can exceed the default 45s API timeout).
+      await AuthRepository.instance.httpClient.wakeServer(
+        attempts: 5,
+        requestTimeout: const Duration(minutes: 2),
+      );
+
       final user = AuthRepository.instance.currentUser;
-      if (user != null && user.balance < widget.priceUsd) {
+      if (user == null) {
+        throw Exception('Not logged in');
+      }
+      if (user.balance < widget.priceUsd) {
         throw Exception(
           'Insufficient balance. Need ${MoneyFormat.usd(widget.priceUsd)}, available ${MoneyFormat.usd(user.balance)}',
         );
@@ -91,7 +99,9 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
 
       final preset = await _repo.createCustomBackground(name: widget.name, prompt: widget.prompt);
       _repo.clearImageCache();
-      await AuthRepository.instance.refreshCurrentUser();
+      try {
+        await AuthRepository.instance.refreshCurrentUser();
+      } catch (_) {}
 
       _progressTimer?.cancel();
       if (!mounted) return;

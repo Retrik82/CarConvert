@@ -38,14 +38,15 @@ class HttpClient {
     return response;
   }
 
-  Future<http.Response> get(String path, {bool json = false}) {
+  Future<http.Response> get(String path, {bool json = false, Duration? timeout}) {
+    final requestTimeout = timeout ?? apiTimeout;
     return authorized(() async {
       return http
           .get(
             Uri.parse('${Env.apiBaseUrl}$path'),
             headers: await _buildAuthHeaders(json: json),
           )
-          .timeout(apiTimeout);
+          .timeout(requestTimeout);
     });
   }
 
@@ -138,11 +139,14 @@ class HttpClient {
 
   Future<Map<String, String>> authHeaders({bool json = true}) => _buildAuthHeaders(json: json);
 
-  Future<void> wakeServer({int attempts = 3}) async {
+  Future<void> wakeServer({
+    int attempts = 3,
+    Duration requestTimeout = const Duration(seconds: 45),
+  }) async {
     final uri = Uri.parse('${Env.apiBaseUrl}/health');
     for (var i = 0; i < attempts; i++) {
       try {
-        final response = await http.get(uri).timeout(const Duration(seconds: 45));
+        final response = await http.get(uri).timeout(requestTimeout);
         if (response.statusCode == 200) return;
       } catch (_) {}
       await Future<void>.delayed(Duration(seconds: 2 * (i + 1)));

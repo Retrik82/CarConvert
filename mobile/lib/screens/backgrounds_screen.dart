@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/l10n/app_strings.dart';
@@ -26,22 +28,29 @@ class BackgroundsScreen extends StatefulWidget {
 
 class _BackgroundsScreenState extends State<BackgroundsScreen> {
   final _repo = BackgroundRepository.instance;
-  BackgroundCatalog? _catalog = BundledBackgroundCatalog.catalog;
-  bool _loading = true;
+  BackgroundCatalog? _catalog = BackgroundRepository.mergeWithDefaultPresets(
+    BundledBackgroundCatalog.catalog,
+  );
+  bool _loading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_repo.loadSavedSelection(catalog: _catalog).then((_) {
+      if (mounted) setState(() {});
+    }));
+    _load(showProgress: false);
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool showProgress = true}) async {
     if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (showProgress) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final catalog = await _repo.fetchCatalog();

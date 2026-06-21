@@ -55,7 +55,7 @@ class BackgroundRepository {
     try {
       return mergeWithDefaultPresets(await _remote.fetchCatalog());
     } catch (_) {
-      return BundledBackgroundCatalog.catalog;
+      return mergeWithDefaultPresets(BundledBackgroundCatalog.catalog);
     }
   }
 
