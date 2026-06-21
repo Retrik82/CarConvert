@@ -335,6 +335,10 @@ class StringsEn extends AppStrings {
   String get backgroundGeneratingAngles => 'Rendering 7 camera angles…';
 
   @override
+  String get backgroundGenerationTimeoutError =>
+      'Generation took too long. Check your connection and try again. This can take several minutes.';
+
+  @override
   String get backgroundGenerated => 'Background ready!';
 
   @override

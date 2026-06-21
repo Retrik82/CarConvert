@@ -5,14 +5,12 @@ import '../core/theme/app_theme_builder.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
 import '../core/theme/page_transitions.dart';
-import '../models/background.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/background_repository.dart';
-import '../core/assets/bundled_assets.dart';
-import '../widgets/background_scene_preview.dart';
 import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/logout_confirm_dialog.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
+import '../widgets/design_system/welcome_before_after_slider.dart';
 import 'backgrounds_screen.dart';
 import 'beginner_guide_screen.dart';
 import 'capture_screen.dart';
@@ -125,7 +123,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           ),
                           const SizedBox(height: DesignTokens.spacing24),
-                          _DashboardHeroPreview(selectedBackground: selectedBackground),
+                          const WelcomeBeforeAfterSlider(),
                           const SizedBox(height: DesignTokens.spacing24),
                         ],
                       ),
@@ -306,51 +304,6 @@ class _ActionCard extends StatelessWidget {
           ),
           Icon(Icons.arrow_forward_ios_rounded, size: 16, color: tokens.textTertiary),
         ],
-      ),
-    );
-  }
-}
-
-class _DashboardHeroPreview extends StatelessWidget {
-  final SelectedBackground? selectedBackground;
-
-  const _DashboardHeroPreview({this.selectedBackground});
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.tokens;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (selectedBackground != null)
-              BackgroundScenePreview(
-                preset: selectedBackground!.preset,
-                angle: 'three_quarter_left',
-              )
-            else
-              Image.asset(
-                BundledAssets.carShowroomGray,
-                fit: BoxFit.cover,
-              ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    tokens.textPrimary.withValues(alpha: 0.04),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -27,7 +27,7 @@ void main() {
     expect(merged.customBackgroundPriceUsd, 0.75);
   });
 
-  test('remote catalog with presets is unchanged', () {
+  test('remote catalog with presets keeps bundled defaults by slug', () {
     const remote = BackgroundCatalog(
       presets: [
         BackgroundPreset(
@@ -42,7 +42,9 @@ void main() {
 
     final merged = BackgroundRepository.mergeWithDefaultPresets(remote);
 
-    expect(merged.presets.length, 1);
-    expect(merged.presets.first.id, 'server-1');
+    expect(merged.presets.length, 2);
+    expect(merged.presets.map((p) => p.slug), containsAll(['gray-showroom', 'auto-workshop']));
+    expect(merged.presets.firstWhere((p) => p.slug == 'gray-showroom').id, 'server-1');
+    expect(merged.presets.firstWhere((p) => p.slug == 'auto-workshop').id, 'local-auto-workshop');
   });
 }

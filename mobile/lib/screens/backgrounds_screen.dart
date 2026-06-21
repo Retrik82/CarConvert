@@ -69,6 +69,12 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     }
   }
 
+  BackgroundCatalog get _displayCatalog {
+    return BackgroundRepository.mergeWithDefaultPresets(
+      _catalog ?? BundledBackgroundCatalog.catalog,
+    );
+  }
+
   Future<void> _selectPreset(BackgroundPreset preset) async {
     await _repo.select(preset);
     if (!mounted) return;
@@ -173,6 +179,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     final tokens = context.tokens;
     final s = context.strings;
     final selected = _repo.selected;
+    final catalog = _displayCatalog;
 
     return Scaffold(
       backgroundColor: tokens.background,
@@ -186,51 +193,59 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
           ),
         ],
       ),
-      body: _loading
-          ? Center(child: CircularProgressIndicator(color: tokens.accent))
-          : _error != null
-              ? ErrorStateView(message: _error!, onRetry: _load)
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
-                    children: [
-                      Text(
-                        s.backgroundsIntro,
-                        style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
+      body: _error != null
+          ? ErrorStateView(message: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
+                children: [
+                  if (_loading)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: DesignTokens.spacing16),
+                      child: LinearProgressIndicator(
+                        minHeight: 3,
+                        color: tokens.accent,
+                        backgroundColor: tokens.surfaceMuted,
                       ),
-                      if (selected != null) ...[
-                        const SizedBox(height: DesignTokens.spacing16),
-                        _SelectedBanner(selected: selected),
-                      ],
-                      const SizedBox(height: DesignTokens.spacing24),
-                      if (_catalog!.presets.isNotEmpty) ...[
-                        Text(s.sharedBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: DesignTokens.spacing12),
-                        ..._catalog!.presets.map(
-                          (preset) => _BackgroundCard(
-                            preset: preset,
-                            isSelected: selected?.preset.slug == preset.slug,
-                            onSelect: () => _selectPreset(preset),
-                          ),
-                        ),
-                      ],
-                      if (_catalog!.custom.isNotEmpty) ...[
-                        const SizedBox(height: DesignTokens.spacing24),
-                        Text(s.yourBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: DesignTokens.spacing12),
-                        ..._catalog!.custom.map(
-                          (preset) => _BackgroundCard(
-                            preset: preset,
-                            isSelected: selected?.preset.id == preset.id,
-                            onSelect: () => _selectPreset(preset),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: DesignTokens.spacing32),
-                    ],
+                    ),
+                  Text(
+                    s.backgroundsIntro,
+                    style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                   ),
-                ),
+                  if (selected != null) ...[
+                    const SizedBox(height: DesignTokens.spacing16),
+                    _SelectedBanner(selected: selected),
+                  ],
+                  const SizedBox(height: DesignTokens.spacing24),
+                  if (catalog.presets.isNotEmpty) ...[
+                    Text(s.sharedBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: DesignTokens.spacing12),
+                    ...catalog.presets.map(
+                      (preset) => _BackgroundCard(
+                        preset: preset,
+                        isSelected: selected?.preset.slug == preset.slug,
+                        onSelect: () => _selectPreset(preset),
+                      ),
+                    ),
+                  ],
+                  if (catalog.custom.isNotEmpty) ...[
+                    const SizedBox(height: DesignTokens.spacing24),
+                    Text(s.yourBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: DesignTokens.spacing12),
+                    ...catalog.custom.map(
+                      (preset) => _BackgroundCard(
+                        preset: preset,
+                        isSelected: selected?.preset.id == preset.id,
+                        onSelect: () => _selectPreset(preset),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: DesignTokens.spacing32),
+                ],
+              ),
+            ),
     );
   }
 }

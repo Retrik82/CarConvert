@@ -106,7 +106,7 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
       if (!mounted) return;
       setState(() {
         _phase = _GenerationPhase.error;
-        _error = userFacingError(e);
+        _error = isTimeoutError(e) ? s.backgroundGenerationTimeoutError : userFacingError(e);
         _status = s.errorGeneric;
       });
     }

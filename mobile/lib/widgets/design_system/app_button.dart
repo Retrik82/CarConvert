@@ -38,7 +38,7 @@ class _AppButtonState extends State<AppButton> {
 
     final (bg, fg, border) = switch (widget.variant) {
       AppButtonVariant.primary => (null, tokens.onAccent, Colors.transparent),
-      AppButtonVariant.secondary => (tokens.surface, tokens.textPrimary, tokens.border),
+      AppButtonVariant.secondary => (tokens.surfaceMuted, tokens.textPrimary, tokens.border),
       AppButtonVariant.ghost => (Colors.transparent, tokens.textSecondary, Colors.transparent),
     };
 

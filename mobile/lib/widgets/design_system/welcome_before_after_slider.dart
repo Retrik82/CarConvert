@@ -41,12 +41,14 @@ class _WelcomeBeforeAfterSliderState extends State<WelcomeBeforeAfterSlider> {
                   Image.asset(
                     BundledAssets.welcomeAfterShowroom,
                     fit: BoxFit.cover,
+                    alignment: Alignment.center,
                   ),
                   ClipRect(
                     clipper: _LeftClipper(dividerX),
                     child: Image.asset(
                       BundledAssets.welcomeBeforeStreet,
                       fit: BoxFit.cover,
+                      alignment: Alignment.center,
                     ),
                   ),
                   Positioned(

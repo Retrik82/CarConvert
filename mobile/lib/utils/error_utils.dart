@@ -7,3 +7,5 @@ String userFacingError(Object error) {
   }
   return text;
 }
+
+bool isTimeoutError(Object error) => error.toString().contains('TimeoutException');

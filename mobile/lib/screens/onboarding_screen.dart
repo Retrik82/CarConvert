@@ -7,8 +7,8 @@ import '../core/theme/design_tokens.dart';
 import '../core/theme/page_transitions.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/design_system/app_button.dart';
+import '../widgets/design_system/auth_welcome_hero_banner.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
-import '../widgets/design_system/welcome_before_after_slider.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
@@ -60,63 +60,31 @@ class OnboardingScreen extends StatelessWidget {
               child: Row(
                 children: [
                   const Spacer(),
-                  LanguageSwitcher(
-                    controller: settings,
-                  ),
+                  LanguageSwitcher(controller: settings),
                 ],
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+              child: AppLogo(iconSize: 52, titleSize: 28, useImageLogo: true),
+            ),
+            const AuthWelcomeHeroBanner(),
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: DesignTokens.screenPaddingH,
                 ),
                 child: Column(
-                  children: [
-                    const AppLogo(iconSize: 56, titleSize: 30, useImageLogo: true),
-                    const SizedBox(height: DesignTokens.spacing24),
-                    const Expanded(
-                      child: Center(
-                        child: WelcomeBeforeAfterSlider(),
-                      ),
-                    ),
-                    const SizedBox(height: DesignTokens.spacing16),
-                  ],
-                ),
-              ),
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: tokens.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(DesignTokens.radiusHero),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: DesignTokens.textDark.withValues(alpha: 0.06),
-                    blurRadius: 24,
-                    offset: const Offset(0, -8),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  DesignTokens.screenPaddingH,
-                  DesignTokens.spacing24,
-                  DesignTokens.screenPaddingH,
-                  bottomInset + DesignTokens.spacing24,
-                ),
-                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    const SizedBox(height: DesignTokens.spacing16),
                     GradientHighlightText(
                       text: s.welcomeTitle,
                       highlight: appName,
                       baseStyle: tokens.textStyle(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
+                        letterSpacing: -0.4,
                       ),
                     ),
                     const SizedBox(height: DesignTokens.spacing12),
@@ -130,21 +98,33 @@ class OnboardingScreen extends StatelessWidget {
                         height: 1.45,
                       ),
                     ),
-                    const SizedBox(height: DesignTokens.spacing24),
-                    AppButton(
-                      label: s.login,
-                      icon: Icons.login_rounded,
-                      onPressed: () => _openLogin(context),
-                    ),
-                    const SizedBox(height: DesignTokens.spacing12),
-                    AppButton(
-                      label: s.register,
-                      variant: AppButtonVariant.secondary,
-                      icon: Icons.person_add_outlined,
-                      onPressed: () => _openRegister(context),
-                    ),
                   ],
                 ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                DesignTokens.screenPaddingH,
+                DesignTokens.spacing8,
+                DesignTokens.screenPaddingH,
+                bottomInset + DesignTokens.spacing16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppButton(
+                    label: s.login,
+                    icon: Icons.login_rounded,
+                    onPressed: () => _openLogin(context),
+                  ),
+                  const SizedBox(height: DesignTokens.spacing12),
+                  AppButton(
+                    label: s.register,
+                    variant: AppButtonVariant.secondary,
+                    icon: Icons.person_add_outlined,
+                    onPressed: () => _openRegister(context),
+                  ),
+                ],
               ),
             ),
           ],

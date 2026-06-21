@@ -335,6 +335,10 @@ class StringsDe extends AppStrings {
   String get backgroundGeneratingAngles => '7 Kamerawinkel werden gerendert…';
 
   @override
+  String get backgroundGenerationTimeoutError =>
+      'Die Generierung dauerte zu lange. Prüfen Sie die Verbindung und versuchen Sie es erneut. Dies kann einige Minuten dauern.';
+
+  @override
   String get backgroundGenerated => 'Hintergrund fertig!';
 
   @override

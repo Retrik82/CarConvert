@@ -165,6 +165,7 @@ abstract class AppStrings {
   String get backgroundGeneratingTitle;
   String get backgroundGeneratingStatus;
   String get backgroundGeneratingAngles;
+  String get backgroundGenerationTimeoutError;
   String get backgroundGenerated;
   String get backgroundResultPreview;
 

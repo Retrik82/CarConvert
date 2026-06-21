@@ -22,10 +22,14 @@ class BackgroundRemoteDataSource {
     required String name,
     required String prompt,
   }) async {
-    final response = await _client.post('/backgrounds/custom', {
-      'name': name,
-      'prompt': prompt,
-    });
+    final response = await _client.post(
+      '/backgrounds/custom',
+      {
+        'name': name,
+        'prompt': prompt,
+      },
+      timeout: HttpClient.backgroundGenerationTimeout,
+    );
     if (response.statusCode >= 400) {
       throw Exception('Failed to create background: ${response.body}');
     }

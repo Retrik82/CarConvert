@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 from io import BytesIO
@@ -184,34 +185,30 @@ class BackgroundService:
         prompt: str,
         api_key: str,
     ) -> UserBackground:
+        from app.services.ai_scene_generator import generate_custom_scene_ai
+
         background = UserBackground(user_id=user_id, name=name.strip(), prompt=prompt.strip())
         await self._repo.add_user_background(background)
 
         root = backgrounds_root() / "users" / user_id / background.id
-        preview_variant: UserBackgroundVariant | None = None
-        failed_angles: list[str] = []
-
-        from app.services.ai_scene_generator import generate_custom_scene_ai
+        variants_by_angle: dict[str, UserBackgroundVariant] = {}
 
         for angle in VARIANT_ANGLES:
-            suffix = ANGLE_PROMPT_SUFFIXES[angle]
             variant = UserBackgroundVariant(
                 background_id=background.id,
                 angle=angle,
-                prompt_suffix=suffix,
+                prompt_suffix=ANGLE_PROMPT_SUFFIXES[angle],
             )
             await self._repo.add_user_variant(variant)
+            variants_by_angle[angle] = variant
 
+        async def generate_angle(angle: str) -> tuple[str, Path | None, Exception | None]:
             scene_path = root / f"{angle}.jpg"
             last_error: Exception | None = None
             for attempt in range(2):
                 try:
                     await generate_custom_scene_ai(prompt.strip(), angle, scene_path, api_key)
-                    variant.image_path = str(scene_path)
-                    if preview_variant is None or angle == "three_quarter_left":
-                        preview_variant = variant
-                    last_error = None
-                    break
+                    return angle, scene_path, None
                 except Exception as exc:
                     last_error = exc
                     logger.warning(
@@ -220,9 +217,20 @@ class BackgroundService:
                         angle,
                         exc,
                     )
+            return angle, None, last_error
 
-            if last_error is not None:
+        results = await asyncio.gather(*(generate_angle(angle) for angle in VARIANT_ANGLES))
+
+        preview_variant: UserBackgroundVariant | None = None
+        failed_angles: list[str] = []
+        for angle, scene_path, error in results:
+            if error is not None or scene_path is None:
                 failed_angles.append(angle)
+                continue
+            variant = variants_by_angle[angle]
+            variant.image_path = str(scene_path)
+            if preview_variant is None or angle == "three_quarter_left":
+                preview_variant = variant
 
         if failed_angles:
             raise RuntimeError(

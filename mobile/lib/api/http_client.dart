@@ -22,6 +22,7 @@ class HttpClient {
   final LogoutCallback _onUnauthorizedLogout;
 
   static const apiTimeout = Duration(seconds: 45);
+  static const backgroundGenerationTimeout = Duration(minutes: 15);
 
   Future<http.Response> authorized(Future<http.Response> Function() request) async {
     var response = await request();
@@ -78,7 +79,14 @@ class HttpClient {
     });
   }
 
-  Future<http.Response> post(String path, Map<String, dynamic> body, {bool useAuth = true}) async {
+  Future<http.Response> post(
+    String path,
+    Map<String, dynamic> body, {
+    bool useAuth = true,
+    Duration? timeout,
+  }) async {
+    final requestTimeout = timeout ?? apiTimeout;
+
     Future<http.Response> send() async {
       final headers = useAuth
           ? await _buildAuthHeaders()
@@ -89,7 +97,7 @@ class HttpClient {
             headers: headers,
             body: jsonEncode(body),
           )
-          .timeout(apiTimeout);
+          .timeout(requestTimeout);
     }
 
     if (useAuth) {

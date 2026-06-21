@@ -61,16 +61,40 @@ class BackgroundRepository {
 
   /// Bundled presets ship in the APK and must always be available offline.
   static BackgroundCatalog mergeWithDefaultPresets(BackgroundCatalog catalog) {
-    if (catalog.presets.isNotEmpty) return catalog;
-
     final bundled = BundledBackgroundCatalog.catalog;
+    final remoteBySlug = {for (final preset in catalog.presets) preset.slug: preset};
+
+    final presets = <BackgroundPreset>[
+      for (final local in bundled.presets)
+        _mergePreset(local, remoteBySlug[local.slug]),
+      for (final remote in catalog.presets)
+        if (!bundled.presets.any((local) => local.slug == remote.slug)) remote,
+    ];
+
     return BackgroundCatalog(
-      presets: bundled.presets,
+      presets: presets,
       custom: catalog.custom,
       customBackgroundPriceUsd: catalog.customBackgroundPriceUsd > 0
           ? catalog.customBackgroundPriceUsd
           : bundled.customBackgroundPriceUsd,
     );
+  }
+
+  static BackgroundPreset _mergePreset(BackgroundPreset local, BackgroundPreset? remote) {
+    if (remote == null) return local;
+    if (remote.variants.isEmpty) {
+      return BackgroundPreset(
+        id: remote.id,
+        slug: remote.slug,
+        name: remote.name,
+        description: remote.description ?? local.description,
+        generationPrompt: remote.generationPrompt ?? local.generationPrompt,
+        previewUrl: remote.previewUrl,
+        variants: local.variants,
+        isCustom: remote.isCustom,
+      );
+    }
+    return remote;
   }
 
   Future<BackgroundPreset> createCustomBackground({

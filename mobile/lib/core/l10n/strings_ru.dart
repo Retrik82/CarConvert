@@ -335,6 +335,10 @@ class StringsRu extends AppStrings {
   String get backgroundGeneratingAngles => 'Рендерим 7 ракурсов…';
 
   @override
+  String get backgroundGenerationTimeoutError =>
+      'Генерация заняла слишком много времени. Проверьте интернет и попробуйте снова — процесс может занять несколько минут.';
+
+  @override
   String get backgroundGenerated => 'Фон готов!';
 
   @override

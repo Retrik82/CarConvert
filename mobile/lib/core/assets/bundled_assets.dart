@@ -27,8 +27,8 @@ class BundledAssets {
   static const onboardingWelcomeHero = '$brandingRoot/onboarding_welcome_hero.jpg';
   static const carStreetOutdoor = '$marketingRoot/car_street_outdoor.jpg';
   static const carShowroomGray = '$marketingRoot/car_showroom_gray.jpg';
-  static const welcomeBeforeStreet = '$marketingRoot/welcome_before_street.jpg';
-  static const welcomeAfterShowroom = '$marketingRoot/welcome_after_showroom.jpg';
+  static const welcomeBeforeStreet = '$marketingRoot/welcome_before_street.png';
+  static const welcomeAfterShowroom = '$marketingRoot/welcome_after_showroom.png';
   static const carWorkshopStudio = '$marketingRoot/car_workshop_studio.jpg';
   static const outdoorParkingEmpty = '$marketingRoot/outdoor_parking_empty.jpg';
   static const showroomWhiteEmpty = '$marketingRoot/showroom_white_empty.jpg';

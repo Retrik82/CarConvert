@@ -99,8 +99,8 @@ class BackgroundCatalog {
   });
 
   factory BackgroundCatalog.fromJson(Map<String, dynamic> json) {
-    final presetsJson = json['presets'] as List<dynamic>? ?? const [];
-    final customJson = json['custom'] as List<dynamic>? ?? const [];
+    final presetsJson = _readPresetList(json['presets'] ?? json['shared_presets']);
+    final customJson = _readPresetList(json['custom'] ?? json['user_backgrounds']);
     return BackgroundCatalog(
       presets: presetsJson
           .map((item) => BackgroundPreset.fromJson(item as Map<String, dynamic>))
@@ -110,6 +110,11 @@ class BackgroundCatalog {
           .toList(),
       customBackgroundPriceUsd: _parsePrice(json['custom_background_price_usd']),
     );
+  }
+
+  static List<dynamic> _readPresetList(dynamic value) {
+    if (value is List<dynamic>) return value;
+    return const [];
   }
 
   static double _parsePrice(dynamic value) {

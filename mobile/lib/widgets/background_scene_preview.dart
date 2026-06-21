@@ -28,6 +28,7 @@ class BackgroundScenePreview extends StatelessWidget {
 
   String? _bundledAngle() {
     if (preset.isCustom) return null;
+    if (!BundledAssets.presetSlugs.contains(preset.slug)) return null;
     final variant = _variant();
     final resolved = variant?.angle ?? angle;
     if (resolved == null || !BundledAssets.presetAngles.contains(resolved)) {
@@ -39,10 +40,11 @@ class BackgroundScenePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bundledAngle = _bundledAngle();
+    final useBundledAssets = bundledAngle != null;
 
     Widget child = AuthenticatedBackgroundImage(
-      previewPath: _scenePath(),
-      presetSlug: bundledAngle != null ? preset.slug : null,
+      previewPath: useBundledAssets ? null : _scenePath(),
+      presetSlug: useBundledAssets ? preset.slug : null,
       angle: bundledAngle,
       fit: BoxFit.contain,
     );
