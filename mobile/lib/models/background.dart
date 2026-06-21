@@ -127,7 +127,9 @@ class SelectedBackground {
 
   const SelectedBackground({required this.preset});
 
-  String? get presetId => preset.isCustom ? null : preset.id;
+  String? get presetId => preset.isCustom || preset.id.startsWith('local-') ? null : preset.id;
+
+  String? get presetSlug => preset.isCustom ? null : preset.slug;
 
   String? get userBackgroundId => preset.isCustom ? preset.id : null;
 

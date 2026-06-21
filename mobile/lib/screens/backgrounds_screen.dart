@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
+import '../core/assets/bundled_background_catalog.dart';
 import '../models/background.dart';
 import '../repositories/background_repository.dart';
-import '../utils/error_utils.dart';
 import '../utils/money_format.dart';
 import '../widgets/background_preview_grid.dart';
 import '../widgets/background_scene_preview.dart';
@@ -26,7 +26,7 @@ class BackgroundsScreen extends StatefulWidget {
 
 class _BackgroundsScreenState extends State<BackgroundsScreen> {
   final _repo = BackgroundRepository.instance;
-  BackgroundCatalog? _catalog;
+  BackgroundCatalog? _catalog = BundledBackgroundCatalog.catalog;
   bool _loading = true;
   String? _error;
 
@@ -44,6 +44,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     _repo.clearImageCache();
     try {
       final catalog = await _repo.fetchCatalog();
+      await _repo.loadSavedSelection(catalog: catalog);
       if (!mounted) return;
       setState(() {
         _catalog = catalog;
@@ -52,16 +53,31 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
         }
       });
     } catch (e) {
-      if (mounted) setState(() => _error = userFacingError(e));
+      if (mounted) {
+        final fallback = BundledBackgroundCatalog.catalog;
+        await _repo.loadSavedSelection(catalog: fallback);
+        setState(() {
+          _catalog = fallback;
+          _error = null;
+          if (_repo.selected == null && fallback.presets.isNotEmpty) {
+            _repo.select(fallback.presets.first);
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _selectPreset(BackgroundPreset preset) {
-    _repo.select(preset);
+  Future<void> _selectPreset(BackgroundPreset preset) async {
+    await _repo.select(preset);
+    if (!mounted) return;
+    setState(() {});
     widget.onSelected?.call();
-    if (mounted) Navigator.pop(context, _repo.selected);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${context.strings.backgroundSelected}: ${preset.name}')),
+    );
+    Navigator.pop(context, _repo.selected);
   }
 
   Future<void> _showCreateSheet() async {
@@ -194,7 +210,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                         ..._catalog!.presets.map(
                           (preset) => _BackgroundCard(
                             preset: preset,
-                            isSelected: selected?.preset.id == preset.id && !preset.isCustom,
+                            isSelected: selected?.preset.slug == preset.slug,
                             onSelect: () => _selectPreset(preset),
                           ),
                         ),
@@ -283,47 +299,72 @@ class _BackgroundCard extends StatelessWidget {
       child: AppCard(
         selected: isSelected,
         padding: EdgeInsets.zero,
-        onTap: () => openBackgroundDetailSheet(
-          context,
-          preset: preset,
-          isSelected: isSelected,
-          onSelect: onSelect,
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  BackgroundScenePreview(
-                    preset: preset,
-                    angle: 'three_quarter_left',
-                  ),
-                  Positioned(
-                    right: DesignTokens.spacing12,
-                    bottom: DesignTokens.spacing12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            s.backgroundTapToExpand,
-                            style: tokens.textStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+            GestureDetector(
+              onTap: () => openBackgroundDetailSheet(
+                context,
+                preset: preset,
+                isSelected: isSelected,
+                onSelect: onSelect,
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    BackgroundScenePreview(
+                      preset: preset,
+                      angle: 'three_quarter_left',
+                    ),
+                    if (isSelected)
+                      Positioned(
+                        top: DesignTokens.spacing12,
+                        left: DesignTokens.spacing12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: tokens.primaryGradient,
+                            borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                s.backgroundSelected,
+                                style: tokens.textStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      right: DesignTokens.spacing12,
+                      bottom: DesignTokens.spacing12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              s.backgroundTapToExpand,
+                              style: tokens.textStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Padding(

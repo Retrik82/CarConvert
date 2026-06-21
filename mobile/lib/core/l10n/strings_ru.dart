@@ -11,7 +11,7 @@ class StringsRu extends AppStrings {
   String get welcomeTitle => 'Добро пожаловать в RenderWheels';
 
   @override
-  String get welcomeSubtitle => 'Студийное качество — у вас в руках.';
+  String get welcomeSubtitle => 'Превратите фото автомобиля в профессиональный кадр — за секунды.';
 
   @override
   String get continueWithEmail => 'Продолжить с Email';
@@ -39,6 +39,9 @@ class StringsRu extends AppStrings {
 
   @override
   String get createAccount => 'Создать аккаунт';
+
+  @override
+  String get loginNoAccount => 'Нет аккаунта?';
 
   @override
   String get resetPassword => 'Сбросить пароль';

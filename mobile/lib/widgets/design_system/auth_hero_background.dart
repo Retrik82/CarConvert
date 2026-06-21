@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/assets/bundled_assets.dart';
-import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/design_tokens.dart';
-import '../app_logo.dart';
+import 'car_assets.dart';
+import 'car_overlay.dart';
 
-/// Full-width hero used on auth screens — studio photo with logo overlay.
+/// Auth/register hero — same BMW overlay on empty studio background.
 class AuthHeroBackground extends StatelessWidget {
   final double height;
 
@@ -26,47 +26,26 @@ class AuthHeroBackground extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            BundledAssets.authHero,
-            fit: BoxFit.cover,
-          ),
+          Image.asset(BundledAssets.showroomWhiteEmpty, fit: BoxFit.cover),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.white.withValues(alpha: 0.15),
-                  Colors.white.withValues(alpha: 0.55),
-                  Colors.white.withValues(alpha: 0.92),
+                  Colors.white.withValues(alpha: 0.1),
+                  Colors.white.withValues(alpha: 0.5),
+                  Colors.white.withValues(alpha: 0.88),
                 ],
                 stops: const [0.0, 0.55, 1.0],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(DesignTokens.spacing16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppLogo(
-                  iconSize: 36,
-                  titleSize: 20,
-                  showTagline: false,
-                  centered: false,
-                  useImageLogo: true,
-                ),
-                const Spacer(),
-                Text(
-                  context.strings.appTagline,
-                  style: tokens.textStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: tokens.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+          CarOverlay(
+            view: CarViewAngle.threeQuarterRight,
+            tokens: tokens,
+            style: CarOverlayStyle.backgroundPreview,
+            variant: CarPaintVariant.black,
           ),
         ],
       ),

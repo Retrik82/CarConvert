@@ -33,6 +33,7 @@ class PhotoRemoteDataSource {
     String filename, {
     String? sessionId,
     String? backgroundPresetId,
+    String? backgroundPresetSlug,
     String? userBackgroundId,
   }) async {
     Object? lastError;
@@ -53,6 +54,9 @@ class PhotoRemoteDataSource {
         if (sessionId != null) request.fields['session_id'] = sessionId;
         if (backgroundPresetId != null) {
           request.fields['background_preset_id'] = backgroundPresetId;
+        }
+        if (backgroundPresetSlug != null) {
+          request.fields['background_preset_slug'] = backgroundPresetSlug;
         }
         if (userBackgroundId != null) {
           request.fields['user_background_id'] = userBackgroundId;

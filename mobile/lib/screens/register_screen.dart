@@ -6,6 +6,7 @@ import '../core/theme/design_tokens.dart';
 import '../repositories/auth_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/auth_hero_background.dart';
 import '../widgets/form_fields.dart';
@@ -81,6 +82,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Center(
+                  child: AppLogo(iconSize: 44, titleSize: 24, useImageLogo: true, showTagline: true),
+                ),
+                const SizedBox(height: DesignTokens.spacing24),
                 const AuthHeroBackground(height: 160),
                 const SizedBox(height: DesignTokens.spacing24),
                 Text(

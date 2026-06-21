@@ -4,12 +4,11 @@ import '../core/l10n/app_strings.dart';
 import '../core/theme/app_theme_builder.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
-import '../widgets/app_logo.dart';
 import '../core/theme/page_transitions.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/design_system/app_button.dart';
-import '../widgets/design_system/hero_before_after.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
-import 'forgot_password_screen.dart';
+import '../widgets/design_system/welcome_before_after_slider.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
@@ -23,8 +22,22 @@ class OnboardingScreen extends StatelessWidget {
     required this.onLoggedIn,
   });
 
-  void _pushAuthScreen(BuildContext context, Widget screen) {
-    Navigator.push(context, AppPageTransitions.fadeSlide(page: screen));
+  void _openLogin(BuildContext context) {
+    Navigator.push(
+      context,
+      AppPageTransitions.fadeSlide(
+        page: LoginScreen(onLoggedIn: onLoggedIn),
+      ),
+    );
+  }
+
+  void _openRegister(BuildContext context) {
+    Navigator.push(
+      context,
+      AppPageTransitions.fadeSlide(
+        page: RegisterScreen(onRegistered: onLoggedIn),
+      ),
+    );
   }
 
   @override
@@ -32,110 +45,106 @@ class OnboardingScreen extends StatelessWidget {
     final tokens = context.tokens;
     final s = context.strings;
     final appName = s.appName;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: tokens.background,
       body: SafeArea(
         child: Column(
           children: [
-            PremiumTopBar(settings: settings),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.screenPaddingH,
+                vertical: DesignTokens.spacing8,
+              ),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  LanguageSwitcher(
+                    controller: settings,
+                  ),
+                ],
+              ),
+            ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.screenPaddingH,
+                ),
                 child: Column(
                   children: [
-                    const AppLogo(iconSize: 44, titleSize: 26, useImageLogo: true),
+                    const AppLogo(iconSize: 56, titleSize: 30, useImageLogo: true),
                     const SizedBox(height: DesignTokens.spacing24),
-                    HeroBeforeAfter(
-                      height: MediaQuery.sizeOf(context).height * 0.32,
-                      afterPresetSlug: 'gray-showroom',
-                    ),
-                    const SizedBox(height: DesignTokens.spacing32),
-                    GradientHighlightText(
-                      text: s.welcomeTitle,
-                      highlight: appName,
-                      baseStyle: tokens.textStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
+                    const Expanded(
+                      child: Center(
+                        child: WelcomeBeforeAfterSlider(),
                       ),
                     ),
-                    const SizedBox(height: DesignTokens.spacing8),
-                    Text(
-                      s.welcomeSubtitle,
-                      textAlign: TextAlign.center,
-                      style: tokens.textStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: tokens.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: DesignTokens.spacing24),
-                    FeatureHighlightRow(
-                      features: [
-                        FeatureHighlight(
-                          icon: Icons.auto_fix_high_rounded,
-                          title: s.takePhoto.split(' ').first,
-                          subtitle: s.startCapture,
-                        ),
-                        FeatureHighlight(
-                          icon: Icons.crop_square_rounded,
-                          title: s.chooseBackground.split(' ').first,
-                          subtitle: s.backgroundSelected,
-                        ),
-                        FeatureHighlight(
-                          icon: Icons.bolt_rounded,
-                          title: s.fromGallery.split(' ').first,
-                          subtitle: s.dashboardSubtitle.split('.').first,
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: DesignTokens.spacing16),
                   ],
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: DesignTokens.screenPaddingH),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AppButton(
-                    label: s.login,
-                    icon: Icons.mail_outline_rounded,
-                    onPressed: () => _pushAuthScreen(
-                      context,
-                      LoginScreen(onLoggedIn: onLoggedIn),
-                    ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: tokens.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(DesignTokens.radiusHero),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: DesignTokens.textDark.withValues(alpha: 0.06),
+                    blurRadius: 24,
+                    offset: const Offset(0, -8),
                   ),
-                  const SizedBox(height: DesignTokens.spacing12),
-                  AppButton(
-                    label: s.register,
-                    variant: AppButtonVariant.secondary,
-                    icon: Icons.person_add_outlined,
-                    onPressed: () => _pushAuthScreen(
-                      context,
-                      RegisterScreen(onRegistered: onLoggedIn),
-                    ),
-                  ),
-                  const SizedBox(height: DesignTokens.spacing16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => _pushAuthScreen(
-                        context,
-                        const ForgotPasswordScreen(),
-                      ),
-                      child: Text(
-                        s.forgotPassword,
-                        style: tokens.textStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: tokens.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: MediaQuery.paddingOf(context).bottom + DesignTokens.spacing16),
                 ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  DesignTokens.screenPaddingH,
+                  DesignTokens.spacing24,
+                  DesignTokens.screenPaddingH,
+                  bottomInset + DesignTokens.spacing24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GradientHighlightText(
+                      text: s.welcomeTitle,
+                      highlight: appName,
+                      baseStyle: tokens.textStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: DesignTokens.spacing12),
+                    Text(
+                      s.welcomeSubtitle,
+                      textAlign: TextAlign.center,
+                      style: tokens.textStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: tokens.textSecondary,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: DesignTokens.spacing24),
+                    AppButton(
+                      label: s.login,
+                      icon: Icons.login_rounded,
+                      onPressed: () => _openLogin(context),
+                    ),
+                    const SizedBox(height: DesignTokens.spacing12),
+                    AppButton(
+                      label: s.register,
+                      variant: AppButtonVariant.secondary,
+                      icon: Icons.person_add_outlined,
+                      onPressed: () => _openRegister(context),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

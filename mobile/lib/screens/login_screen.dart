@@ -7,9 +7,9 @@ import '../repositories/auth_repository.dart';
 import '../utils/error_utils.dart';
 import '../utils/validators.dart';
 import '../widgets/design_system/app_button.dart';
-import '../widgets/design_system/auth_hero_background.dart';
 import '../widgets/form_fields.dart';
 import 'forgot_password_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoggedIn;
@@ -65,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        title: Text(s.login),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -74,9 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: DesignTokens.spacing8),
-                const AuthHeroBackground(height: 180),
-                const SizedBox(height: DesignTokens.spacing32),
+                const SizedBox(height: DesignTokens.spacing16),
                 Text(
                   s.login,
                   style: tokens.textStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
@@ -106,28 +105,54 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: true,
                   validator: Validators.loginPassword,
                 ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                      );
+                    },
+                    child: Text(
+                      s.forgotPassword,
+                      style: tokens.textStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
                 if (_error != null) appFormMessage(_error!, isError: true, context: context),
-                const SizedBox(height: DesignTokens.spacing24),
+                const SizedBox(height: DesignTokens.spacing8),
                 AppButton(
                   label: s.login,
                   loading: _loading,
                   onPressed: _loading ? null : _login,
                 ),
-                TextButton(
+                const SizedBox(height: DesignTokens.spacing24),
+                Text(
+                  s.loginNoAccount,
+                  textAlign: TextAlign.center,
+                  style: tokens.textStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                AppButton(
+                  label: s.register,
+                  variant: AppButtonVariant.secondary,
+                  icon: Icons.person_add_outlined,
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => RegisterScreen(onRegistered: widget.onLoggedIn),
+                      ),
                     );
                   },
-                  child: Text(
-                    s.forgotPassword,
-                    style: tokens.textStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: tokens.textSecondary,
-                    ),
-                  ),
                 ),
                 const SizedBox(height: DesignTokens.spacing32),
               ],

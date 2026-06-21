@@ -4,8 +4,10 @@ import '../../core/assets/bundled_assets.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/design_tokens.dart';
+import 'car_assets.dart';
+import 'car_overlay.dart';
 
-/// Before/after showcase using cohesive marketing photos (same car angle/position).
+/// Before/after slider — same BMW M4 overlay on both sides, only background changes.
 class HeroBeforeAfter extends StatefulWidget {
   final double height;
   final String? afterPresetSlug;
@@ -27,8 +29,8 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final s = context.strings;
-    final beforePath = BundledAssets.carStreetOutdoor;
-    final afterPath = BundledAssets.afterMarketingImageForPreset(widget.afterPresetSlug);
+    final beforeBg = BundledAssets.sliderBeforeBackground;
+    final afterBg = BundledAssets.sliderAfterBackgroundForPreset(widget.afterPresetSlug);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -46,22 +48,24 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(afterPath, fit: BoxFit.cover),
+                _AlignedScene(
+                  backgroundPath: afterBg,
+                  tokens: tokens,
+                  dim: false,
+                ),
                 ClipRect(
                   clipper: _LeftClipper(dividerX),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset(beforePath, fit: BoxFit.cover),
-                      Container(color: tokens.textPrimary.withValues(alpha: 0.08)),
-                    ],
+                  child: _AlignedScene(
+                    backgroundPath: beforeBg,
+                    tokens: tokens,
+                    dim: true,
                   ),
                 ),
                 Positioned(
                   left: dividerX - 1,
                   top: 0,
                   bottom: 0,
-                  child: Container(width: 2, color: Colors.white.withValues(alpha: 0.9)),
+                  child: Container(width: 2, color: Colors.white.withValues(alpha: 0.92)),
                 ),
                 Positioned(
                   left: dividerX - 20,
@@ -97,6 +101,7 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
                   child: _Badge(label: s.afterLabel, tokens: tokens, gradient: true),
                 ),
                 GestureDetector(
+                  behavior: HitTestBehavior.translucent,
                   onHorizontalDragUpdate: (details) {
                     setState(() {
                       _position = (_position + details.delta.dx / width).clamp(0.05, 0.95);
@@ -114,6 +119,36 @@ class _HeroBeforeAfterState extends State<HeroBeforeAfter> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Background + identical car placement for perfect before/after alignment.
+class _AlignedScene extends StatelessWidget {
+  final String backgroundPath;
+  final AppTokens tokens;
+  final bool dim;
+
+  const _AlignedScene({
+    required this.backgroundPath,
+    required this.tokens,
+    required this.dim,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(backgroundPath, fit: BoxFit.cover),
+        if (dim) Container(color: tokens.textPrimary.withValues(alpha: 0.1)),
+        CarOverlay(
+          view: CarViewAngle.threeQuarterRight,
+          tokens: tokens,
+          style: CarOverlayStyle.backgroundPreview,
+          variant: CarPaintVariant.black,
+        ),
+      ],
     );
   }
 }

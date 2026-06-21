@@ -11,6 +11,7 @@ import 'screens/admin_shell.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/user_shell.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/background_repository.dart';
 import 'repositories/car_asset_repository.dart';
 import 'repositories/car_repository.dart';
 import 'widgets/app_logo.dart';
@@ -99,6 +100,7 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
 
     if (next != AppDestination.login) {
       unawaited(_prepareLoggedInSession());
+      unawaited(BackgroundRepository.instance.loadSavedSelection());
     }
   }
 

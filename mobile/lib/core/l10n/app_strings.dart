@@ -49,6 +49,7 @@ abstract class AppStrings {
   String get emailOrUsername;
   String get password;
   String get createAccount;
+  String get loginNoAccount;
   String get resetPassword;
   String get backToLogin;
 

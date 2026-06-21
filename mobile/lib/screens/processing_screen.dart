@@ -70,6 +70,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         'capture.jpg',
         sessionId: widget.sessionId,
         backgroundPresetId: widget.selectedBackground?.presetId,
+        backgroundPresetSlug: widget.selectedBackground?.presetSlug,
         userBackgroundId: widget.selectedBackground?.userBackgroundId,
       );
       await AuthRepository.instance.refreshCurrentUser();

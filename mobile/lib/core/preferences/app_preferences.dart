@@ -8,6 +8,7 @@ class AppPreferences {
   static const _themeKey = 'app_theme_mode';
   static const _localeKey = 'app_locale';
   static const _guideSeenKey = 'beginner_guide_seen';
+  static const _selectedBackgroundSlugKey = 'selected_background_slug';
 
   Future<ThemeMode> loadThemeMode() async {
     return ThemeMode.light;
@@ -21,6 +22,21 @@ class AppPreferences {
   Future<void> setBeginnerGuideSeen(bool seen) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_guideSeenKey, seen);
+  }
+
+  Future<String?> loadSelectedBackgroundSlug() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_selectedBackgroundSlugKey);
+  }
+
+  Future<void> saveSelectedBackgroundSlug(String slug) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedBackgroundSlugKey, slug);
+  }
+
+  Future<void> clearSelectedBackgroundSlug() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedBackgroundSlugKey);
   }
 
   Future<void> saveThemeMode(ThemeMode mode) async {

@@ -23,14 +23,24 @@ class BundledAssets {
 
   static const appLogo = '$brandingRoot/app_logo.png';
   static const authHero = '$brandingRoot/auth_hero.jpg';
+  static const authWelcomeHero = '$brandingRoot/auth_welcome_hero.jpg';
+  static const onboardingWelcomeHero = '$brandingRoot/onboarding_welcome_hero.jpg';
   static const carStreetOutdoor = '$marketingRoot/car_street_outdoor.jpg';
   static const carShowroomGray = '$marketingRoot/car_showroom_gray.jpg';
+  static const welcomeBeforeStreet = '$marketingRoot/welcome_before_street.jpg';
+  static const welcomeAfterShowroom = '$marketingRoot/welcome_after_showroom.jpg';
   static const carWorkshopStudio = '$marketingRoot/car_workshop_studio.jpg';
+  static const outdoorParkingEmpty = '$marketingRoot/outdoor_parking_empty.jpg';
+  static const showroomWhiteEmpty = '$marketingRoot/showroom_white_empty.jpg';
+  static const workshopEmpty = '$marketingRoot/workshop_empty.jpg';
 
-  /// Cohesive before/after marketing image for the selected preset slug.
-  static String afterMarketingImageForPreset(String? slug) {
-    if (slug == 'auto-workshop') return carWorkshopStudio;
-    return carShowroomGray;
+  /// Slider "before" — empty outdoor scene (car added via overlay).
+  static const sliderBeforeBackground = outdoorParkingEmpty;
+
+  /// Slider "after" — empty studio matching selected preset (car via overlay).
+  static String sliderAfterBackgroundForPreset(String? slug) {
+    if (slug == 'auto-workshop') return workshopEmpty;
+    return showroomWhiteEmpty;
   }
 
   static String? carAssetPath(CarViewAngle angle, CarPaintVariant paint) {

@@ -6,15 +6,23 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/design_tokens.dart';
 import '../app_logo.dart';
 
+enum LanguageSwitcherStyle { standard, onPhoto }
+
 class LanguageSwitcher extends StatelessWidget {
   final AppSettingsController controller;
+  final LanguageSwitcherStyle style;
 
-  const LanguageSwitcher({super.key, required this.controller});
+  const LanguageSwitcher({
+    super.key,
+    required this.controller,
+    this.style = LanguageSwitcherStyle.standard,
+  });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final current = AppLanguage.fromLocale(controller.locale);
+    final onPhoto = style == LanguageSwitcherStyle.onPhoto;
 
     return PopupMenuButton<AppLanguage>(
       tooltip: context.strings.language,
@@ -61,9 +69,24 @@ class LanguageSwitcher extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: tokens.surfaceMuted,
+          color: onPhoto
+              ? Colors.white.withValues(alpha: 0.88)
+              : tokens.surfaceMuted,
           borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
-          border: Border.all(color: tokens.border.withValues(alpha: 0.6)),
+          border: Border.all(
+            color: onPhoto
+                ? Colors.white.withValues(alpha: 0.9)
+                : tokens.border.withValues(alpha: 0.6),
+          ),
+          boxShadow: onPhoto
+              ? [
+                  BoxShadow(
+                    color: DesignTokens.textDark.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

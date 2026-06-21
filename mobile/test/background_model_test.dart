@@ -64,7 +64,21 @@ void main() {
       );
 
       expect(selected.presetId, isNull);
+      expect(selected.presetSlug, isNull);
       expect(selected.userBackgroundId, 'ub1');
+    });
+
+    test('bundled preset uses slug instead of local id', () {
+      const selected = SelectedBackground(
+        preset: BackgroundPreset(
+          id: 'local-gray-showroom',
+          slug: 'gray-showroom',
+          name: 'Gray Showroom',
+        ),
+      );
+
+      expect(selected.presetId, isNull);
+      expect(selected.presetSlug, 'gray-showroom');
     });
   });
 }

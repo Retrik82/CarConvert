@@ -3,11 +3,12 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from app.api.deps import get_billing_service, get_current_user, get_job_service, get_session_service
+from app.api.deps import get_background_service, get_billing_service, get_current_user, get_job_service, get_session_service
 from app.config import get_settings
 from app.db.models.user import User
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
 from app.services.billing_service import BillingService, InsufficientBalanceError
+from app.services.background_service import BackgroundService
 from app.services.job_service import JobService, run_photo_job
 from app.services.session_service import SessionService
 from app.utils.image_utils import normalize_content_type, read_file_as_base64, validate_image_upload
@@ -22,6 +23,7 @@ async def process_photo(
     image: UploadFile = File(...),
     session_id: str | None = Form(default=None),
     background_preset_id: str | None = Form(default=None),
+    background_preset_slug: str | None = Form(default=None),
     background_variant_id: str | None = Form(default=None),
     user_background_id: str | None = Form(default=None),
     user_background_variant_id: str | None = Form(default=None),
@@ -29,6 +31,7 @@ async def process_photo(
     billing: BillingService = Depends(get_billing_service),
     session_service: SessionService = Depends(get_session_service),
     job_service: JobService = Depends(get_job_service),
+    backgrounds: BackgroundService = Depends(get_background_service),
 ) -> ProcessJobResponse:
     if not settings.openrouter_api_key or settings.openrouter_api_key == "your_key_here":
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is not configured.")
@@ -56,12 +59,18 @@ async def process_photo(
             detail=f"Insufficient balance. Required: ${exc.price:.2f}, available: ${exc.balance:.2f}.",
         ) from exc
 
+    resolved_preset_id = background_preset_id
+    if not resolved_preset_id and background_preset_slug:
+        preset = await backgrounds.get_preset_by_slug(background_preset_slug.strip())
+        if preset:
+            resolved_preset_id = preset.id
+
     job = await job_service.create_photo_job(
         current_user.id,
         image_bytes,
         content_type_used,
         session_id,
-        background_preset_id=background_preset_id,
+        background_preset_id=resolved_preset_id,
         background_variant_id=background_variant_id,
         user_background_id=user_background_id,
         user_background_variant_id=user_background_variant_id,

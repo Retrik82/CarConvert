@@ -16,6 +16,7 @@ class CarOverlay extends StatelessWidget {
   final CarViewAngle view;
   final AppTokens tokens;
   final Color? bodyColor;
+  final CarPaintVariant? variant;
   final CarOverlayStyle style;
 
   const CarOverlay({
@@ -23,6 +24,7 @@ class CarOverlay extends StatelessWidget {
     required this.view,
     required this.tokens,
     this.bodyColor,
+    this.variant,
     this.style = CarOverlayStyle.hero,
   });
 
@@ -32,7 +34,7 @@ class CarOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final imagePath = bodyColor != null
         ? CarAssets.neutralPath(view)
-        : CarAssets.path(view, isDark: tokens.isDark);
+        : CarAssets.path(view, isDark: tokens.isDark, variant: variant);
 
     return LayoutBuilder(
       builder: (context, constraints) {

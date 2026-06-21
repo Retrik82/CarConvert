@@ -116,6 +116,9 @@ class BackgroundService:
     async def get_preset(self, preset_id: str) -> BackgroundPreset | None:
         return await self._repo.get_preset(preset_id)
 
+    async def get_preset_by_slug(self, slug: str) -> BackgroundPreset | None:
+        return await self._repo.get_preset_by_slug(slug)
+
     async def get_user_background(self, background_id: str, user_id: str) -> UserBackground | None:
         return await self._repo.get_user_background(background_id, user_id)
 

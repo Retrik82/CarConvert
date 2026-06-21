@@ -41,6 +41,9 @@ class StringsDe extends AppStrings {
   String get createAccount => 'Konto erstellen';
 
   @override
+  String get loginNoAccount => 'Noch kein Konto?';
+
+  @override
   String get resetPassword => 'Passwort zurücksetzen';
 
   @override

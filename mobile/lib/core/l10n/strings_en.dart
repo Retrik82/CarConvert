@@ -41,6 +41,9 @@ class StringsEn extends AppStrings {
   String get createAccount => 'Create account';
 
   @override
+  String get loginNoAccount => 'No account yet?';
+
+  @override
   String get resetPassword => 'Reset password';
 
   @override

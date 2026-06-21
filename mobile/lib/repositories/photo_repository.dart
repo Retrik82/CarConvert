@@ -24,6 +24,7 @@ class PhotoRepository {
     String filename, {
     String? sessionId,
     String? backgroundPresetId,
+    String? backgroundPresetSlug,
     String? userBackgroundId,
   }) =>
       _remote.processPhoto(
@@ -31,6 +32,7 @@ class PhotoRepository {
         filename,
         sessionId: sessionId,
         backgroundPresetId: backgroundPresetId,
+        backgroundPresetSlug: backgroundPresetSlug,
         userBackgroundId: userBackgroundId,
       );
 
