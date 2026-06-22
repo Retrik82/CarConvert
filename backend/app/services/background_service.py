@@ -240,15 +240,37 @@ class BackgroundService:
             if preview_variant is None or angle == "three_quarter_left":
                 preview_variant = variant
 
-        if failed_angles:
+        if preview_variant is None or not preview_variant.image_path:
             raise RuntimeError(
-                "Background generation failed for angles: "
-                + ", ".join(failed_angles)
-                + ". Check OPENROUTER_API_KEY and model availability."
+                "Background generation failed for all angles. "
+                "Check OPENROUTER_API_KEY, model availability, and provider limits."
             )
 
-        if preview_variant:
-            background.preview_variant_id = preview_variant.id
+        preview_path = Path(preview_variant.image_path)
+        for angle in failed_angles:
+            if not preview_path.is_file():
+                break
+            fallback_path = root / f"{angle}.jpg"
+            try:
+                fallback_path.parent.mkdir(parents=True, exist_ok=True)
+                fallback_path.write_bytes(preview_path.read_bytes())
+                variants_by_angle[angle].image_path = str(fallback_path)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to apply fallback scene for angle=%s background=%s: %s",
+                    angle,
+                    background.id,
+                    exc,
+                )
+
+        if failed_angles:
+            logger.warning(
+                "Custom background %s generated with partial AI failures; fallback applied for angles: %s",
+                background.id,
+                ", ".join(failed_angles),
+            )
+
+        background.preview_variant_id = preview_variant.id
 
         await self._db.flush()
         return background

@@ -204,7 +204,9 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     final tokens = context.tokens;
     final s = context.strings;
     final selected = _repo.selected;
-    final sharedPresets = _sharedPresets;
+    final sharedPresets = _sharedPresets.isNotEmpty
+        ? _sharedPresets
+        : BundledBackgroundCatalog.catalog.presets;
     final customPresets = _displayCatalog.custom;
 
     return Scaffold(

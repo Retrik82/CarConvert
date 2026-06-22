@@ -31,14 +31,35 @@ class BackgroundScenePreview extends StatelessWidget {
 
   String? _bundledAssetPath() {
     if (preset.isCustom) return null;
-    if (!BundledAssets.presetSlugs.contains(preset.slug)) return null;
 
     final variant = _variant();
-    final resolved = variant?.angle ?? angle;
-    if (resolved == null || !BundledAssets.presetAngles.contains(resolved)) {
+    final resolvedAngle = variant?.angle ?? angle;
+    if (resolvedAngle == null || !BundledAssets.presetAngles.contains(resolvedAngle)) {
       return null;
     }
-    return BundledAssets.presetBackgroundAssetPath(preset.slug, resolved);
+
+    final resolvedSlug = _resolveBundledSlug();
+    if (resolvedSlug == null) return null;
+
+    return BundledAssets.presetBackgroundAssetPath(resolvedSlug, resolvedAngle);
+  }
+
+  String? _resolveBundledSlug() {
+    if (BundledAssets.presetSlugs.contains(preset.slug)) {
+      return preset.slug;
+    }
+
+    if (preset.id.startsWith('local-')) {
+      final localSlug = preset.id.substring('local-'.length);
+      if (BundledAssets.presetSlugs.contains(localSlug)) {
+        return localSlug;
+      }
+    }
+
+    final normalized = preset.name.trim().toLowerCase();
+    if (normalized == 'gray showroom') return 'gray-showroom';
+    if (normalized == 'auto workshop') return 'auto-workshop';
+    return null;
   }
 
   @override
@@ -55,7 +76,12 @@ class BackgroundScenePreview extends StatelessWidget {
         height: double.infinity,
         gaplessPlayback: true,
         filterQuality: FilterQuality.high,
-        errorBuilder: (_, __, ___) => _AssetFallback(tokens: tokens),
+        errorBuilder: (_, __, ___) => AuthenticatedBackgroundImage(
+          previewPath: _scenePath(),
+          presetSlug: null,
+          angle: null,
+          fit: fit,
+        ),
       );
     } else {
       child = AuthenticatedBackgroundImage(

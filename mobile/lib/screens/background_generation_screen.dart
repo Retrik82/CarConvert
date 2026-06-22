@@ -40,6 +40,7 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
   String? _error;
   BackgroundPreset? _result;
   Timer? _progressTimer;
+  bool _syncedBalanceAfterRun = false;
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
 
   Future<void> _startGeneration() async {
     final s = context.strings;
+    _syncedBalanceAfterRun = false;
     _progressTimer?.cancel();
     setState(() {
       _phase = _GenerationPhase.processing;
@@ -101,6 +103,7 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
       _repo.clearImageCache();
       try {
         await AuthRepository.instance.refreshCurrentUser();
+        _syncedBalanceAfterRun = true;
       } catch (_) {}
 
       _progressTimer?.cancel();
@@ -114,12 +117,59 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
     } catch (e) {
       _progressTimer?.cancel();
       if (!mounted) return;
+
+      final recovered = await _recoverGeneratedBackground();
+      if (recovered != null) {
+        _repo.clearImageCache();
+        if (!mounted) return;
+        setState(() {
+          _result = recovered;
+          _progress = 100;
+          _phase = _GenerationPhase.result;
+          _status = s.backgroundGenerated;
+          _error = null;
+        });
+        return;
+      }
+
       setState(() {
         _phase = _GenerationPhase.error;
         _error = isTimeoutError(e) ? s.backgroundGenerationTimeoutError : userFacingError(e);
         _status = s.errorGeneric;
       });
+    } finally {
+      if (_syncedBalanceAfterRun) return;
+      try {
+        await AuthRepository.instance.refreshCurrentUser();
+      } catch (_) {}
     }
+  }
+
+  Future<BackgroundPreset?> _recoverGeneratedBackground() async {
+    try {
+      final catalog = await _repo.fetchCatalog();
+      final normalizedTargetName = _normalize(widget.name);
+      final normalizedTargetPrompt = _normalize(widget.prompt);
+      final candidates = catalog.custom;
+
+      for (final candidate in candidates.reversed) {
+        final candidateName = _normalize(candidate.name);
+        if (candidateName != normalizedTargetName) continue;
+
+        final candidatePrompt = _normalize(candidate.generationPrompt ?? '');
+        if (candidatePrompt.isNotEmpty &&
+            normalizedTargetPrompt.isNotEmpty &&
+            candidatePrompt != normalizedTargetPrompt) {
+          continue;
+        }
+        return candidate;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static String _normalize(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   void _useBackground() {
