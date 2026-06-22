@@ -60,6 +60,24 @@ def _extract_image_reference(payload: dict[str, Any]) -> str:
     message = choices[0].get("message", {})
     content = message.get("content")
 
+    images = message.get("images")
+    if isinstance(images, list) and images:
+        first = images[0]
+        if isinstance(first, str):
+            if first.startswith("data:image"):
+                return first
+            return f"data:image/png;base64,{first}"
+        if isinstance(first, dict):
+            image_url = first.get("image_url")
+            if isinstance(image_url, dict) and image_url.get("url"):
+                return image_url["url"]
+            if isinstance(image_url, str):
+                return image_url
+            if isinstance(first.get("url"), str):
+                return first["url"]
+            if isinstance(first.get("b64_json"), str):
+                return f"data:image/png;base64,{first['b64_json']}"
+
     if isinstance(content, list):
         for part in content:
             if not isinstance(part, dict):
@@ -98,6 +116,8 @@ class OpenRouterClient:
         timeout: float,
         max_tokens: int = 512,
         response_format: dict[str, str] | None = None,
+        modalities: list[str] | None = None,
+        image_config: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "model": model,
@@ -106,6 +126,10 @@ class OpenRouterClient:
         }
         if response_format:
             payload["response_format"] = response_format
+        if modalities:
+            payload["modalities"] = modalities
+        if image_config:
+            payload["image_config"] = image_config
         last_error: Exception | None = None
         for attempt in range(3):
             try:
@@ -130,6 +154,26 @@ class OpenRouterClient:
                     continue
                 raise RuntimeError(f"OpenRouter network error: {exc}") from exc
         raise RuntimeError(str(last_error or "OpenRouter request failed"))
+
+    async def generate_image_completion(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        timeout: float,
+        *,
+        aspect_ratio: str = "16:9",
+        image_size: str = "1K",
+        max_tokens: int = 1024,
+    ) -> dict[str, Any]:
+        """Text-to-image or image-edit completion via OpenRouter multimodal models."""
+        return await self.chat_completion(
+            model,
+            messages,
+            timeout,
+            max_tokens=max_tokens,
+            modalities=["image", "text"],
+            image_config={"aspect_ratio": aspect_ratio, "image_size": image_size},
+        )
 
     async def chat_text(
         self,
@@ -172,7 +216,9 @@ class OpenRouterClient:
                 ],
             },
         ]
-        body = await self.chat_completion(model, messages, timeout, max_tokens=1024)
+        body = await self.generate_image_completion(
+            model, messages, timeout, max_tokens=max_tokens
+        )
         image_ref = _extract_image_reference(body)
         if image_ref.startswith("data:image"):
             header = image_ref.split(",", 1)[0]

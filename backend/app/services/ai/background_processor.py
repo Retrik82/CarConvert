@@ -1,5 +1,9 @@
+import base64
+
+import httpx
+
 from app.config import get_settings
-from app.services.ai.openrouter_client import OpenRouterClient
+from app.services.ai.openrouter_client import OpenRouterClient, _extract_image_reference
 
 settings = get_settings()
 
@@ -11,6 +15,23 @@ SCENE_COMPOSITE_SYSTEM_PROMPT = (
     "Preserve the user's car body shape, paint, wheels, headlights, grille, and proportions exactly. "
     "Seamless photorealistic composite. No text or watermarks."
 )
+
+
+async def _image_from_openrouter_body(body: dict) -> tuple[str, str]:
+    image_ref = _extract_image_reference(body)
+    if image_ref.startswith("data:image"):
+        header = image_ref.split(",", 1)[0]
+        mime_type = header.replace("data:", "").replace(";base64", "")
+        base64_data = image_ref.split(",", 1)[1]
+        return base64_data, mime_type
+
+    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
+        image_response = await http_client.get(image_ref)
+    if image_response.status_code >= 400:
+        raise RuntimeError(f"Failed to download generated image ({image_response.status_code}).")
+    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
+    encoded = base64.b64encode(image_response.content).decode("utf-8")
+    return encoded, mime_type
 
 
 async def process_into_scene(
@@ -40,30 +61,12 @@ async def process_into_scene(
         {"role": "system", "content": SCENE_COMPOSITE_SYSTEM_PROMPT},
         {"role": "user", "content": content},
     ]
-    body = await client.chat_completion(
+    body = await client.generate_image_completion(
         settings.process_model,
         messages,
         timeout=float(settings.process_timeout_sec),
-        max_tokens=1024,
     )
-    from app.services.ai.openrouter_client import _extract_image_reference
-    import base64
-    import httpx
-
-    image_ref = _extract_image_reference(body)
-    if image_ref.startswith("data:image"):
-        header = image_ref.split(",", 1)[0]
-        mime_type = header.replace("data:", "").replace(";base64", "")
-        base64_data = image_ref.split(",", 1)[1]
-        return base64_data, mime_type
-
-    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
-        image_response = await http_client.get(image_ref)
-    if image_response.status_code >= 400:
-        raise RuntimeError(f"Failed to download generated image ({image_response.status_code}).")
-    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
-    encoded = base64.b64encode(image_response.content).decode("utf-8")
-    return encoded, mime_type
+    return await _image_from_openrouter_body(body)
 
 
 async def generate_full_scene(prompt: str, api_key: str | None = None) -> tuple[str, str]:
@@ -81,30 +84,12 @@ async def generate_full_scene(prompt: str, api_key: str | None = None) -> tuple[
         },
         {"role": "user", "content": prompt},
     ]
-    body = await client.chat_completion(
+    body = await client.generate_image_completion(
         settings.process_model,
         messages,
         timeout=float(settings.process_timeout_sec),
-        max_tokens=1024,
     )
-    from app.services.ai.openrouter_client import _extract_image_reference
-    import base64
-    import httpx
-
-    image_ref = _extract_image_reference(body)
-    if image_ref.startswith("data:image"):
-        header = image_ref.split(",", 1)[0]
-        mime_type = header.replace("data:", "").replace(";base64", "")
-        base64_data = image_ref.split(",", 1)[1]
-        return base64_data, mime_type
-
-    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
-        image_response = await http_client.get(image_ref)
-    if image_response.status_code >= 400:
-        raise RuntimeError(f"Failed to download generated scene ({image_response.status_code}).")
-    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
-    encoded = base64.b64encode(image_response.content).decode("utf-8")
-    return encoded, mime_type
+    return await _image_from_openrouter_body(body)
 
 
 async def generate_outdoor_scene(prompt: str, api_key: str | None = None) -> tuple[str, str]:
@@ -121,30 +106,12 @@ async def generate_outdoor_scene(prompt: str, api_key: str | None = None) -> tup
         },
         {"role": "user", "content": prompt},
     ]
-    body = await client.chat_completion(
+    body = await client.generate_image_completion(
         settings.process_model,
         messages,
         timeout=float(settings.process_timeout_sec),
-        max_tokens=1024,
     )
-    from app.services.ai.openrouter_client import _extract_image_reference
-    import base64
-    import httpx
-
-    image_ref = _extract_image_reference(body)
-    if image_ref.startswith("data:image"):
-        header = image_ref.split(",", 1)[0]
-        mime_type = header.replace("data:", "").replace(";base64", "")
-        base64_data = image_ref.split(",", 1)[1]
-        return base64_data, mime_type
-
-    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
-        image_response = await http_client.get(image_ref)
-    if image_response.status_code >= 400:
-        raise RuntimeError(f"Failed to download generated scene ({image_response.status_code}).")
-    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
-    encoded = base64.b64encode(image_response.content).decode("utf-8")
-    return encoded, mime_type
+    return await _image_from_openrouter_body(body)
 
 
 async def generate_empty_room(prompt: str, api_key: str | None = None) -> tuple[str, str]:
@@ -161,30 +128,12 @@ async def generate_empty_room(prompt: str, api_key: str | None = None) -> tuple[
         },
         {"role": "user", "content": prompt},
     ]
-    body = await client.chat_completion(
+    body = await client.generate_image_completion(
         settings.process_model,
         messages,
         timeout=float(settings.process_timeout_sec),
-        max_tokens=1024,
     )
-    from app.services.ai.openrouter_client import _extract_image_reference
-    import base64
-    import httpx
-
-    image_ref = _extract_image_reference(body)
-    if image_ref.startswith("data:image"):
-        header = image_ref.split(",", 1)[0]
-        mime_type = header.replace("data:", "").replace(";base64", "")
-        base64_data = image_ref.split(",", 1)[1]
-        return base64_data, mime_type
-
-    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
-        image_response = await http_client.get(image_ref)
-    if image_response.status_code >= 400:
-        raise RuntimeError(f"Failed to download generated room ({image_response.status_code}).")
-    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
-    encoded = base64.b64encode(image_response.content).decode("utf-8")
-    return encoded, mime_type
+    return await _image_from_openrouter_body(body)
 
 
 # Backward-compatible aliases

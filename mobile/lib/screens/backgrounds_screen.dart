@@ -63,7 +63,9 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
       }
     } catch (_) {
       if (!mounted) return;
-      final fallback = BundledBackgroundCatalog.catalog;
+      final fallback = BackgroundRepository.mergeWithDefaultPresets(
+        BundledBackgroundCatalog.catalog,
+      );
       await _repo.loadSavedSelection(catalog: fallback);
       setState(() {
         _catalog = fallback;
@@ -75,9 +77,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 
   List<BackgroundPreset> get _sharedPresets {
-    final merged = _displayCatalog.presets;
-    if (merged.isNotEmpty) return merged;
-    return BundledBackgroundCatalog.catalog.presets;
+    return BackgroundRepository.sharedPresetsFrom(_catalog);
   }
 
   BackgroundPreset _resolvePreset(BackgroundPreset preset) {
@@ -91,8 +91,13 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 
   BackgroundCatalog get _displayCatalog {
-    return BackgroundRepository.mergeWithDefaultPresets(
-      _catalog ?? BundledBackgroundCatalog.catalog,
+    final remote = _catalog ?? BundledBackgroundCatalog.catalog;
+    return BackgroundCatalog(
+      presets: _sharedPresets,
+      custom: remote.custom,
+      customBackgroundPriceUsd: remote.customBackgroundPriceUsd > 0
+          ? remote.customBackgroundPriceUsd
+          : BundledBackgroundCatalog.catalog.customBackgroundPriceUsd,
     );
   }
 

@@ -217,9 +217,17 @@ class BackgroundService:
                         angle,
                         exc,
                     )
+                    if attempt == 0:
+                        await asyncio.sleep(1.5 * (attempt + 1))
             return angle, None, last_error
 
-        results = await asyncio.gather(*(generate_angle(angle) for angle in VARIANT_ANGLES))
+        semaphore = asyncio.Semaphore(2)
+
+        async def generate_angle_limited(angle: str) -> tuple[str, Path | None, Exception | None]:
+            async with semaphore:
+                return await generate_angle(angle)
+
+        results = await asyncio.gather(*(generate_angle_limited(angle) for angle in VARIANT_ANGLES))
 
         preview_variant: UserBackgroundVariant | None = None
         failed_angles: list[str] = []

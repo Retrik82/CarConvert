@@ -59,20 +59,32 @@ class BackgroundRepository {
     }
   }
 
+  /// Shared presets always ship in the APK — keep bundled slugs/variants for UI.
+  static List<BackgroundPreset> sharedPresetsFrom(BackgroundCatalog? remoteCatalog) {
+    final remotePresets = remoteCatalog?.presets ?? const [];
+    final remoteBySlug = <String, BackgroundPreset>{};
+
+    for (final remote in remotePresets) {
+      remoteBySlug[remote.slug] = remote;
+      for (final bundled in BundledBackgroundCatalog.catalog.presets) {
+        if (remote.name == bundled.name) {
+          remoteBySlug.putIfAbsent(bundled.slug, () => remote);
+        }
+      }
+    }
+
+    return [
+      for (final bundled in BundledBackgroundCatalog.catalog.presets)
+        _mergePreset(bundled, remoteBySlug[bundled.slug]),
+    ];
+  }
+
   /// Bundled presets ship in the APK and must always be available offline.
   static BackgroundCatalog mergeWithDefaultPresets(BackgroundCatalog catalog) {
     final bundled = BundledBackgroundCatalog.catalog;
-    final remoteBySlug = {for (final preset in catalog.presets) preset.slug: preset};
-
-    final presets = <BackgroundPreset>[
-      for (final local in bundled.presets)
-        _mergePreset(local, remoteBySlug[local.slug]),
-      for (final remote in catalog.presets)
-        if (!bundled.presets.any((local) => local.slug == remote.slug)) remote,
-    ];
 
     return BackgroundCatalog(
-      presets: presets,
+      presets: sharedPresetsFrom(catalog),
       custom: catalog.custom,
       customBackgroundPriceUsd: catalog.customBackgroundPriceUsd > 0
           ? catalog.customBackgroundPriceUsd
@@ -82,19 +94,16 @@ class BackgroundRepository {
 
   static BackgroundPreset _mergePreset(BackgroundPreset local, BackgroundPreset? remote) {
     if (remote == null) return local;
-    if (remote.variants.isEmpty) {
-      return BackgroundPreset(
-        id: remote.id,
-        slug: remote.slug,
-        name: remote.name,
-        description: remote.description ?? local.description,
-        generationPrompt: remote.generationPrompt ?? local.generationPrompt,
-        previewUrl: remote.previewUrl,
-        variants: local.variants,
-        isCustom: remote.isCustom,
-      );
-    }
-    return remote;
+    return BackgroundPreset(
+      id: remote.id,
+      slug: local.slug,
+      name: remote.name.isNotEmpty ? remote.name : local.name,
+      description: remote.description ?? local.description,
+      generationPrompt: remote.generationPrompt ?? local.generationPrompt,
+      previewUrl: local.previewUrl ?? remote.previewUrl,
+      variants: local.variants,
+      isCustom: false,
+    );
   }
 
   Future<BackgroundPreset> createCustomBackground({

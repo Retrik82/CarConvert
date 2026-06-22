@@ -47,4 +47,29 @@ void main() {
     expect(merged.presets.firstWhere((p) => p.slug == 'gray-showroom').id, 'server-1');
     expect(merged.presets.firstWhere((p) => p.slug == 'auto-workshop').id, 'local-auto-workshop');
   });
+
+  test('remote preset matched by name keeps bundled slug and variants', () {
+    const remote = BackgroundCatalog(
+      presets: [
+        BackgroundPreset(
+          id: 'server-uuid',
+          slug: 'server-uuid',
+          name: 'Gray Showroom',
+          variants: const [
+            BackgroundVariant(id: 'v1', angle: 'front', previewUrl: '/backgrounds/image/v1'),
+          ],
+        ),
+      ],
+      custom: [],
+      customBackgroundPriceUsd: 0.5,
+    );
+
+    final shared = BackgroundRepository.sharedPresetsFrom(remote);
+    final showroom = shared.firstWhere((p) => p.slug == 'gray-showroom');
+
+    expect(shared.length, 2);
+    expect(showroom.id, 'server-uuid');
+    expect(showroom.variants.length, 7);
+    expect(showroom.isCustom, isFalse);
+  });
 }

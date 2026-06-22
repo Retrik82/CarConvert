@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -19,6 +20,7 @@ from app.services.settings_service import SettingsService
 
 router = APIRouter(prefix="/backgrounds", tags=["backgrounds"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def _variant_preview_url(variant_id: str | None) -> str | None:
@@ -88,7 +90,7 @@ async def create_custom_background(
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is not configured.")
 
     try:
-        await billing.charge_for_custom_background(current_user)
+        charged_price = await billing.charge_for_custom_background(current_user)
     except InsufficientBalanceError as exc:
         raise HTTPException(
             status_code=402,
@@ -103,6 +105,14 @@ async def create_custom_background(
             settings.openrouter_api_key,
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        await billing.refund_custom_background(current_user, charged_price)
+        logger.exception("Custom background generation failed for user %s", current_user.id)
+        detail = str(exc)
+        if "OPENROUTER" in detail.upper() or "OpenRouter" in detail:
+            detail = (
+                "Не удалось сгенерировать фон через AI. "
+                "Проверьте OPENROUTER_API_KEY на сервере и доступность модели."
+            )
+        raise HTTPException(status_code=500, detail=detail) from exc
 
     return CreateCustomBackgroundResponse(background=_preset_to_out(background, is_custom=True))
