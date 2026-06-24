@@ -71,6 +71,30 @@ class UpdateCustomBackgroundPriceRequest(BaseModel):
     price_usd: Decimal = Field(gt=0, le=1000)
 
 
+class PricingStepEstimateOut(BaseModel):
+    step_id: str
+    label: str
+    model: str
+    calls: int
+    cost_usd: Decimal
+
+
+class ServicePricingEstimateOut(BaseModel):
+    service_id: str
+    label: str
+    actual_cost_min_usd: Decimal
+    actual_cost_max_usd: Decimal
+    recommended_price_usd: Decimal
+    steps: list[PricingStepEstimateOut]
+
+
+class AdminPricingEstimateOut(BaseModel):
+    generation: ServicePricingEstimateOut
+    custom_background: ServicePricingEstimateOut
+    charged_generation_price_usd: Decimal
+    charged_custom_background_price_usd: Decimal
+
+
 class BackgroundVariantOut(BaseModel):
     id: str
     angle: str

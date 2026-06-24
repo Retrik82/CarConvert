@@ -32,167 +32,241 @@ class BeginnerGuideScreen extends StatefulWidget {
 }
 
 class _BeginnerGuideScreenState extends State<BeginnerGuideScreen> {
-  final _pageController = PageController();
-  int _page = 0;
-
-  static const _pageCount = 4;
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
+  bool _finishing = false;
 
   Future<void> _finish() async {
+    if (_finishing) return;
+    _finishing = true;
     if (widget.markAsSeenOnFinish) {
       await AppPreferences.instance.setBeginnerGuideSeen(true);
     }
     if (mounted) Navigator.pop(context);
-  }
-
-  void _next() {
-    if (_page >= _pageCount - 1) {
-      _finish();
-      return;
-    }
-    _pageController.nextPage(
-      duration: DesignTokens.durationTheme,
-      curve: DesignTokens.curveStandard,
-    );
+    _finishing = false;
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final s = context.strings;
+    final steps = [
+      _GuideStep(
+        icon: Icons.waving_hand_rounded,
+        title: s.guideStep1Title,
+        body: s.guideStep1Body,
+        child: const HeroBeforeAfter(height: 180, afterPresetSlug: 'gray-showroom'),
+      ),
+      _GuideStep(
+        icon: Icons.wallpaper_outlined,
+        title: s.guideStep2Title,
+        body: s.guideStep2Body,
+      ),
+      _GuideStep(
+        icon: Icons.camera_alt_outlined,
+        title: s.guideStep3Title,
+        body: s.guideStep3Body,
+      ),
+      _GuideStep(
+        icon: Icons.auto_fix_high_rounded,
+        title: s.guideStep4Title,
+        body: s.guideStep4Body,
+      ),
+    ];
 
     return Scaffold(
       backgroundColor: tokens.background,
       appBar: AppBar(
         title: Text(s.guideTitle),
         actions: [
-          TextButton(onPressed: _finish, child: Text(s.guideSkip)),
+          TextButton(
+            onPressed: _finish,
+            child: Text(s.guideSkip),
+          ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (i) => setState(() => _page = i),
-              children: [
-                _GuidePage(
-                  icon: Icons.waving_hand_rounded,
-                  title: s.guideStep1Title,
-                  body: s.guideStep1Body,
-                  child: HeroBeforeAfter(height: 180, afterPresetSlug: 'gray-showroom'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(
+                  DesignTokens.screenPaddingH,
+                  DesignTokens.spacing12,
+                  DesignTokens.screenPaddingH,
+                  DesignTokens.spacing24,
                 ),
-                _GuidePage(
-                  icon: Icons.wallpaper_outlined,
-                  title: s.guideStep2Title,
-                  body: s.guideStep2Body,
-                ),
-                _GuidePage(
-                  icon: Icons.camera_alt_outlined,
-                  title: s.guideStep3Title,
-                  body: s.guideStep3Body,
-                ),
-                _GuidePage(
-                  icon: Icons.auto_fix_high_rounded,
-                  title: s.guideStep4Title,
-                  body: s.guideStep4Body,
-                ),
-              ],
+                itemCount: steps.length + 1,
+                separatorBuilder: (_, __) => const SizedBox(height: DesignTokens.spacing12),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _GuideIntroCard(
+                      title: s.guideTitle,
+                      subtitle: s.guideStep1Body,
+                    );
+                  }
+                  final step = steps[index - 1];
+                  return _GuideStepCard(stepNumber: index, step: step);
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                DesignTokens.screenPaddingH,
+                DesignTokens.spacing8,
+                DesignTokens.screenPaddingH,
+                DesignTokens.spacing16,
+              ),
+              child: AppButton(
+                label: s.guideFinish,
+                icon: Icons.check_rounded,
+                onPressed: _finish,
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    _pageCount,
-                    (i) => AnimatedContainer(
-                      duration: DesignTokens.durationTheme,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: i == _page ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        color: i == _page ? tokens.accent : tokens.surfaceMuted,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: DesignTokens.spacing16),
-                AppButton(
-                  label: _page >= _pageCount - 1 ? s.guideFinish : s.guideNext,
-                  icon: _page >= _pageCount - 1 ? Icons.check_rounded : Icons.arrow_forward_rounded,
-                  onPressed: _next,
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _GuidePage extends StatelessWidget {
+class _GuideStep {
   final IconData icon;
   final String title;
   final String body;
   final Widget? child;
 
-  const _GuidePage({
+  const _GuideStep({
     required this.icon,
     required this.title,
     required this.body,
     this.child,
+  });
+}
+
+class _GuideIntroCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _GuideIntroCard({
+    required this.title,
+    required this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
+    return Container(
+      padding: const EdgeInsets.all(DesignTokens.spacing16),
+      decoration: BoxDecoration(
+        gradient: tokens.primaryGradient,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: tokens.primaryGradient,
-              borderRadius: BorderRadius.circular(DesignTokens.radiusInput),
-            ),
-            child: Icon(icon, color: tokens.onAccent, size: 32),
-          ),
-          const SizedBox(height: DesignTokens.spacing24),
           Text(
             title,
-            textAlign: TextAlign.center,
-            style: tokens.textStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.4),
+            style: tokens.textStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: tokens.onAccent,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spacing8),
+          Text(
+            subtitle,
+            style: tokens.textStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: tokens.onAccent.withValues(alpha: 0.9),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideStepCard extends StatelessWidget {
+  final int stepNumber;
+  final _GuideStep step;
+
+  const _GuideStepCard({
+    required this.stepNumber,
+    required this.step,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
+        border: Border.all(color: tokens.border.withValues(alpha: 0.65)),
+      ),
+      padding: const EdgeInsets.all(DesignTokens.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: tokens.surfaceMuted,
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '$stepNumber',
+                  style: tokens.textStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: DesignTokens.spacing8),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: tokens.primaryGradient,
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusInput),
+                ),
+                child: Icon(step.icon, color: tokens.onAccent, size: 20),
+              ),
+            ],
           ),
           const SizedBox(height: DesignTokens.spacing12),
           Text(
-            body,
-            textAlign: TextAlign.center,
+            step.title,
             style: tokens.textStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: tokens.textSecondary,
-              height: 1.5,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          if (child != null) ...[
-            const SizedBox(height: DesignTokens.spacing24),
-            child!,
+          const SizedBox(height: DesignTokens.spacing8),
+          Text(
+            step.body,
+            style: tokens.textStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              color: tokens.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          if (step.child != null) ...[
+            const SizedBox(height: DesignTokens.spacing16),
+            step.child!,
           ],
         ],
       ),
     );
   }
 }
+

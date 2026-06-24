@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.db.session import AsyncSessionLocal
 from app.models.schemas import HintResponse
 from app.services.ai.hint_analyzer import analyze_frame
+from app.services.ai.concurrency import hint_slot
 from app.services.session_service import SessionService
 from app.utils.image_utils import resize_for_preview, to_data_url
 
@@ -81,7 +82,8 @@ async def camera_stream(
                         preview_bytes, mime_type = resize_for_preview(image_bytes)
 
                     data_url = to_data_url(preview_bytes, mime_type)
-                    hint: HintResponse = await analyze_frame(data_url, settings.openrouter_api_key)
+                    async with hint_slot():
+                        hint: HintResponse = await analyze_frame(data_url, settings.openrouter_api_key)
                     await websocket.send_json(hint.model_dump())
                 except Exception as exc:
                     logger.warning("Frame analysis error: %s", exc)

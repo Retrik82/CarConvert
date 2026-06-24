@@ -217,7 +217,7 @@ class OpenRouterClient:
             },
         ]
         body = await self.generate_image_completion(
-            model, messages, timeout, max_tokens=max_tokens
+            model, messages, timeout, max_tokens=1024
         )
         image_ref = _extract_image_reference(body)
         if image_ref.startswith("data:image"):

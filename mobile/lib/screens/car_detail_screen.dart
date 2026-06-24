@@ -216,7 +216,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
 
       final ext = path.endsWith('.png') ? 'png' : 'jpg';
 
-      await ImageExport.saveFileToGallery(path, fileName: 'renderwheels_${render.id}.$ext');
+      await ImageExport.saveFileToGallery(path, fileName: 'autocut_${render.id}.$ext');
 
       if (mounted) {
 

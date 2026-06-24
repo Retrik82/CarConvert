@@ -7,7 +7,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('App shows splash with hero while bootstrapping', (tester) async {
-    await tester.pumpWidget(const RenderWheelsApp());
+    await tester.pumpWidget(const AutoCutApp());
 
     expect(find.byType(CarHero), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsWidgets);

@@ -76,7 +76,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       await AuthRepository.instance.refreshCurrentUser();
       widget.onCharged?.call();
       _jobId = job.jobId;
-      _setProgress(35, 'Rendering your car...');
+      _setProgress(25, context.strings.processingQueued);
       _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());
     } catch (e) {
       _setProgress(_progress, userFacingError(e), isError: true);
@@ -87,8 +87,10 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     if (_jobId == null) return;
     try {
       final result = await PhotoRepository.instance.getResult(_jobId!);
-      if (result.status == 'processing') {
-        _setProgress((_progress + 8).clamp(35, 90), 'Rendering your car...');
+      if (result.status == 'queued') {
+        _setProgress((_progress + 3).clamp(20, 40), context.strings.processingQueued);
+      } else if (result.status == 'processing') {
+        _setProgress((_progress + 8).clamp(40, 90), context.strings.processingRendering);
       } else if (result.isCompleted && result.imageBase64 != null) {
         _pollTimer?.cancel();
         _setProgress(100, 'Complete');
@@ -109,7 +111,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         _pollTimer?.cancel();
         _setProgress(_progress, result.error ?? 'Processing failed', isError: true);
       } else {
-        _setProgress((_progress + 5).clamp(35, 85), 'Rendering your car...');
+        _setProgress((_progress + 5).clamp(40, 85), context.strings.processingRendering);
       }
     } catch (e) {
       _setProgress(_progress, userFacingError(e), isError: true);
@@ -151,7 +153,11 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
               ),
               const SizedBox(height: DesignTokens.spacing32),
               Text(
-                _hasError ? 'Something went wrong' : 'Rendering your car...',
+                _hasError
+                    ? 'Something went wrong'
+                    : (_status == context.strings.processingQueued
+                        ? context.strings.processingQueued
+                        : context.strings.processingRendering),
                 style: tokens.textStyle(fontSize: 22, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),

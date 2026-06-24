@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../core/assets/bundled_assets.dart';
+import '../core/assets/bundled_background_catalog.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
-import '../core/assets/bundled_background_catalog.dart';
 import '../models/background.dart';
 import '../repositories/background_repository.dart';
 import '../utils/money_format.dart';
+import '../widgets/authenticated_background_image.dart';
 import '../widgets/background_preview_grid.dart';
-import '../widgets/background_scene_preview.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
-import '../widgets/design_system/state_views.dart';
 import '../widgets/form_fields.dart';
 import 'background_generation_screen.dart';
 
@@ -27,84 +27,90 @@ class BackgroundsScreen extends StatefulWidget {
 }
 
 class _BackgroundsScreenState extends State<BackgroundsScreen> {
+  static const _previewAngle = 'three_quarter_left';
+
   final _repo = BackgroundRepository.instance;
-  BackgroundCatalog? _catalog = BackgroundRepository.mergeWithDefaultPresets(
-    BundledBackgroundCatalog.catalog,
-  );
+  final List<BackgroundPreset> _sharedPresets = BundledBackgroundCatalog.catalog.presets;
+
+  List<BackgroundPreset> _customPresets = const [];
+  double _customPriceUsd = BundledBackgroundCatalog.catalog.customBackgroundPriceUsd;
   bool _loading = false;
-  String? _error;
+  String? _catalogWarning;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_repo.loadSavedSelection(catalog: _catalog).then((_) {
-      if (mounted) setState(() {});
-    }));
-    _load(showProgress: false);
+    unawaited(_restoreSelection());
+    unawaited(_loadRemoteCatalog(showProgress: false));
   }
 
-  Future<void> _load({bool showProgress = true}) async {
+  BackgroundCatalog get _screenCatalog => BackgroundCatalog(
+        presets: _sharedPresets,
+        custom: _customPresets,
+        customBackgroundPriceUsd: _customPriceUsd,
+      );
+
+  Future<void> _restoreSelection() async {
+    await _repo.loadSavedSelection(catalog: _screenCatalog);
+    if (!mounted) return;
+    if (_repo.selected == null && _sharedPresets.isNotEmpty) {
+      await _repo.select(_sharedPresets.first);
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadRemoteCatalog({bool showProgress = true}) async {
     if (!mounted) return;
     if (showProgress) {
       setState(() {
         _loading = true;
-        _error = null;
+        _catalogWarning = null;
       });
     }
 
     try {
-      final catalog = await _repo.fetchCatalog();
-      await _repo.loadSavedSelection(catalog: catalog);
+      final remote = await _repo.fetchCatalog();
+      final nextCustom = remote.custom;
+      final nextPrice = remote.customBackgroundPriceUsd > 0
+          ? remote.customBackgroundPriceUsd
+          : BundledBackgroundCatalog.catalog.customBackgroundPriceUsd;
+
+      _customPresets = nextCustom;
+      _customPriceUsd = nextPrice;
+
+      await _repo.loadSavedSelection(catalog: _screenCatalog);
       if (!mounted) return;
-      setState(() => _catalog = catalog);
-      if (_repo.selected == null && _sharedPresets.isNotEmpty) {
-        await _repo.select(_sharedPresets.first);
-        if (mounted) setState(() {});
-      }
+      setState(() {});
     } catch (_) {
       if (!mounted) return;
-      final fallback = BackgroundRepository.mergeWithDefaultPresets(
-        BundledBackgroundCatalog.catalog,
-      );
-      await _repo.loadSavedSelection(catalog: fallback);
       setState(() {
-        _catalog = fallback;
-        _error = null;
+        _catalogWarning = context.strings.errorGeneric;
       });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-  }
-
-  List<BackgroundPreset> get _sharedPresets {
-    return BackgroundRepository.sharedPresetsFrom(_catalog);
   }
 
   BackgroundPreset _resolvePreset(BackgroundPreset preset) {
-    for (final candidate in _sharedPresets) {
-      if (candidate.slug == preset.slug) return candidate;
-    }
-    for (final candidate in _displayCatalog.custom) {
-      if (candidate.id == preset.id) return candidate;
+    if (!preset.isCustom) {
+      for (final shared in _sharedPresets) {
+        if (shared.slug == preset.slug) return shared;
+      }
+    } else {
+      for (final custom in _customPresets) {
+        if (custom.id == preset.id) return custom;
+      }
     }
     return preset;
-  }
-
-  BackgroundCatalog get _displayCatalog {
-    final remote = _catalog ?? BundledBackgroundCatalog.catalog;
-    return BackgroundCatalog(
-      presets: _sharedPresets,
-      custom: remote.custom,
-      customBackgroundPriceUsd: remote.customBackgroundPriceUsd > 0
-          ? remote.customBackgroundPriceUsd
-          : BundledBackgroundCatalog.catalog.customBackgroundPriceUsd,
-    );
   }
 
   Future<void> _selectPreset(BackgroundPreset preset) async {
     final resolved = _resolvePreset(preset);
     await _repo.select(resolved);
     if (!mounted) return;
+
     setState(() {});
     widget.onSelected?.call();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +120,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 
   Future<void> _showCreateSheet() async {
-    final catalog = _displayCatalog;
     final s = context.strings;
     final tokens = context.tokens;
 
@@ -142,7 +147,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
                 Text(s.createCustomBackground, style: tokens.textStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 const SizedBox(height: DesignTokens.spacing8),
                 Text(
-                  '${s.customBackgroundPrice} ${MoneyFormat.usd(catalog.customBackgroundPriceUsd)}',
+                  '${s.customBackgroundPrice} ${MoneyFormat.usd(_customPriceUsd)}',
                   style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                 ),
                 const SizedBox(height: DesignTokens.spacing16),
@@ -177,15 +182,13 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   }
 
   Future<void> _createCustom(String name, String prompt) async {
-    final catalog = _displayCatalog;
-
     final selected = await Navigator.push<SelectedBackground?>(
       context,
       MaterialPageRoute(
         builder: (_) => BackgroundGenerationScreen(
           name: name,
           prompt: prompt,
-          priceUsd: catalog.customBackgroundPriceUsd,
+          priceUsd: _customPriceUsd,
         ),
       ),
     );
@@ -194,9 +197,9 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     if (selected != null) {
       widget.onSelected?.call();
       Navigator.pop(context, selected);
-    } else {
-      await _load();
+      return;
     }
+    await _loadRemoteCatalog();
   }
 
   @override
@@ -204,10 +207,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     final tokens = context.tokens;
     final s = context.strings;
     final selected = _repo.selected;
-    final sharedPresets = _sharedPresets.isNotEmpty
-        ? _sharedPresets
-        : BundledBackgroundCatalog.catalog.presets;
-    final customPresets = _displayCatalog.custom;
 
     return Scaffold(
       backgroundColor: tokens.background,
@@ -221,80 +220,102 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
           ),
         ],
       ),
-      body: _error != null
-          ? ErrorStateView(message: _error!, onRetry: _load)
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_loading)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: DesignTokens.spacing16),
-                        child: LinearProgressIndicator(
-                          minHeight: 3,
-                          color: tokens.accent,
-                          backgroundColor: tokens.surfaceMuted,
-                        ),
-                      ),
-                    Text(
-                      s.backgroundsIntro,
-                      style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
-                    ),
-                    if (selected != null) ...[
-                      const SizedBox(height: DesignTokens.spacing16),
-                      _SelectedBanner(selected: selected),
-                    ],
-                    const SizedBox(height: DesignTokens.spacing24),
-                    Text(s.sharedBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: DesignTokens.spacing12),
-                    ...sharedPresets.map(
-                      (preset) => _BackgroundCard(
-                        preset: preset,
-                        isSelected: selected?.preset.slug == preset.slug,
-                        onSelect: () => _selectPreset(preset),
-                        onPreviewAngles: () => openBackgroundDetailSheet(
-                          context,
-                          preset: preset,
-                          isSelected: selected?.preset.slug == preset.slug,
-                          onSelect: () => _selectPreset(preset),
-                        ),
-                      ),
-                    ),
-                    if (customPresets.isNotEmpty) ...[
-                      const SizedBox(height: DesignTokens.spacing24),
-                      Text(s.yourBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: DesignTokens.spacing12),
-                      ...customPresets.map(
-                        (preset) => _BackgroundCard(
-                          preset: preset,
-                          isSelected: selected?.preset.id == preset.id,
-                          onSelect: () => _selectPreset(preset),
-                          onPreviewAngles: () => openBackgroundDetailSheet(
-                            context,
-                            preset: preset,
-                            isSelected: selected?.preset.id == preset.id,
-                            onSelect: () => _selectPreset(preset),
-                          ),
+      body: RefreshIndicator(
+        onRefresh: _loadRemoteCatalog,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(DesignTokens.screenPaddingH),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_loading)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: DesignTokens.spacing16),
+                  child: LinearProgressIndicator(
+                    minHeight: 3,
+                    color: tokens.accent,
+                    backgroundColor: tokens.surfaceMuted,
+                  ),
+                ),
+              Text(
+                s.backgroundsIntro,
+                style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w400, color: tokens.textSecondary),
+              ),
+              if (_catalogWarning != null) ...[
+                const SizedBox(height: DesignTokens.spacing12),
+                AppCard(
+                  padding: const EdgeInsets.all(DesignTokens.spacing12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.wifi_off_rounded, size: 18, color: tokens.textSecondary),
+                      const SizedBox(width: DesignTokens.spacing8),
+                      Expanded(
+                        child: Text(
+                          _catalogWarning!,
+                          style: tokens.textStyle(fontSize: 13, fontWeight: FontWeight.w400, color: tokens.textSecondary),
                         ),
                       ),
                     ],
-                    const SizedBox(height: DesignTokens.spacing32),
-                  ],
+                  ),
+                ),
+              ],
+              if (selected != null) ...[
+                const SizedBox(height: DesignTokens.spacing16),
+                _SelectedBanner(selected: selected, previewAngle: _previewAngle),
+              ],
+              const SizedBox(height: DesignTokens.spacing24),
+              Text(s.sharedBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: DesignTokens.spacing12),
+              ..._sharedPresets.map(
+                (preset) => _BackgroundCard(
+                  preset: preset,
+                  previewAngle: _previewAngle,
+                  isSelected: selected?.preset.slug == preset.slug,
+                  onSelect: () => _selectPreset(preset),
+                  onPreviewAngles: () => openBackgroundDetailSheet(
+                    context,
+                    preset: preset,
+                    isSelected: selected?.preset.slug == preset.slug,
+                    onSelect: () => _selectPreset(preset),
+                  ),
                 ),
               ),
-            ),
+              if (_customPresets.isNotEmpty) ...[
+                const SizedBox(height: DesignTokens.spacing24),
+                Text(s.yourBackgrounds, style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                const SizedBox(height: DesignTokens.spacing12),
+                ..._customPresets.map(
+                  (preset) => _BackgroundCard(
+                    preset: preset,
+                    previewAngle: _previewAngle,
+                    isSelected: selected?.preset.id == preset.id,
+                    onSelect: () => _selectPreset(preset),
+                    onPreviewAngles: () => openBackgroundDetailSheet(
+                      context,
+                      preset: preset,
+                      isSelected: selected?.preset.id == preset.id,
+                      onSelect: () => _selectPreset(preset),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: DesignTokens.spacing32),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _SelectedBanner extends StatelessWidget {
   final SelectedBackground selected;
+  final String previewAngle;
 
-  const _SelectedBanner({required this.selected});
+  const _SelectedBanner({
+    required this.selected,
+    required this.previewAngle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -308,14 +329,13 @@ class _SelectedBanner extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: SizedBox(
-                width: 96,
-                child: BackgroundScenePreview(
+            child: SizedBox(
+              width: 104,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _BackgroundCardPreview(
                   preset: selected.preset,
-                  angle: 'three_quarter_left',
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
+                  angle: previewAngle,
                 ),
               ),
             ),
@@ -336,12 +356,14 @@ class _SelectedBanner extends StatelessWidget {
 
 class _BackgroundCard extends StatelessWidget {
   final BackgroundPreset preset;
+  final String previewAngle;
   final bool isSelected;
   final VoidCallback onSelect;
   final VoidCallback onPreviewAngles;
 
   const _BackgroundCard({
     required this.preset,
+    required this.previewAngle,
     required this.isSelected,
     required this.onSelect,
     required this.onPreviewAngles,
@@ -367,9 +389,9 @@ class _BackgroundCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    BackgroundScenePreview(
+                    _BackgroundCardPreview(
                       preset: preset,
-                      angle: 'three_quarter_left',
+                      angle: previewAngle,
                     ),
                     if (isSelected)
                       Positioned(
@@ -474,6 +496,52 @@ class _BackgroundCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BackgroundCardPreview extends StatelessWidget {
+  final BackgroundPreset preset;
+  final String angle;
+
+  const _BackgroundCardPreview({
+    required this.preset,
+    required this.angle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final localPath = BundledAssets.presetBackgroundAssetPath(preset.slug, angle);
+    if (localPath != null) {
+      return Image.asset(
+        localPath,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => _PreviewFallback(tokens: tokens),
+      );
+    }
+
+    return AuthenticatedBackgroundImage(
+      key: ValueKey('${preset.id}:$angle:${preset.previewUrl ?? ''}'),
+      previewPath: preset.variantByAngle(angle)?.previewUrl ?? preset.previewUrl,
+      fit: BoxFit.cover,
+    );
+  }
+}
+
+class _PreviewFallback extends StatelessWidget {
+  final AppTokens tokens;
+
+  const _PreviewFallback({required this.tokens});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: tokens.surfaceMuted,
+      child: Center(
+        child: Icon(Icons.image_outlined, color: tokens.textTertiary, size: 28),
       ),
     );
   }

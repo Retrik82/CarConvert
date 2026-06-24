@@ -3,7 +3,8 @@ import base64
 import httpx
 
 from app.config import get_settings
-from app.services.ai.openrouter_client import OpenRouterClient, _extract_image_reference
+from app.services.ai.model_router import call_image_completion
+from app.services.ai.openrouter_client import _extract_image_reference
 
 settings = get_settings()
 
@@ -34,14 +35,11 @@ async def _image_from_openrouter_body(body: dict) -> tuple[str, str]:
     return encoded, mime_type
 
 
-async def process_into_scene(
+async def _composite_messages(
     user_photo_data_url: str,
     scene_prompt: str,
     scene_reference_data_url: str,
-    api_key: str | None = None,
-) -> tuple[str, str]:
-    """Put the user's car into the reference composed scene (room + placeholder BMW)."""
-    client = OpenRouterClient(api_key)
+) -> list[dict]:
     user_text = (
         "Image 1 — REFERENCE SCENE: fixed studio room with a placeholder car. "
         "Keep this room, camera angle, lighting, floor, podium, and shadows exactly as shown. "
@@ -50,28 +48,37 @@ async def process_into_scene(
         "Replace only the car in the reference with the user's vehicle. "
         "Do not change the room or perspective. Photorealistic result."
     )
-
     content: list[dict] = [
         {"type": "text", "text": user_text},
         {"type": "image_url", "image_url": {"url": scene_reference_data_url}},
         {"type": "image_url", "image_url": {"url": user_photo_data_url}},
     ]
-
-    messages = [
+    return [
         {"role": "system", "content": SCENE_COMPOSITE_SYSTEM_PROMPT},
         {"role": "user", "content": content},
     ]
-    body = await client.generate_image_completion(
-        settings.process_model,
+
+
+async def process_into_scene(
+    user_photo_data_url: str,
+    scene_prompt: str,
+    scene_reference_data_url: str,
+    api_key: str | None = None,
+) -> tuple[str, str]:
+    """Put the user's car into the reference composed scene (room + placeholder BMW)."""
+    messages = await _composite_messages(user_photo_data_url, scene_prompt, scene_reference_data_url)
+    body = await call_image_completion(
         messages,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )
     return await _image_from_openrouter_body(body)
 
 
 async def generate_full_scene(prompt: str, api_key: str | None = None) -> tuple[str, str]:
     """Generate a complete photorealistic scene (environment + BMW on podium) in one pass."""
-    client = OpenRouterClient(api_key)
     messages = [
         {
             "role": "system",
@@ -84,17 +91,18 @@ async def generate_full_scene(prompt: str, api_key: str | None = None) -> tuple[
         },
         {"role": "user", "content": prompt},
     ]
-    body = await client.generate_image_completion(
-        settings.process_model,
+    body = await call_image_completion(
         messages,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )
     return await _image_from_openrouter_body(body)
 
 
 async def generate_outdoor_scene(prompt: str, api_key: str | None = None) -> tuple[str, str]:
     """Generate an empty outdoor environment (no car) for compositing."""
-    client = OpenRouterClient(api_key)
     messages = [
         {
             "role": "system",
@@ -106,17 +114,18 @@ async def generate_outdoor_scene(prompt: str, api_key: str | None = None) -> tup
         },
         {"role": "user", "content": prompt},
     ]
-    body = await client.generate_image_completion(
-        settings.process_model,
+    body = await call_image_completion(
         messages,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )
     return await _image_from_openrouter_body(body)
 
 
 async def generate_empty_room(prompt: str, api_key: str | None = None) -> tuple[str, str]:
     """Generate an empty studio room (no car) for custom background creation."""
-    client = OpenRouterClient(api_key)
     messages = [
         {
             "role": "system",
@@ -128,10 +137,12 @@ async def generate_empty_room(prompt: str, api_key: str | None = None) -> tuple[
         },
         {"role": "user", "content": prompt},
     ]
-    body = await client.generate_image_completion(
-        settings.process_model,
+    body = await call_image_completion(
         messages,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )
     return await _image_from_openrouter_body(body)
 

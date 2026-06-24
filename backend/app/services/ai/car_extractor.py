@@ -1,7 +1,10 @@
 """Extract a user's vehicle from a photo as a transparent PNG cutout."""
 
+import base64
+
 from app.config import get_settings
-from app.services.ai.openrouter_client import OpenRouterClient
+from app.services.ai.cutout_validator import validate_cutout
+from app.services.ai.model_router import call_generate_image
 
 settings = get_settings()
 
@@ -38,18 +41,44 @@ async def extract_car_cutout(
     api_key: str | None = None,
     *,
     angle: str = "three_quarter_left",
+    force_fallback: bool = False,
 ) -> tuple[bytes, str]:
     """Return raw PNG bytes and mime type for the isolated vehicle or cabin."""
-    client = OpenRouterClient(api_key)
     user_prompt = INTERIOR_EXTRACT_USER_PROMPT if angle == "interior" else CAR_EXTRACT_USER_PROMPT
-    base64_data, mime_type = await client.generate_image(
-        model=settings.process_model,
+    primary = settings.cutout_model_fallback if force_fallback else settings.cutout_model
+    fallback = settings.cutout_model if force_fallback else settings.cutout_model_fallback
+
+    base64_data, mime_type = await call_generate_image(
         system_prompt=CAR_EXTRACT_SYSTEM_PROMPT,
         user_text=user_prompt,
         source_data_url=source_data_url,
+        primary=primary,
+        fallback=fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )
-    import base64
-
     image_bytes = base64.b64decode(base64_data)
     return image_bytes, mime_type or "image/png"
+
+
+async def extract_car_cutout_validated(
+    source_data_url: str,
+    api_key: str | None = None,
+    *,
+    angle: str = "three_quarter_left",
+) -> tuple[bytes, str]:
+    """Extract cutout and retry once with fallback model if validation fails."""
+    image_bytes, mime_type = await extract_car_cutout(
+        source_data_url, api_key, angle=angle, force_fallback=False
+    )
+    ok, reason = validate_cutout(image_bytes)
+    if ok:
+        return image_bytes, mime_type
+
+    image_bytes, mime_type = await extract_car_cutout(
+        source_data_url, api_key, angle=angle, force_fallback=True
+    )
+    ok, reason = validate_cutout(image_bytes)
+    if not ok:
+        raise RuntimeError(f"Cutout validation failed: {reason}")
+    return image_bytes, mime_type

@@ -25,6 +25,9 @@ class SeedService:
 
     async def seed_defaults(self) -> None:
         await self._config.ensure_default(GENERATION_PRICE_KEY, DEFAULT_GENERATION_PRICE)
+        existing_price = await self._config.get_row(GENERATION_PRICE_KEY)
+        if existing_price is not None and existing_price.value == Decimal("0.10"):
+            await self._config.set_value(GENERATION_PRICE_KEY, DEFAULT_GENERATION_PRICE)
         await self._config.ensure_default(CUSTOM_BACKGROUND_PRICE_KEY, DEFAULT_CUSTOM_BACKGROUND_PRICE)
 
         from app.services.background_service import BackgroundService

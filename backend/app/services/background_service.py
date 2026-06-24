@@ -5,6 +5,7 @@ from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageDraw
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -351,7 +352,9 @@ async def process_photo_with_background(
     source_data_url: str,
     resolved: ResolvedBackground,
     api_key: str,
+    *,
+    job_dir: Path | None = None,
 ) -> tuple[str, str]:
     from app.services.user_car_pipeline import process_user_car_photo
 
-    return await process_user_car_photo(source_data_url, resolved, api_key)
+    return await process_user_car_photo(source_data_url, resolved, api_key, job_dir=job_dir)

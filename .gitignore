@@ -1,5 +1,5 @@
 # =============================================================================
-# CarConvert — root .gitignore
+# AutoCut — root .gitignore
 # Deploy: Render Blueprint читает render.yaml из репозитория (не игнорировать).
 # Секреты (OPENROUTER_API_KEY, JWT_SECRET) — только в Render Dashboard / локальный .env
 # =============================================================================

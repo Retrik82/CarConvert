@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.carconvert" "\0"
-            VALUE "FileDescription", "carconvert" "\0"
+            VALUE "FileDescription", "AutoCut" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "carconvert" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.carconvert. All rights reserved." "\0"
             VALUE "OriginalFilename", "carconvert.exe" "\0"
-            VALUE "ProductName", "carconvert" "\0"
+            VALUE "ProductName", "AutoCut" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

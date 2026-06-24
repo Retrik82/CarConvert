@@ -1,4 +1,4 @@
-# CarConvert Backend
+# AutoCut Backend
 
 FastAPI backend с JWT auth, WebSocket realtime hints и async photo processing.
 

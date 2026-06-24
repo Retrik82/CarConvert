@@ -2,13 +2,13 @@ import 'app_strings.dart';
 
 class StringsRu extends AppStrings {
   @override
-  String get appName => 'RenderWheels';
+  String get appName => 'AutoCut';
 
   @override
   String get appTagline => 'Автомобильная студийная съёмка';
 
   @override
-  String get welcomeTitle => 'Добро пожаловать в RenderWheels';
+  String get welcomeTitle => 'Добро пожаловать в AutoCut';
 
   @override
   String get welcomeSubtitle => 'Превратите фото автомобиля в профессиональный кадр — за секунды.';
@@ -291,6 +291,8 @@ class StringsRu extends AppStrings {
 
   @override
   String get processingTitle => 'Обработка';
+  String get processingQueued => 'В очереди…';
+  String get processingRendering => 'Рендерим вашу машину…';
 
   @override
   String get renderResultTitle => 'Результат рендера';
@@ -373,7 +375,7 @@ class StringsRu extends AppStrings {
 
   @override
   String get guideStep1Body =>
-      'Проведите ползунок — RenderWheels покажет, как уличный кадр превращается в студийный рендер.';
+      'Проведите ползунок — AutoCut покажет, как уличный кадр превращается в студийный рендер.';
 
   @override
   String get guideStep2Title => 'Выберите студию';

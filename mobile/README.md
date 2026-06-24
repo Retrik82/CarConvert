@@ -1,4 +1,4 @@
-# CarConvert Mobile
+# AutoCut Mobile
 
 Flutter-приложение для Android (и iOS).
 

@@ -8,5 +8,5 @@ void main() {
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
-  runApp(const RenderWheelsApp());
+  runApp(const AutoCutApp());
 }

@@ -48,14 +48,14 @@ class SplashScreen extends StatelessWidget {
   }
 }
 
-class RenderWheelsApp extends StatefulWidget {
-  const RenderWheelsApp({super.key});
+class AutoCutApp extends StatefulWidget {
+  const AutoCutApp({super.key});
 
   @override
-  State<RenderWheelsApp> createState() => _RenderWheelsAppState();
+  State<AutoCutApp> createState() => _AutoCutAppState();
 }
 
-class _RenderWheelsAppState extends State<RenderWheelsApp> {
+class _AutoCutAppState extends State<AutoCutApp> {
   static const _bootstrapTimeout = Duration(seconds: 5);
 
   final _settings = AppSettingsController();
@@ -163,7 +163,7 @@ class _RenderWheelsAppState extends State<RenderWheelsApp> {
       listenable: _settings,
       builder: (context, _) {
         return MaterialApp(
-          title: 'RenderWheels',
+          title: 'AutoCut',
           debugShowCheckedModeBanner: false,
           locale: _settings.locale,
           supportedLocales: AppLanguage.values.map((l) => l.locale).toList(),

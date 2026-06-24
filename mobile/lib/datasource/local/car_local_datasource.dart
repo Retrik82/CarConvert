@@ -9,7 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/car.dart';
 
 class CarLocalDataSource {
-  static const _storageKey = 'renderwheels_cars';
+  static const _storageKey = 'autocut_cars';
   final _uuid = const Uuid();
 
   Future<List<Car>> loadCars() async {

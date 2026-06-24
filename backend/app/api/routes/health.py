@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.db.session import _db_ready, ensure_db_ready
+from app.middleware.rate_limit import _get_redis
+from app.queue import get_queue_depth
 from app.utils.storage import check_upload_dir_writable
 
 settings = get_settings()
@@ -58,3 +60,34 @@ async def health_storage():
             "detail": error,
         },
     )
+
+
+@router.get("/health/redis")
+async def health_redis():
+    if not settings.redis_enabled:
+        return {"status": "ok", "redis": "disabled"}
+    redis = await _get_redis()
+    if redis is None:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "redis": "unavailable"},
+        )
+    try:
+        await redis.ping()
+        return {"status": "ok", "redis": "connected"}
+    except Exception as exc:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "redis": "failed", "detail": str(exc)},
+        )
+
+
+@router.get("/health/queue")
+async def health_queue():
+    depth = await get_queue_depth()
+    return {
+        "status": "ok",
+        "queue_depth": depth,
+        "backend": "arq" if settings.redis_enabled else "local",
+        "process_max_concurrent": settings.process_max_concurrent,
+    }

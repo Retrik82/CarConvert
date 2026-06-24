@@ -1,4 +1,4 @@
-# CarConvert — AI-ассистент автомобильной съёмки
+# AutoCut — AI-ассистент автомобильной съёмки
 
 Мобильное приложение (Flutter) + общий backend (FastAPI) для:
 
@@ -13,7 +13,7 @@ React web-клиент (`client/`) продолжает работать чер�
 ## Структура проекта
 
 ```txt
-CarConvert/
+AutoCut/
   backend/          # FastAPI — общий API для web и mobile
   mobile/           # Flutter app (Android / iOS)
   client/           # React web (без изменений)
@@ -124,7 +124,7 @@ http://192.168.1.105:3001/health
 ### Шаг 4 — Разреши HTTP в Windows Firewall (если не открывается)
 
 ```powershell
-netsh advfirewall firewall add rule name="CarConvert API" dir=in action=allow protocol=TCP localport=3001
+netsh advfirewall firewall add rule name="AutoCut API" dir=in action=allow protocol=TCP localport=3001
 ```
 
 ### Шаг 5 — Установи Flutter-приложение на телефон
@@ -198,7 +198,7 @@ mobile\build\app\outputs\flutter-apk\app-release.apk
 
 ### 1. Регистрация / вход
 
-1. Открой приложение CarConvert
+1. Открой приложение AutoCut
 2. Нажми **«Создать аккаунт»**
 3. Введи имя, email, пароль (мин. 6 символов)
 4. Пройди onboarding (3 экрана)
@@ -375,7 +375,7 @@ venv\Scripts\pip install bcrypt==4.0.1
 ## Шаг 1 — Задеплой backend на Render
 
 1. Запушь репозиторий на GitHub.
-2. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → выбери репозиторий CarConvert.
+2. [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → выбери репозиторий проекта.
 3. Render подхватит `render.yaml` и создаст:
    - `carconvert-db` — PostgreSQL (постоянные аккаунты и история)
    - `carconvert-api` — FastAPI (Starter + persistent disk для фото)
@@ -427,7 +427,7 @@ mobile\build\app\outputs\flutter-apk\app-release.apk
 1. Скопируй `app-release.apk` на телефон (USB, Telegram, Google Drive и т.д.).
 2. Открой файл на телефоне → **Установить**.
 3. Разреши установку из неизвестных источников, если Android попросит.
-4. Открой **CarConvert** → регистрация → камера и съёмка.
+4. Открой **AutoCut** → регистрация → камера и съёмка.
 
 Приложение ходит на `https://carconvert-api.onrender.com` (зашито в `dart_defines.prod.json` при сборке).
 
@@ -443,7 +443,7 @@ flutter run --dart-define-from-file=dart_defines.local.json
 
 | Симптом | Решение |
 |---------|---------|
-| Deploy падает на старте (`Exited with status 1`) | Проверь логи: должна быть строка `Import OK: CarConvert API`. Чаще всего — пустой или битый `DATABASE_URL`; убедись, что Blueprint привязал Postgres `carconvert-db`. |
+| Deploy падает на старте (`Exited with status 1`) | Проверь логи: должна быть строка `Import OK: AutoCut API`. Чаще всего — пустой или битый `DATABASE_URL`; убедись, что Blueprint привязал Postgres `carconvert-db`. |
 | `/health/db` → failed | Проверь, что `DATABASE_URL` из `carconvert-db` (Internal URL), не SQLite. Redeploy с clear cache. |
 | `/health/storage` → not_writable | Убедись, что у API подключён persistent disk (`/var/data/uploads`) и план Starter. |
 | «Не удаётся подключиться» | Проверь `/health` в браузере телефона. |

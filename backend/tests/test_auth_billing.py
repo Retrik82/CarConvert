@@ -13,12 +13,25 @@ os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_db_file.as_posix()}"
 os.environ.setdefault("JWT_SECRET", "test_secret_minimum_32_characters_long")
 os.environ.setdefault("OPENROUTER_API_KEY", "test_key_for_integration")
 
+import pytest
 from fastapi.testclient import TestClient  # noqa: E402
 from PIL import Image  # noqa: E402
 
+from app.db.models.app_config import DEFAULT_GENERATION_PRICE
 from app.main import app  # noqa: E402
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _reset_generation_price() -> None:
+    admin = _login("admin", "admin82")
+    headers = {"Authorization": f"Bearer {admin['access_token']}"}
+    client.put(
+        "/admin/settings/price",
+        headers=headers,
+        json={"price_usd": float(DEFAULT_GENERATION_PRICE)},
+    )
 
 
 def _minimal_jpeg() -> bytes:
@@ -50,7 +63,7 @@ def test_admin_login_and_set_price() -> None:
     headers = {"Authorization": f"Bearer {data['access_token']}"}
     price_resp = client.get("/admin/settings/price", headers=headers)
     assert price_resp.status_code == 200
-    assert float(price_resp.json()["price_usd"]) == 0.10
+    assert float(price_resp.json()["price_usd"]) == float(DEFAULT_GENERATION_PRICE)
 
     update_resp = client.put(
         "/admin/settings/price",
@@ -70,7 +83,7 @@ def test_user_gets_initial_balance_and_sees_price() -> None:
     headers = {"Authorization": f"Bearer {data['access_token']}"}
     price_resp = client.get("/settings/generation-price", headers=headers)
     assert price_resp.status_code == 200
-    assert float(price_resp.json()["price_usd"]) == 0.25
+    assert float(price_resp.json()["price_usd"]) == float(DEFAULT_GENERATION_PRICE)
 
 
 def test_non_admin_cannot_change_price() -> None:
@@ -78,6 +91,26 @@ def test_non_admin_cannot_change_price() -> None:
     data = _register(email)
     headers = {"Authorization": f"Bearer {data['access_token']}"}
     response = client.put("/admin/settings/price", headers=headers, json={"price_usd": 1.0})
+    assert response.status_code == 403
+
+
+def test_admin_can_read_pricing_estimate() -> None:
+    admin = _login("admin", "admin82")
+    headers = {"Authorization": f"Bearer {admin['access_token']}"}
+    response = client.get("/admin/settings/pricing-estimate", headers=headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["generation"]["service_id"] == "generation"
+    assert body["custom_background"]["service_id"] == "custom_background"
+    assert float(body["generation"]["recommended_price_usd"]) >= float(body["generation"]["actual_cost_min_usd"])
+    assert float(body["charged_generation_price_usd"]) == float(DEFAULT_GENERATION_PRICE)
+
+
+def test_non_admin_cannot_read_pricing_estimate() -> None:
+    email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+    data = _register(email)
+    headers = {"Authorization": f"Bearer {data['access_token']}"}
+    response = client.get("/admin/settings/pricing-estimate", headers=headers)
     assert response.status_code == 403
 
 

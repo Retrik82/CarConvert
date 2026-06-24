@@ -211,7 +211,7 @@ class _ResultScreenState extends State<ResultScreen> {
 
         _resultBytes,
 
-        fileName: 'renderwheels_${widget.jobId}.$ext',
+        fileName: 'autocut_${widget.jobId}.$ext',
 
       );
 

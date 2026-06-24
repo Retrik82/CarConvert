@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.photo_job import PhotoJob
 
+_ACTIVE_STATUSES = ("queued", "processing")
+
 
 class PhotoJobRepository:
     def __init__(self, db: AsyncSession) -> None:
@@ -63,3 +65,19 @@ class PhotoJobRepository:
             job.completed_at = completed_at
         await self._db.flush()
         return job
+
+    async def count_active(self) -> int:
+        result = await self._db.execute(
+            select(func.count())
+            .select_from(PhotoJob)
+            .where(PhotoJob.status.in_(_ACTIVE_STATUSES))
+        )
+        return int(result.scalar_one())
+
+    async def count_active_for_user(self, user_id: str) -> int:
+        result = await self._db.execute(
+            select(func.count())
+            .select_from(PhotoJob)
+            .where(PhotoJob.user_id == user_id, PhotoJob.status.in_(_ACTIVE_STATUSES))
+        )
+        return int(result.scalar_one())

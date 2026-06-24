@@ -1,4 +1,4 @@
-import asyncio
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -6,16 +6,38 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from app.api.deps import get_background_service, get_billing_service, get_current_user, get_job_service, get_session_service
 from app.config import get_settings
 from app.db.models.user import User
+from app.middleware.rate_limit import enforce_photo_rate_limit
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
+from app.queue import enqueue_photo_job, get_queue_depth
 from app.services.billing_service import BillingService, InsufficientBalanceError
 from app.services.background_service import BackgroundService
-from app.services.job_service import JobService, run_photo_job
+from app.services.job_service import JobService
 from app.services.session_service import SessionService
-from app.utils.image_utils import normalize_content_type, read_file_as_base64, validate_image_upload
+from app.utils.image_utils import normalize_content_type, read_file_as_base64, to_data_url, validate_image_upload
 
 router = APIRouter(prefix="/photo", tags=["photo"])
 history_router = APIRouter(prefix="/photos", tags=["photos"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
+
+
+async def _check_backpressure(job_service: JobService, user_id: str) -> None:
+    active_for_user = await job_service._jobs.count_active_for_user(user_id)
+    if active_for_user >= settings.max_active_jobs_per_user:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many active photo jobs. Wait for current processing to finish.",
+        )
+
+    db_active = await job_service._jobs.count_active()
+    queue_depth = await get_queue_depth()
+    total_pending = max(db_active, queue_depth or 0)
+    if total_pending >= settings.max_queue_size:
+        raise HTTPException(
+            status_code=503,
+            detail="Server is busy. Please try again in a few minutes.",
+            headers={"Retry-After": "60"},
+        )
 
 
 @router.post("/process", response_model=ProcessJobResponse)
@@ -35,6 +57,9 @@ async def process_photo(
 ) -> ProcessJobResponse:
     if not settings.openrouter_api_key or settings.openrouter_api_key == "your_key_here":
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is not configured.")
+
+    await enforce_photo_rate_limit(current_user.id)
+    await _check_backpressure(job_service, current_user.id)
 
     if session_id:
         session = await session_service.get_active_session(session_id, current_user.id)
@@ -76,7 +101,61 @@ async def process_photo(
         user_background_variant_id=user_background_variant_id,
     )
 
-    asyncio.create_task(run_photo_job(job.id, current_user.id, settings.openrouter_api_key))
+    await enqueue_photo_job(job.id, current_user.id)
+    return ProcessJobResponse(job_id=job.id, status=job.status)
+
+
+@router.post("/recomposite/{job_id}", response_model=ProcessJobResponse)
+async def recomposite_photo(
+    job_id: str,
+    background_preset_id: str | None = Form(default=None),
+    background_preset_slug: str | None = Form(default=None),
+    background_variant_id: str | None = Form(default=None),
+    user_background_id: str | None = Form(default=None),
+    user_background_variant_id: str | None = Form(default=None),
+    current_user: User = Depends(get_current_user),
+    billing: BillingService = Depends(get_billing_service),
+    job_service: JobService = Depends(get_job_service),
+    backgrounds: BackgroundService = Depends(get_background_service),
+) -> ProcessJobResponse:
+    """Re-composite a saved cutout onto a different background without re-shooting."""
+    await enforce_photo_rate_limit(current_user.id)
+    await _check_backpressure(job_service, current_user.id)
+
+    source_job = await job_service.get_user_job(job_id, current_user.id)
+    if not source_job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    cutout_path = Path(settings.upload_dir) / current_user.id / job_id / "cutout.png"
+    if not cutout_path.is_file():
+        raise HTTPException(status_code=400, detail="No saved cutout for this job. Process a new photo first.")
+
+    try:
+        await billing.charge_for_generation(current_user)
+    except InsufficientBalanceError as exc:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient balance. Required: ${exc.price:.2f}, available: ${exc.balance:.2f}.",
+        ) from exc
+
+    resolved_preset_id = background_preset_id
+    if not resolved_preset_id and background_preset_slug:
+        preset = await backgrounds.get_preset_by_slug(background_preset_slug.strip())
+        if preset:
+            resolved_preset_id = preset.id
+
+    job = await job_service.create_photo_job(
+        current_user.id,
+        cutout_path.read_bytes(),
+        "image/png",
+        source_job.session_id,
+        background_preset_id=resolved_preset_id,
+        background_variant_id=background_variant_id,
+        user_background_id=user_background_id,
+        user_background_variant_id=user_background_variant_id,
+    )
+
+    await enqueue_photo_job(job.id, current_user.id)
     return ProcessJobResponse(job_id=job.id, status=job.status)
 
 

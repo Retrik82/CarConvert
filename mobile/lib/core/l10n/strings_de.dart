@@ -2,13 +2,13 @@ import 'app_strings.dart';
 
 class StringsDe extends AppStrings {
   @override
-  String get appName => 'RenderWheels';
+  String get appName => 'AutoCut';
 
   @override
   String get appTagline => 'Automobil-Fotografie in Studioqualität';
 
   @override
-  String get welcomeTitle => 'Willkommen bei RenderWheels';
+  String get welcomeTitle => 'Willkommen bei AutoCut';
 
   @override
   String get welcomeSubtitle => 'Bilder in Studioqualität – direkt in Ihren Händen.';
@@ -291,6 +291,8 @@ class StringsDe extends AppStrings {
 
   @override
   String get processingTitle => 'Verarbeitung';
+  String get processingQueued => 'In der Warteschlange…';
+  String get processingRendering => 'Fahrzeug wird gerendert…';
 
   @override
   String get renderResultTitle => 'Render-Ergebnis';
@@ -373,7 +375,7 @@ class StringsDe extends AppStrings {
 
   @override
   String get guideStep1Body =>
-      'Ziehen Sie den Schieberegler — RenderWheels zeigt, wie eine Straßenaufnahme zum Studio-Render wird.';
+      'Ziehen Sie den Schieberegler — AutoCut zeigt, wie eine Straßenaufnahme zum Studio-Render wird.';
 
   @override
   String get guideStep2Title => 'Studio wählen';

@@ -4,7 +4,7 @@ from typing import Any
 
 from app.config import get_settings
 from app.models.schemas import HintOverlay, HintResponse, HintScores, HintType
-from app.services.ai.openrouter_client import OpenRouterClient
+from app.services.ai.model_router import call_image_completion, call_vision_json
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -186,8 +186,8 @@ def _build_hint_response(data: dict[str, Any]) -> HintResponse:
     )
 
 
-async def _request_hint_text(client: OpenRouterClient, image_data_url: str, use_json_mode: bool) -> str:
-    messages = [
+def _hint_messages(image_data_url: str) -> list[dict[str, Any]]:
+    return [
         {"role": "system", "content": HINT_SYSTEM_PROMPT},
         {
             "role": "user",
@@ -204,29 +204,19 @@ async def _request_hint_text(client: OpenRouterClient, image_data_url: str, use_
             ],
         },
     ]
-    kwargs: dict[str, Any] = {
-        "model": settings.hint_model,
-        "messages": messages,
-        "timeout": float(settings.hint_timeout_sec),
-        "max_tokens": 300,
-    }
-    if use_json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
-    return await client.chat_text(**kwargs)
 
 
 async def analyze_frame(image_data_url: str, api_key: str | None = None) -> HintResponse:
-    client = OpenRouterClient(api_key)
-    last_error: Exception | None = None
-    for use_json_mode in (True, False):
-        try:
-            text = await _request_hint_text(client, image_data_url, use_json_mode=use_json_mode)
-            data = client.parse_json_from_text(text)
-            return _build_hint_response(data)
-        except Exception as exc:
-            last_error = exc
-            if use_json_mode:
-                logger.info("Hint JSON mode failed, retrying without response_format: %s", exc)
-                continue
-    logger.warning("Hint analysis failed: %s", last_error)
-    return _default_hint()
+    try:
+        data = await call_vision_json(
+            _hint_messages(image_data_url),
+            primary=settings.hint_primary,
+            fallback=settings.hint_model_fallback,
+            timeout=float(settings.hint_timeout_sec),
+            max_tokens=300,
+            api_key=api_key,
+        )
+        return _build_hint_response(data)
+    except Exception as exc:
+        logger.warning("Hint analysis failed: %s", exc)
+        return _default_hint()

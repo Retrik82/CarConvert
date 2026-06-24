@@ -1,4 +1,5 @@
 import '../datasource/remote/settings_remote_datasource.dart';
+import '../models/pricing_estimate.dart';
 import 'auth_repository.dart';
 
 class SettingsRepository {
@@ -17,4 +18,6 @@ class SettingsRepository {
   Future<double> getCustomBackgroundPrice() => _remote.getCustomBackgroundPrice();
 
   Future<double> setCustomBackgroundPrice(double priceUsd) => _remote.setCustomBackgroundPrice(priceUsd);
+
+  Future<AdminPricingEstimate> getPricingEstimate() => _remote.getPricingEstimate();
 }

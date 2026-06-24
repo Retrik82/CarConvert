@@ -7,11 +7,14 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+import httpx
+
 from app.config import get_settings
 from app.db.models.background import ANGLE_PROMPT_SUFFIXES
 from app.services.ai.background_processor import generate_empty_room, process_into_scene
-from app.services.ai.car_extractor import extract_car_cutout
-from app.services.ai.openrouter_client import OpenRouterClient, _extract_image_reference
+from app.services.ai.car_extractor import extract_car_cutout_validated
+from app.services.ai.model_router import call_image_completion
+from app.services.ai.openrouter_client import _extract_image_reference
 from app.utils.image_utils import to_data_url
 
 logger = logging.getLogger(__name__)
@@ -41,13 +44,28 @@ class ResolvedBackground:
     scene_image_path: str | None = None
 
 
+async def _image_ref_to_base64(image_ref: str) -> tuple[str, str]:
+    if image_ref.startswith("data:image"):
+        header = image_ref.split(",", 1)[0]
+        mime_type = header.replace("data:", "").replace(";base64", "")
+        base64_data = image_ref.split(",", 1)[1]
+        return base64_data, mime_type
+
+    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
+        image_response = await http_client.get(image_ref)
+    if image_response.status_code >= 400:
+        raise RuntimeError(f"Failed to download composite image ({image_response.status_code}).")
+    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
+    encoded = base64.b64encode(image_response.content).decode("utf-8")
+    return encoded, mime_type
+
+
 async def _ai_composite_cutout_on_scene(
     cutout_data_url: str,
     scene_data_url: str,
     scene_prompt: str,
     api_key: str,
 ) -> tuple[str, str]:
-    client = OpenRouterClient(api_key)
     user_text = (
         "Image 1 — BACKGROUND SCENE: target environment. Keep it exactly as shown.\n"
         "Image 2 — USER VEHICLE: transparent cutout to place into the scene.\n"
@@ -64,28 +82,16 @@ async def _ai_composite_cutout_on_scene(
         {"role": "system", "content": CUTOUT_COMPOSITE_SYSTEM_PROMPT},
         {"role": "user", "content": content},
     ]
-    body = await client.chat_completion(
-        settings.process_model,
+    body = await call_image_completion(
         messages,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
         max_tokens=1024,
+        api_key=api_key,
     )
     image_ref = _extract_image_reference(body)
-    if image_ref.startswith("data:image"):
-        header = image_ref.split(",", 1)[0]
-        mime_type = header.replace("data:", "").replace(";base64", "")
-        base64_data = image_ref.split(",", 1)[1]
-        return base64_data, mime_type
-
-    import httpx
-
-    async with httpx.AsyncClient(timeout=float(settings.process_timeout_sec)) as http_client:
-        image_response = await http_client.get(image_ref)
-    if image_response.status_code >= 400:
-        raise RuntimeError(f"Failed to download composite image ({image_response.status_code}).")
-    mime_type = image_response.headers.get("Content-Type", "image/png").split(";")[0].strip()
-    encoded = base64.b64encode(image_response.content).decode("utf-8")
-    return encoded, mime_type
+    return await _image_ref_to_base64(image_ref)
 
 
 def _build_scene_generation_prompt(resolved: ResolvedBackground) -> str:
@@ -110,6 +116,8 @@ async def process_user_car_photo(
     source_data_url: str,
     resolved: ResolvedBackground,
     api_key: str,
+    *,
+    job_dir: Path | None = None,
 ) -> tuple[str, str]:
     """
     Pipeline:
@@ -124,11 +132,15 @@ async def process_user_car_photo(
         resolved.user_background_id,
     )
 
-    cutout_bytes, cutout_mime = await extract_car_cutout(
+    cutout_bytes, cutout_mime = await extract_car_cutout_validated(
         source_data_url,
         api_key,
         angle=resolved.angle,
     )
+    if job_dir is not None:
+        cutout_path = job_dir / "cutout.png"
+        cutout_path.write_bytes(cutout_bytes)
+
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
 
     scene_data_url = _load_scene_data_url(resolved)
@@ -153,3 +165,22 @@ async def process_user_car_photo(
             scene_data_url,
             api_key,
         )
+
+
+async def recomposite_from_cutout(
+    cutout_data_url: str,
+    resolved: ResolvedBackground,
+    api_key: str,
+) -> tuple[str, str]:
+    """Re-run composite only using a saved cutout and new background."""
+    scene_data_url = _load_scene_data_url(resolved)
+    if scene_data_url is None:
+        scene_prompt = _build_scene_generation_prompt(resolved)
+        scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
+        scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
+    return await _ai_composite_cutout_on_scene(
+        cutout_data_url,
+        scene_data_url,
+        resolved.prompt,
+        api_key,
+    )

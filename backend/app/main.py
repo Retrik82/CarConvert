@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes import admin, auth, backgrounds, cars, health, legacy, photo, session
 from app.api.routes import settings as settings_routes
 from app.config import get_settings
+from app.queue import shutdown_queue, start_local_queue_workers
 from app.models.schemas import EditResponse
 from app.utils.logging import setup_logging
 from app.utils.storage import check_upload_dir_writable
@@ -46,10 +47,12 @@ async def lifespan(_: FastAPI):
     else:
         logger.error("Upload storage not writable at %s: %s", settings.upload_dir, storage_error)
     logger.info("API listening (db=%s, tables init on first request)", db_kind)
+    await start_local_queue_workers()
     yield
+    await shutdown_queue()
 
 
-app = FastAPI(title="CarConvert API", version="2.0.0", lifespan=lifespan)
+app = FastAPI(title="AutoCut API", version="2.0.0", lifespan=lifespan)
 
 _cors_origins = settings.cors_origin_list
 _allow_all_origins = "*" in _cors_origins

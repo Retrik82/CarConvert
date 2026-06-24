@@ -1,6 +1,6 @@
 {
-    "name": "carconvert",
-    "short_name": "carconvert",
+    "name": "AutoCut",
+    "short_name": "AutoCut",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

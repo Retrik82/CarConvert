@@ -149,6 +149,8 @@ abstract class AppStrings {
 
   // Processing & results
   String get processingTitle;
+  String get processingQueued;
+  String get processingRendering;
   String get renderResultTitle;
   String get saveToMyCars;
   String get savedToMyCars;

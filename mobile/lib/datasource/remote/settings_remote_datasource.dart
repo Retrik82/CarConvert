@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../api/http_client.dart';
+import '../../models/pricing_estimate.dart';
 
 class SettingsRemoteDataSource {
   SettingsRemoteDataSource(this._client);
@@ -37,6 +38,14 @@ class SettingsRemoteDataSource {
       throw Exception('Failed to update custom background price: ${response.body}');
     }
     return _parsePrice(jsonDecode(response.body) as Map<String, dynamic>, fallback: priceUsd);
+  }
+
+  Future<AdminPricingEstimate> getPricingEstimate() async {
+    final response = await _client.get('/admin/settings/pricing-estimate', json: false);
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to load pricing estimate: ${response.body}');
+    }
+    return AdminPricingEstimate.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   double _parsePrice(Map<String, dynamic> json, {double fallback = 0.10}) {

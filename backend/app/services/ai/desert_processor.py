@@ -1,5 +1,5 @@
 from app.config import get_settings
-from app.services.ai.openrouter_client import OpenRouterClient
+from app.services.ai.model_router import call_generate_image
 
 settings = get_settings()
 
@@ -20,24 +20,26 @@ DESERT_USER_PROMPT = (
 
 
 async def process_desert_background(source_data_url: str, api_key: str | None = None) -> tuple[str, str]:
-    client = OpenRouterClient(api_key)
-    return await client.generate_image(
-        model=settings.process_model,
+    return await call_generate_image(
         system_prompt=DESERT_SYSTEM_PROMPT,
         user_text=DESERT_USER_PROMPT,
         source_data_url=source_data_url,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )
 
 
 async def edit_car_background_custom(
     user_prompt: str, source_data_url: str, api_key: str | None = None
 ) -> tuple[str, str]:
-    client = OpenRouterClient(api_key)
-    return await client.generate_image(
-        model=settings.process_model,
+    return await call_generate_image(
         system_prompt=DESERT_SYSTEM_PROMPT,
         user_text=f"Background instructions: {user_prompt}",
         source_data_url=source_data_url,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
     )

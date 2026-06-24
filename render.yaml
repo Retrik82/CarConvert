@@ -1,17 +1,23 @@
-# Production: PostgreSQL (persistent data) + Persistent Disk (photo uploads).
+# Production: PostgreSQL (persistent data) + Persistent Disk (photo uploads) + Redis queue.
 databases:
   - name: carconvert-db
     plan: basic-256mb
     diskSizeGB: 5
 
 services:
+  - type: redis
+    name: carconvert-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
   - type: web
     name: carconvert-api
     runtime: python
     rootDir: backend
     plan: starter
     buildCommand: pip install -r requirements.txt
-    startCommand: python -c "from main import app; print('Import OK:', app.title)" && uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: bash scripts/start_prod.sh
     healthCheckPath: /health
     disk:
       name: carconvert-uploads
@@ -32,6 +38,11 @@ services:
           property: connectionString
       - key: UPLOAD_DIR
         value: /var/data/uploads
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: carconvert-redis
+          property: connectionString
 
   - type: web
     name: carconvert-web
