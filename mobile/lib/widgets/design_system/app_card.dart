@@ -34,6 +34,7 @@ class AppCard extends StatelessWidget {
       duration: DesignTokens.durationNormal,
       curve: DesignTokens.curveStandard,
       padding: padding ?? const EdgeInsets.all(DesignTokens.spacing16),
+      clipBehavior: padding == EdgeInsets.zero ? Clip.antiAlias : Clip.none,
       decoration: decoration,
       child: child,
     );

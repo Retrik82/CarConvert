@@ -38,7 +38,7 @@ class BackgroundPreviewGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: DesignTokens.spacing12,
         mainAxisSpacing: DesignTokens.spacing12,
-        childAspectRatio: 16 / 10,
+        childAspectRatio: 16 / 9,
       ),
       itemCount: angles.length,
       itemBuilder: (context, index) {
@@ -55,7 +55,9 @@ class BackgroundPreviewGrid extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                BackgroundScenePreview(preset: preset, angle: angle),
+                Positioned.fill(
+                  child: BackgroundScenePreview(preset: preset, angle: angle),
+                ),
                 Positioned(
                   left: 8,
                   bottom: 8,

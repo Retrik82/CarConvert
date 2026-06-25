@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../core/assets/bundled_assets.dart';
 import '../core/assets/bundled_background_catalog.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/theme/app_tokens.dart';
@@ -10,8 +9,8 @@ import '../core/theme/design_tokens.dart';
 import '../models/background.dart';
 import '../repositories/background_repository.dart';
 import '../utils/money_format.dart';
-import '../widgets/authenticated_background_image.dart';
 import '../widgets/background_preview_grid.dart';
+import '../widgets/background_scene_preview.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
 import '../widgets/form_fields.dart';
@@ -384,15 +383,21 @@ class _BackgroundCard extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: onPreviewAngles,
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _BackgroundCardPreview(
-                      preset: preset,
-                      angle: previewAngle,
-                    ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(DesignTokens.radiusCard),
+                ),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Positioned.fill(
+                        child: _BackgroundCardPreview(
+                          preset: preset,
+                          angle: previewAngle,
+                        ),
+                      ),
                     if (isSelected)
                       Positioned(
                         top: DesignTokens.spacing12,
@@ -441,6 +446,7 @@ class _BackgroundCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
             ),
             Padding(
               padding: const EdgeInsets.all(DesignTokens.spacing16),
@@ -512,37 +518,10 @@ class _BackgroundCardPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    final localPath = BundledAssets.presetBackgroundAssetPath(preset.slug, angle);
-    if (localPath != null) {
-      return Image.asset(
-        localPath,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _PreviewFallback(tokens: tokens),
-      );
-    }
-
-    return AuthenticatedBackgroundImage(
-      key: ValueKey('${preset.id}:$angle:${preset.previewUrl ?? ''}'),
-      previewPath: preset.variantByAngle(angle)?.previewUrl ?? preset.previewUrl,
+    return BackgroundScenePreview(
+      preset: preset,
+      angle: angle,
       fit: BoxFit.cover,
-    );
-  }
-}
-
-class _PreviewFallback extends StatelessWidget {
-  final AppTokens tokens;
-
-  const _PreviewFallback({required this.tokens});
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: tokens.surfaceMuted,
-      child: Center(
-        child: Icon(Icons.image_outlined, color: tokens.textTertiary, size: 28),
-      ),
     );
   }
 }

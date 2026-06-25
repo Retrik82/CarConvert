@@ -78,12 +78,12 @@ class _AuthenticatedBackgroundImageState extends State<AuthenticatedBackgroundIm
           child = Image.memory(
             snapshot.data!,
             fit: widget.fit,
-            width: double.infinity,
-            height: double.infinity,
             gaplessPlayback: true,
             filterQuality: FilterQuality.high,
           );
         }
+
+        child = SizedBox.expand(child: child);
 
         if (widget.borderRadius != null) {
           child = ClipRRect(borderRadius: widget.borderRadius!, child: child);

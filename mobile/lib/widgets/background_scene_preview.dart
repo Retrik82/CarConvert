@@ -72,8 +72,6 @@ class BackgroundScenePreview extends StatelessWidget {
       child = Image.asset(
         assetPath,
         fit: fit,
-        width: double.infinity,
-        height: double.infinity,
         gaplessPlayback: true,
         filterQuality: FilterQuality.high,
         errorBuilder: (_, __, ___) => AuthenticatedBackgroundImage(
@@ -91,6 +89,8 @@ class BackgroundScenePreview extends StatelessWidget {
         fit: fit,
       );
     }
+
+    child = SizedBox.expand(child: child);
 
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius!, child: child);
