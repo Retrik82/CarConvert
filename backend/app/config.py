@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     # Load / queue
     hint_max_concurrent: int = 8
     process_max_concurrent: int = 3
+    # Optional separate ARQ worker process (multi-instance). Default: in-process queue on the API.
+    use_arq_worker: bool = False
     openrouter_max_retries: int = 2
     process_job_deadline_sec: int = 300
     max_queue_size: int = 50

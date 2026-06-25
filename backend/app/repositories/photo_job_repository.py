@@ -82,6 +82,15 @@ class PhotoJobRepository:
         )
         return int(result.scalar_one())
 
+    async def list_by_status(self, status: str, *, limit: int = 100) -> list[PhotoJob]:
+        result = await self._db.execute(
+            select(PhotoJob)
+            .where(PhotoJob.status == status)
+            .order_by(PhotoJob.created_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def list_stale_active(self, *, older_than: datetime, user_id: str | None = None) -> list[PhotoJob]:
         query = (
             select(PhotoJob)

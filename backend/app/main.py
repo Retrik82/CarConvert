@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes import admin, auth, backgrounds, cars, health, legacy, photo, session
 from app.api.routes import settings as settings_routes
 from app.config import get_settings
-from app.queue import shutdown_queue, start_local_queue_workers
+from app.queue import recover_stuck_queued_jobs, shutdown_queue, start_local_queue_workers
 from app.models.schemas import EditResponse
 from app.utils.logging import setup_logging
 from app.utils.storage import check_upload_dir_writable
@@ -47,7 +47,17 @@ async def lifespan(_: FastAPI):
     else:
         logger.error("Upload storage not writable at %s: %s", settings.upload_dir, storage_error)
     logger.info("API listening (db=%s, tables init on first request)", db_kind)
+    from app.db.session import ensure_db_ready
+
+    try:
+        await ensure_db_ready(max_attempts=3, delay_sec=1.0)
+    except Exception as exc:
+        logger.warning("Database not ready at startup — queued job recovery deferred: %s", exc)
     await start_local_queue_workers()
+    try:
+        await recover_stuck_queued_jobs()
+    except Exception as exc:
+        logger.warning("Queued job recovery skipped: %s", exc)
     yield
     await shutdown_queue()
 

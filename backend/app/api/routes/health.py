@@ -88,6 +88,6 @@ async def health_queue():
     return {
         "status": "ok",
         "queue_depth": depth,
-        "backend": "arq" if settings.redis_enabled else "local",
+        "backend": "arq" if settings.redis_enabled and settings.use_arq_worker else "local",
         "process_max_concurrent": settings.process_max_concurrent,
     }
