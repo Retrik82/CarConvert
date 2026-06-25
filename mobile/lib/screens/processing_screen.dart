@@ -44,10 +44,14 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   String? _jobId;
   double _progress = 0;
   bool _hasError = false;
+  bool _startInFlight = false;
+  bool _pollInFlight = false;
+  int _pollTransientErrors = 0;
   DateTime? _pollStartedAt;
 
   static const _pollInterval = Duration(seconds: 2);
   static const _pollTimeout = Duration(minutes: 6);
+  static const _maxPollTransientErrors = 5;
 
   @override
   void initState() {
@@ -65,8 +69,11 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   }
 
   Future<void> _start() async {
+    if (_startInFlight) return;
+    _startInFlight = true;
     _pollTimer?.cancel();
     _pollStartedAt = null;
+    _pollTransientErrors = 0;
     _jobId = null;
     _hasError = false;
     try {
@@ -93,6 +100,8 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       await _poll();
     } catch (e) {
       _setProgress(_progress, userFacingError(e), isError: true);
+    } finally {
+      _startInFlight = false;
     }
   }
 
@@ -105,16 +114,19 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   }
 
   Future<void> _poll() async {
-    if (_jobId == null) return;
+    if (_jobId == null || _pollInFlight) return;
+    _pollInFlight = true;
 
     final startedAt = _pollStartedAt;
     if (startedAt != null && DateTime.now().difference(startedAt) > _pollTimeout) {
+      _pollInFlight = false;
       _stopPollingWithError('Processing is taking too long. Please try again.');
       return;
     }
 
     try {
       final result = await PhotoRepository.instance.getResult(_jobId!);
+      _pollTransientErrors = 0;
       if (result.status == 'queued') {
         _setProgress((_progress + 2).clamp(20, 85), context.strings.processingQueued);
       } else if (result.status == 'processing') {
@@ -145,7 +157,12 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         _setProgress((_progress + 4).clamp(30, 90), context.strings.processingRendering);
       }
     } catch (e) {
-      _stopPollingWithError(userFacingError(e));
+      _pollTransientErrors += 1;
+      if (_pollTransientErrors >= _maxPollTransientErrors) {
+        _stopPollingWithError(userFacingError(e));
+      }
+    } finally {
+      _pollInFlight = false;
     }
   }
 

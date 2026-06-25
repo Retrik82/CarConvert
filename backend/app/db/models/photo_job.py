@@ -31,6 +31,8 @@ class PhotoJob(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     charged_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    enqueued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="photo_jobs")

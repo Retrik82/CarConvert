@@ -78,7 +78,8 @@ class Settings(BaseSettings):
     use_arq_worker: bool = False
     openrouter_max_retries: int = 2
     process_job_deadline_sec: int = 300
-    queued_job_deadline_sec: int = 30
+    # Max time a job may wait in queue before stale cleanup (scales with backlog capacity).
+    queued_job_deadline_sec: int = 0
     max_queue_size: int = 50
     max_active_jobs_per_user: int = 2
     photo_rate_limit_max: int = 10
@@ -99,6 +100,14 @@ class Settings(BaseSettings):
     @property
     def redis_enabled(self) -> bool:
         return bool(self.redis_url.strip())
+
+    @property
+    def queued_max_wait_sec(self) -> int:
+        """Worst-case queue wait before a job should be considered stuck."""
+        if self.queued_job_deadline_sec > 0:
+            return self.queued_job_deadline_sec
+        slots = max(1, self.process_max_concurrent)
+        return int(self.max_queue_size / slots * self.process_job_deadline_sec) + 120
 
 
 @lru_cache

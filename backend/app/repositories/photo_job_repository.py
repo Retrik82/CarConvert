@@ -88,15 +88,44 @@ class PhotoJobRepository:
         queued_older_than: datetime,
         processing_older_than: datetime,
         user_id: str | None = None,
+        never_enqueued_older_than: datetime | None = None,
     ) -> list[PhotoJob]:
         from sqlalchemy import and_, or_
+
+        queued_conditions = [
+            and_(
+                PhotoJob.status == "queued",
+                PhotoJob.enqueued_at.is_not(None),
+                PhotoJob.enqueued_at < queued_older_than,
+            ),
+        ]
+        if never_enqueued_older_than is not None:
+            queued_conditions.append(
+                and_(
+                    PhotoJob.status == "queued",
+                    PhotoJob.enqueued_at.is_(None),
+                    PhotoJob.created_at < never_enqueued_older_than,
+                )
+            )
 
         query = (
             select(PhotoJob)
             .where(
                 or_(
-                    and_(PhotoJob.status == "queued", PhotoJob.created_at < queued_older_than),
-                    and_(PhotoJob.status == "processing", PhotoJob.created_at < processing_older_than),
+                    *queued_conditions,
+                    and_(
+                        PhotoJob.status == "processing",
+                        or_(
+                            and_(
+                                PhotoJob.processing_started_at.is_not(None),
+                                PhotoJob.processing_started_at < processing_older_than,
+                            ),
+                            and_(
+                                PhotoJob.processing_started_at.is_(None),
+                                PhotoJob.created_at < processing_older_than,
+                            ),
+                        ),
+                    ),
                 )
             )
             .order_by(PhotoJob.created_at.asc())
@@ -105,6 +134,17 @@ class PhotoJobRepository:
             query = query.where(PhotoJob.user_id == user_id)
         result = await self._db.execute(query)
         return list(result.scalars().all())
+
+    async def mark_enqueued(self, job: PhotoJob, *, enqueued_at: datetime) -> PhotoJob:
+        job.enqueued_at = enqueued_at
+        await self._db.flush()
+        return job
+
+    async def mark_processing(self, job: PhotoJob, *, started_at: datetime) -> PhotoJob:
+        job.status = "processing"
+        job.processing_started_at = started_at
+        await self._db.flush()
+        return job
 
     async def list_by_status(self, status: str, *, limit: int = 100) -> list[PhotoJob]:
         result = await self._db.execute(

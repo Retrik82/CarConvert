@@ -20,6 +20,35 @@ _enqueued_job_ids: set[str] = set()
 _enqueue_lock = asyncio.Lock()
 
 
+def is_job_enqueued(job_id: str) -> bool:
+    return job_id in _enqueued_job_ids
+
+
+async def mark_job_enqueued(job_id: str) -> None:
+    """Persist enqueue timestamp so stale checks measure queue wait, not upload time."""
+    from datetime import datetime, timezone
+
+    from app.db.session import AsyncSessionLocal
+    from app.repositories.photo_job_repository import PhotoJobRepository
+
+    now = datetime.now(timezone.utc)
+    async with AsyncSessionLocal() as db:
+        repo = PhotoJobRepository(db)
+        job = await repo.get_by_id(job_id)
+        if job and job.status == "queued":
+            await repo.mark_enqueued(job, enqueued_at=now)
+            await db.commit()
+
+
+async def schedule_reenqueue(job_id: str, user_id: str, *, delay_sec: float = 0.5) -> None:
+    """Re-queue a job after a short delay (e.g. worker ran before DB commit was visible)."""
+    await asyncio.sleep(delay_sec)
+    _enqueued_job_ids.discard(job_id)
+    await _enqueue_local(job_id, user_id)
+    await mark_job_enqueued(job_id)
+    logger.info("Re-enqueued photo job %s for user %s", job_id, user_id)
+
+
 async def _get_arq_pool():
     global _arq_pool
     if _arq_pool is not None:
@@ -92,6 +121,7 @@ async def _enqueue_local(job_id: str, user_id: str) -> None:
         assert _local_queue is not None
         _enqueued_job_ids.add(job_id)
         await _local_queue.put((job_id, user_id))
+    await mark_job_enqueued(job_id)
 
 
 async def enqueue_photo_job(job_id: str, user_id: str) -> None:
@@ -100,6 +130,7 @@ async def enqueue_photo_job(job_id: str, user_id: str) -> None:
         try:
             pool = await _get_arq_pool()
             await pool.enqueue_job("run_photo_job_task", job_id, user_id)
+            await mark_job_enqueued(job_id)
             logger.info("Enqueued photo job %s via ARQ", job_id)
             return
         except Exception as exc:
@@ -121,6 +152,7 @@ async def revive_orphaned_queued_jobs(user_id: str | None = None) -> int:
         jobs = await repo.list_stale_active(
             queued_older_than=cutoff,
             processing_older_than=datetime.min.replace(tzinfo=timezone.utc),
+            never_enqueued_older_than=cutoff,
             user_id=user_id,
         )
 
@@ -128,6 +160,12 @@ async def revive_orphaned_queued_jobs(user_id: str | None = None) -> int:
     for job in jobs:
         if job.status != "queued":
             continue
+        if job.id in _enqueued_job_ids:
+            # Tracked in memory but still queued in DB — may have been dropped from the asyncio queue.
+            if job.enqueued_at and job.enqueued_at < cutoff:
+                _enqueued_job_ids.discard(job.id)
+            else:
+                continue
         await _enqueue_local(job.id, job.user_id)
         revived += 1
     if revived:

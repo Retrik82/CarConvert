@@ -133,6 +133,10 @@ def _migrate_schema(sync_conn) -> None:
                 sync_conn.execute(text(f"ALTER TABLE photo_jobs ADD COLUMN {col} VARCHAR(36)"))
         if "charged_amount" not in job_cols:
             sync_conn.execute(text("ALTER TABLE photo_jobs ADD COLUMN charged_amount NUMERIC(10, 2)"))
+        if "enqueued_at" not in job_cols:
+            sync_conn.execute(text(f"ALTER TABLE photo_jobs ADD COLUMN enqueued_at {ts_type}"))
+        if "processing_started_at" not in job_cols:
+            sync_conn.execute(text(f"ALTER TABLE photo_jobs ADD COLUMN processing_started_at {ts_type}"))
 
 
 async def ensure_db_ready(*, max_attempts: int = 8, delay_sec: float = 2.0) -> None:

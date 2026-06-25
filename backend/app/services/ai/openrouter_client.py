@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from typing import Any
 
 import httpx
@@ -110,6 +111,15 @@ class OpenRouterClient:
             "Content-Type": "application/json",
         }
 
+    @staticmethod
+    def _safe_headers(headers: dict[str, str]) -> dict[str, str]:
+        safe = dict(headers)
+        if "Authorization" in safe:
+            token = safe["Authorization"]
+            if token.startswith("Bearer ") and len(token) > 20:
+                safe["Authorization"] = f"Bearer {token[7:11]}…{token[-4:]}"
+        return safe
+
     async def chat_completion(
         self,
         model: str,
@@ -133,8 +143,18 @@ class OpenRouterClient:
             payload["image_config"] = image_config
         last_error: Exception | None = None
         attempts = settings.openrouter_max_retries + 1
+        headers = self._headers()
         for attempt in range(attempts):
             try:
+                logger.info(
+                    "OpenRouter request start model=%s attempt=%s/%s modalities=%s messages=%s max_tokens=%s",
+                    model,
+                    attempt + 1,
+                    attempts,
+                    modalities,
+                    len(messages),
+                    max_tokens,
+                )
                 # region agent log
                 agent_log(
                     hypothesis_id="D",
@@ -148,11 +168,29 @@ class OpenRouterClient:
                     },
                 )
                 # endregion
+                started = time.perf_counter()
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.post(
                         OPENROUTER_URL,
-                        headers=self._headers(),
+                        headers=headers,
                         json=payload,
+                    )
+                elapsed_ms = int((time.perf_counter() - started) * 1000)
+                request_id = response.headers.get("x-request-id") or response.headers.get("x-openrouter-request-id")
+                logger.info(
+                    "OpenRouter response model=%s status=%s elapsed_ms=%s request_id=%s body_len=%s",
+                    model,
+                    response.status_code,
+                    elapsed_ms,
+                    request_id,
+                    len(response.text),
+                )
+                if response.status_code >= 400:
+                    logger.warning(
+                        "OpenRouter error model=%s status=%s body=%s",
+                        model,
+                        response.status_code,
+                        response.text[:500],
                     )
                 # region agent log
                 agent_log(
@@ -163,6 +201,8 @@ class OpenRouterClient:
                         "model": model,
                         "status_code": response.status_code,
                         "body_preview": response.text[:200],
+                        "elapsed_ms": elapsed_ms,
+                        "request_id": request_id,
                     },
                 )
                 # endregion

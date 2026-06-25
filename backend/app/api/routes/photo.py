@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -216,11 +217,45 @@ async def get_result(
     current_user: User = Depends(get_current_user),
     job_service: JobService = Depends(get_job_service),
 ) -> PhotoResultResponse:
+    job_before = await job_service.get_user_job(job_id, current_user.id)
+    if job_before:
+        # region agent log
+        agent_log(
+            hypothesis_id="A",
+            location="photo.py:get_result",
+            message="poll_before_stale_check",
+            data={
+                "job_id": job_id,
+                "status": job_before.status,
+                "error": job_before.error,
+                "age_sec": round(
+                    (datetime.now(timezone.utc) - job_before.created_at).total_seconds(),
+                    1,
+                ),
+            },
+        )
+        # endregion
+
     await job_service.fail_stale_active_jobs(user_id=current_user.id)
 
     job = await job_service.get_user_job(job_id, current_user.id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
+
+    if job_before and job_before.status != job.status:
+        # region agent log
+        agent_log(
+            hypothesis_id="A",
+            location="photo.py:get_result",
+            message="poll_status_changed_by_stale_check",
+            data={
+                "job_id": job_id,
+                "before": job_before.status,
+                "after": job.status,
+                "error": job.error,
+            },
+        )
+        # endregion
 
     image_base64 = None
     mime_type = job.result_mime_type
