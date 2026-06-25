@@ -47,6 +47,26 @@ FrameCropSpec frameCropForSize(Size size) {
   return size.width > size.height ? landscapeFrameCrop : portraitFrameCrop;
 }
 
+/// Display aspect ratio of the frame guide on a given viewport (matches camera overlay).
+double frameGuideDisplayAspectRatio(Size viewportSize, FrameCropSpec spec) {
+  final cropWidth = viewportSize.width * spec.width;
+  final cropHeight = viewportSize.height * spec.height;
+  if (cropHeight == 0) return 1;
+  return cropWidth / cropHeight;
+}
+
+/// Natural width/height of decoded image bytes, or null when decode fails.
+double? imageAspectRatio(Uint8List bytes) {
+  img.Image? decoded;
+  try {
+    decoded = img.decodeImage(bytes);
+  } catch (_) {
+    return null;
+  }
+  if (decoded == null || decoded.height == 0) return null;
+  return decoded.width / decoded.height;
+}
+
 Uint8List cropToFrameGuide(
   Uint8List bytes, {
   int quality = 92,
@@ -59,6 +79,8 @@ Uint8List cropToFrameGuide(
     return bytes;
   }
   if (decoded == null) return bytes;
+
+  decoded = img.bakeOrientation(decoded);
 
   final spec = crop ?? frameCropForSize(Size(decoded.width.toDouble(), decoded.height.toDouble()));
 

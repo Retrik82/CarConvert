@@ -41,6 +41,10 @@ class BillingService:
         balance = Decimal(str(user.balance))
         await self._users.update_balance(user, balance + amount)
 
+    async def refund_for_generation(self, user: User, amount: Decimal) -> None:
+        balance = Decimal(str(user.balance))
+        await self._users.update_balance(user, balance + amount)
+
 
 async def charge_for_generation(db: AsyncSession, user: User) -> Decimal:
     return await BillingService(db).charge_for_generation(user)

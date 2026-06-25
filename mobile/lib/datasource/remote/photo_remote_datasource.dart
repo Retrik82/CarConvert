@@ -8,6 +8,7 @@ import '../../api/http_client.dart';
 import '../../config/env.dart';
 import '../../models/history_item.dart';
 import '../../models/process_job.dart';
+import '../../utils/error_utils.dart';
 
 class PhotoRemoteDataSource {
   PhotoRemoteDataSource(this._client);
@@ -69,11 +70,19 @@ class PhotoRemoteDataSource {
 
         final response = await _client.sendMultipart(request);
         if (response.statusCode >= 400) {
-          throw Exception('Process failed: ${response.body}');
+          final failure = Exception('Process failed: ${response.body}');
+          if (!isRetryableUploadFailure(statusCode: response.statusCode) || attempt == 1) {
+            throw failure;
+          }
+          lastError = failure;
+          continue;
         }
         return ProcessJob.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
       } catch (e) {
         lastError = e;
+        if (attempt == 1 || !isRetryableUploadFailure(statusCode: 0, error: e)) {
+          break;
+        }
       }
     }
     throw Exception('Не удалось отправить фото на сервер: $lastError');

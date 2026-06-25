@@ -29,6 +29,7 @@ import '../widgets/camera_preview_view.dart';
 import '../widgets/capture_hint_bar.dart';
 import '../widgets/capture_hint_overlay.dart';
 import '../widgets/design_system/app_button.dart';
+import '../widgets/framed_photo_preview.dart';
 import 'backgrounds_screen.dart';
 import 'processing_screen.dart';
 
@@ -353,7 +354,7 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
       final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
       if (picked == null) return;
       final rawBytes = await picked.readAsBytes();
-      final bytes = cropToFrameGuide(rawBytes);
+      final bytes = cropToFrameGuide(rawBytes, crop: _currentFrameCrop());
       setState(() => _galleryPreview = bytes);
       await _processBytes(bytes);
     } catch (e) {
@@ -549,8 +550,9 @@ class _CaptureScreenState extends State<CaptureScreen> with WidgetsBindingObserv
     }
 
     if (_galleryPreview != null) {
-      return Center(
-        child: Image.memory(_galleryPreview!, fit: BoxFit.contain),
+      return FramedPhotoPreview(
+        imageBytes: _galleryPreview!,
+        fit: BoxFit.contain,
       );
     }
 

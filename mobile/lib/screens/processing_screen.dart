@@ -10,8 +10,10 @@ import '../repositories/auth_repository.dart';
 import '../models/background.dart';
 import '../repositories/photo_repository.dart';
 import '../utils/error_utils.dart';
+import '../utils/frame_crop.dart';
 import '../core/theme/page_transitions.dart';
 import '../widgets/design_system/app_button.dart';
+import '../widgets/framed_photo_preview.dart';
 import 'result_screen.dart';
 
 class ProcessingScreen extends StatefulWidget {
@@ -42,6 +44,10 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   String? _jobId;
   double _progress = 0;
   bool _hasError = false;
+  DateTime? _pollStartedAt;
+
+  static const _pollInterval = Duration(seconds: 2);
+  static const _pollTimeout = Duration(minutes: 6);
 
   @override
   void initState() {
@@ -60,7 +66,9 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
 
   Future<void> _start() async {
     _pollTimer?.cancel();
+    _pollStartedAt = null;
     _jobId = null;
+    _hasError = false;
     try {
       _setProgress(5, context.strings.advisorConnecting);
       await Future.wait([
@@ -79,23 +87,44 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       await AuthRepository.instance.refreshCurrentUser();
       widget.onCharged?.call();
       _jobId = job.jobId;
+      _pollStartedAt = DateTime.now();
       _setProgress(25, context.strings.processingQueued);
-      _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());
+      _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
+      await _poll();
     } catch (e) {
       _setProgress(_progress, userFacingError(e), isError: true);
     }
   }
 
+  void _stopPollingWithError(String message) {
+    _pollTimer?.cancel();
+    _setProgress(_progress, message, isError: true);
+    AuthRepository.instance.refreshCurrentUser().then((_) {
+      widget.onCharged?.call();
+    });
+  }
+
   Future<void> _poll() async {
     if (_jobId == null) return;
+
+    final startedAt = _pollStartedAt;
+    if (startedAt != null && DateTime.now().difference(startedAt) > _pollTimeout) {
+      _stopPollingWithError('Processing is taking too long. Please try again.');
+      return;
+    }
+
     try {
       final result = await PhotoRepository.instance.getResult(_jobId!);
       if (result.status == 'queued') {
         _setProgress((_progress + 2).clamp(20, 85), context.strings.processingQueued);
       } else if (result.status == 'processing') {
         _setProgress((_progress + 6).clamp(30, 92), context.strings.processingRendering);
-      } else if (result.isCompleted && result.imageBase64 != null) {
+      } else if (result.isCompleted) {
         _pollTimer?.cancel();
+        if (result.imageBase64 == null) {
+          _setProgress(_progress, 'Result image is missing. Please try again.', isError: true);
+          return;
+        }
         _setProgress(100, 'Complete');
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -111,13 +140,12 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
           ),
         );
       } else if (result.isFailed) {
-        _pollTimer?.cancel();
-        _setProgress(_progress, result.error ?? 'Processing failed', isError: true);
+        _stopPollingWithError(result.error ?? 'Processing failed');
       } else {
         _setProgress((_progress + 4).clamp(30, 90), context.strings.processingRendering);
       }
     } catch (e) {
-      _setProgress(_progress, userFacingError(e), isError: true);
+      _stopPollingWithError(userFacingError(e));
     }
   }
 
@@ -147,11 +175,39 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
             children: [
               const SizedBox(height: DesignTokens.spacing24),
               Expanded(
-                child: _ImagePreview(
+                child: FramedPhotoPreview(
                   imageBytes: widget.imageBytes,
-                  progress: _progress,
-                  hasError: _hasError,
-                  tokens: tokens,
+                  fit: BoxFit.contain,
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
+                    boxShadow: tokens.elevatedShadow,
+                    border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+                    color: tokens.textPrimary.withValues(alpha: 0.92),
+                  ),
+                  overlays: [
+                    if (!_hasError)
+                      Container(
+                        color: tokens.textPrimary.withValues(alpha: 0.35),
+                        child: Center(
+                          child: SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              value: _progress > 0 && _progress < 100 ? _progress / 100 : null,
+                              color: Colors.white,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_hasError)
+                      Container(
+                        color: tokens.error.withValues(alpha: 0.15),
+                        child: Icon(Icons.error_outline_rounded, size: 56, color: tokens.error),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: DesignTokens.spacing32),
@@ -206,63 +262,6 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
               SizedBox(height: MediaQuery.paddingOf(context).bottom + DesignTokens.spacing24),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ImagePreview extends StatelessWidget {
-  final Uint8List imageBytes;
-  final double progress;
-  final bool hasError;
-  final AppTokens tokens;
-
-  const _ImagePreview({
-    required this.imageBytes,
-    required this.progress,
-    required this.hasError,
-    required this.tokens,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
-        boxShadow: tokens.elevatedShadow,
-        border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
-        color: tokens.textPrimary.withValues(alpha: 0.92),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(DesignTokens.radiusHero),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.memory(imageBytes, fit: BoxFit.contain, alignment: Alignment.center),
-            if (!hasError)
-              Container(
-                color: tokens.textPrimary.withValues(alpha: 0.35),
-                child: Center(
-                  child: SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      value: progress > 0 && progress < 100 ? progress / 100 : null,
-                      color: Colors.white,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    ),
-                  ),
-                ),
-              ),
-            if (hasError)
-              Container(
-                color: tokens.error.withValues(alpha: 0.15),
-                child: Icon(Icons.error_outline_rounded, size: 56, color: tokens.error),
-              ),
-          ],
         ),
       ),
     );

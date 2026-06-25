@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,3 +81,14 @@ class PhotoJobRepository:
             .where(PhotoJob.user_id == user_id, PhotoJob.status.in_(_ACTIVE_STATUSES))
         )
         return int(result.scalar_one())
+
+    async def list_stale_active(self, *, older_than: datetime, user_id: str | None = None) -> list[PhotoJob]:
+        query = (
+            select(PhotoJob)
+            .where(PhotoJob.status.in_(_ACTIVE_STATUSES), PhotoJob.created_at < older_than)
+            .order_by(PhotoJob.created_at.asc())
+        )
+        if user_id is not None:
+            query = query.where(PhotoJob.user_id == user_id)
+        result = await self._db.execute(query)
+        return list(result.scalars().all())

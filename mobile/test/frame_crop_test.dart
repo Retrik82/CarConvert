@@ -36,5 +36,14 @@ void main() {
       final invalid = Uint8List.fromList([1, 2, 3, 4]);
       expect(cropToFrameGuide(invalid), invalid);
     });
+
+    test('imageAspectRatio returns width over height', () {
+      final source = img.Image(width: 1600, height: 900);
+      img.fill(source, color: img.ColorRgb8(10, 20, 30));
+      final input = Uint8List.fromList(img.encodeJpg(source));
+
+      expect(imageAspectRatio(input), closeTo(1600 / 900, 0.001));
+      expect(imageAspectRatio(Uint8List.fromList([1, 2, 3])), isNull);
+    });
   });
 }

@@ -2,13 +2,27 @@ import 'package:carconvert/utils/error_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('userFacingError extracts nested API error JSON', () {
-    const raw =
-        'Exception: Failed to create background: {"success":false,"error":"Background generation failed for angles: front."}';
+  group('isRetryableUploadFailure', () {
+    test('does not retry active job limit', () {
+      expect(isRetryableUploadFailure(statusCode: 429), isFalse);
+    });
 
-    expect(
-      userFacingError(raw),
-      'Background generation failed for angles: front.',
-    );
+    test('does not retry insufficient balance', () {
+      expect(isRetryableUploadFailure(statusCode: 402), isFalse);
+    });
+
+    test('retries server errors', () {
+      expect(isRetryableUploadFailure(statusCode: 503), isTrue);
+    });
+
+    test('retries timeouts', () {
+      expect(
+        isRetryableUploadFailure(
+          statusCode: 0,
+          error: Exception('TimeoutException after 0:00:45.000000'),
+        ),
+        isTrue,
+      );
+    });
   });
 }

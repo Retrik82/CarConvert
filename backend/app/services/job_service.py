@@ -1,6 +1,7 @@
 import base64
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.models.photo_job import PhotoJob
 from app.repositories.photo_job_repository import PhotoJobRepository
+from app.repositories.user_repository import UserRepository
 from app.services.background_service import BackgroundService, process_photo_with_background
+from app.services.billing_service import BillingService
 from app.utils.image_utils import crop_to_frame_guide, to_data_url
 
 logger = logging.getLogger(__name__)
@@ -37,6 +40,7 @@ class JobService:
         background_variant_id: str | None = None,
         user_background_id: str | None = None,
         user_background_variant_id: str | None = None,
+        charged_amount: Decimal | None = None,
     ) -> PhotoJob:
         job = PhotoJob(
             user_id=user_id,
@@ -46,6 +50,7 @@ class JobService:
             background_variant_id=background_variant_id,
             user_background_id=user_background_id,
             user_background_variant_id=user_background_variant_id,
+            charged_amount=charged_amount,
         )
         await self._jobs.create(job)
 
@@ -57,6 +62,30 @@ class JobService:
         job.original_path = str(original_path)
         await self._jobs.update(job)
         return job
+
+    async def fail_stale_active_jobs(self, user_id: str | None = None) -> int:
+        """Mark long-running queued/processing jobs as failed and refund charges."""
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.process_job_deadline_sec)
+        stale_jobs = await self._jobs.list_stale_active(older_than=cutoff, user_id=user_id)
+        if not stale_jobs:
+            return 0
+
+        billing = BillingService(self._db)
+        users = UserRepository(self._db)
+        failed = 0
+        for job in stale_jobs:
+            await self._jobs.update_status(
+                job,
+                status="failed",
+                error="Job timed out. Please try again.",
+                completed_at=datetime.now(timezone.utc),
+            )
+            if job.charged_amount:
+                user = await users.get_by_id(job.user_id)
+                if user:
+                    await billing.refund_for_generation(user, Decimal(str(job.charged_amount)))
+            failed += 1
+        return failed
 
     async def get_user_job(self, job_id: str, user_id: str) -> PhotoJob | None:
         return await self._jobs.get_for_user(job_id, user_id)
@@ -83,6 +112,33 @@ async def list_user_history(db: AsyncSession, user_id: str, limit: int = 50, off
     return await JobService(db).list_user_history(user_id, limit=limit, offset=offset)
 
 
+async def _refund_job_charge(db: AsyncSession, job: PhotoJob) -> None:
+    if not job.charged_amount:
+        return
+    user = await UserRepository(db).get_by_id(job.user_id)
+    if not user:
+        return
+    await BillingService(db).refund_for_generation(user, Decimal(str(job.charged_amount)))
+
+
+async def _fail_job(
+    db: AsyncSession,
+    job: PhotoJob,
+    *,
+    error: str,
+    refund: bool = True,
+) -> None:
+    service = JobService(db)
+    await service._jobs.update_status(
+        job,
+        status="failed",
+        error=error,
+        completed_at=datetime.now(timezone.utc),
+    )
+    if refund:
+        await _refund_job_charge(db, job)
+
+
 async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
     from app.db.session import AsyncSessionLocal
     from app.services.ai.concurrency import process_slot
@@ -91,7 +147,14 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
         async with AsyncSessionLocal() as db:
             service = JobService(db)
             job = await service.get_user_job(job_id, user_id)
-            if not job or not job.original_path:
+            if not job:
+                logger.warning("Photo job %s not found for user %s", job_id, user_id)
+                return
+
+            if not job.original_path or not Path(job.original_path).is_file():
+                logger.error("Photo job %s is missing original image", job_id)
+                await _fail_job(db, job, error="Original image is missing. Please upload again.")
+                await db.commit()
                 return
 
             await service._jobs.update_status(job, status="processing")
@@ -147,11 +210,6 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                 )
             except Exception as exc:
                 logger.exception("Photo job %s failed", job_id)
-                await service._jobs.update_status(
-                    job,
-                    status="failed",
-                    error=str(exc),
-                    completed_at=datetime.now(timezone.utc),
-                )
+                await _fail_job(db, job, error=str(exc))
 
             await db.commit()

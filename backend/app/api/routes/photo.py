@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 async def _check_backpressure(job_service: JobService, user_id: str) -> None:
+    await job_service.fail_stale_active_jobs(user_id=user_id)
+
     active_for_user = await job_service._jobs.count_active_for_user(user_id)
     if active_for_user >= settings.max_active_jobs_per_user:
         raise HTTPException(
@@ -77,7 +79,7 @@ async def process_photo(
         raise HTTPException(status_code=status, detail=message) from exc
 
     try:
-        await billing.charge_for_generation(current_user)
+        charged_amount = await billing.charge_for_generation(current_user)
     except InsufficientBalanceError as exc:
         raise HTTPException(
             status_code=402,
@@ -99,6 +101,7 @@ async def process_photo(
         background_variant_id=background_variant_id,
         user_background_id=user_background_id,
         user_background_variant_id=user_background_variant_id,
+        charged_amount=charged_amount,
     )
 
     await enqueue_photo_job(job.id, current_user.id)
@@ -131,7 +134,7 @@ async def recomposite_photo(
         raise HTTPException(status_code=400, detail="No saved cutout for this job. Process a new photo first.")
 
     try:
-        await billing.charge_for_generation(current_user)
+        charged_amount = await billing.charge_for_generation(current_user)
     except InsufficientBalanceError as exc:
         raise HTTPException(
             status_code=402,
@@ -153,6 +156,7 @@ async def recomposite_photo(
         background_variant_id=background_variant_id,
         user_background_id=user_background_id,
         user_background_variant_id=user_background_variant_id,
+        charged_amount=charged_amount,
     )
 
     await enqueue_photo_job(job.id, current_user.id)
@@ -165,6 +169,8 @@ async def get_result(
     current_user: User = Depends(get_current_user),
     job_service: JobService = Depends(get_job_service),
 ) -> PhotoResultResponse:
+    await job_service.fail_stale_active_jobs(user_id=current_user.id)
+
     job = await job_service.get_user_job(job_id, current_user.id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")

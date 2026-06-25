@@ -131,7 +131,8 @@ class OpenRouterClient:
         if image_config:
             payload["image_config"] = image_config
         last_error: Exception | None = None
-        for attempt in range(3):
+        attempts = settings.openrouter_max_retries + 1
+        for attempt in range(attempts):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.post(
@@ -139,7 +140,7 @@ class OpenRouterClient:
                         headers=self._headers(),
                         json=payload,
                     )
-                if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
+                if response.status_code in {429, 500, 502, 503, 504} and attempt < attempts - 1:
                     await asyncio.sleep(0.5 * (2**attempt))
                     continue
                 if response.status_code >= 400:
@@ -149,7 +150,7 @@ class OpenRouterClient:
                 return response.json()
             except (httpx.TimeoutException, httpx.RequestError) as exc:
                 last_error = exc
-                if attempt < 2:
+                if attempt < attempts - 1:
                     await asyncio.sleep(0.5 * (2**attempt))
                     continue
                 raise RuntimeError(f"OpenRouter network error: {exc}") from exc
