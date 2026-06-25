@@ -1,4 +1,6 @@
 import asyncio
+from decimal import Decimal
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -38,3 +40,30 @@ async def test_enqueue_uses_local_workers_when_arq_disabled(monkeypatch) -> None
 
     assert job_id == "job-1"
     assert user_id == "user-1"
+
+
+@pytest.mark.asyncio
+async def test_worker_waits_for_committed_job(monkeypatch) -> None:
+    """Worker must not exit before the HTTP transaction commits the new job."""
+    monkeypatch.setenv("USE_ARQ_WORKER", "0")
+    get_settings.cache_clear()
+
+    visible = asyncio.Event()
+    started = asyncio.Event()
+
+    async def fake_run(job_id: str, user_id: str, api_key: str) -> None:
+        started.set()
+        await visible.wait()
+
+    monkeypatch.setattr("app.services.job_service.run_photo_job", fake_run)
+
+    await shutdown_queue()
+    _enqueued_job_ids.clear()
+    await start_local_queue_workers()
+
+    await enqueue_photo_job("job-race", "user-1")
+    await asyncio.wait_for(started.wait(), timeout=2.0)
+
+    visible.set()
+    await asyncio.sleep(0.05)
+    await shutdown_queue()

@@ -99,6 +99,33 @@ async def enqueue_photo_job(job_id: str, user_id: str) -> None:
     await _enqueue_local(job_id, user_id)
 
 
+async def revive_orphaned_queued_jobs(user_id: str | None = None) -> int:
+    """Re-enqueue queued jobs that were never picked up (e.g. pre-commit race)."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.db.session import AsyncSessionLocal
+    from app.repositories.photo_job_repository import PhotoJobRepository
+
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=3)
+    async with AsyncSessionLocal() as db:
+        repo = PhotoJobRepository(db)
+        jobs = await repo.list_stale_active(
+            queued_older_than=cutoff,
+            processing_older_than=datetime.min.replace(tzinfo=timezone.utc),
+            user_id=user_id,
+        )
+
+    revived = 0
+    for job in jobs:
+        if job.status != "queued":
+            continue
+        await _enqueue_local(job.id, job.user_id)
+        revived += 1
+    if revived:
+        logger.info("Revived %s orphaned queued photo job(s)", revived)
+    return revived
+
+
 async def recover_stuck_queued_jobs() -> int:
     """Re-enqueue DB jobs stuck in 'queued' after restarts or failed ARQ delivery."""
     from app.db.session import AsyncSessionLocal

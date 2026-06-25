@@ -78,6 +78,7 @@ class Settings(BaseSettings):
     use_arq_worker: bool = False
     openrouter_max_retries: int = 2
     process_job_deadline_sec: int = 300
+    queued_job_deadline_sec: int = 30
     max_queue_size: int = 50
     max_active_jobs_per_user: int = 2
     photo_rate_limit_max: int = 10

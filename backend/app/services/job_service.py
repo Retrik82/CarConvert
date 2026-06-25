@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 from datetime import datetime, timedelta, timezone
@@ -65,8 +66,14 @@ class JobService:
 
     async def fail_stale_active_jobs(self, user_id: str | None = None) -> int:
         """Mark long-running queued/processing jobs as failed and refund charges."""
-        cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.process_job_deadline_sec)
-        stale_jobs = await self._jobs.list_stale_active(older_than=cutoff, user_id=user_id)
+        now = datetime.now(timezone.utc)
+        queued_cutoff = now - timedelta(seconds=settings.queued_job_deadline_sec)
+        processing_cutoff = now - timedelta(seconds=settings.process_job_deadline_sec)
+        stale_jobs = await self._jobs.list_stale_active(
+            queued_older_than=queued_cutoff,
+            processing_older_than=processing_cutoff,
+            user_id=user_id,
+        )
         if not stale_jobs:
             return 0
 
@@ -146,9 +153,19 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
     async with process_slot():
         async with AsyncSessionLocal() as db:
             service = JobService(db)
-            job = await service.get_user_job(job_id, user_id)
+            job = None
+            for attempt in range(10):
+                job = await service.get_user_job(job_id, user_id)
+                if job:
+                    break
+                await asyncio.sleep(0.1 * (attempt + 1))
+
             if not job:
-                logger.warning("Photo job %s not found for user %s", job_id, user_id)
+                logger.error(
+                    "Photo job %s not found for user %s after retries",
+                    job_id,
+                    user_id,
+                )
                 return
 
             if not job.original_path or not Path(job.original_path).is_file():

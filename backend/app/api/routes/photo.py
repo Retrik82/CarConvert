@@ -2,13 +2,15 @@ import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_background_service, get_billing_service, get_current_user, get_job_service, get_session_service
 from app.config import get_settings
 from app.db.models.user import User
+from app.db.session import get_db
 from app.middleware.rate_limit import enforce_photo_rate_limit
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
-from app.queue import enqueue_photo_job, get_queue_depth
+from app.queue import enqueue_photo_job, get_queue_depth, revive_orphaned_queued_jobs
 from app.services.billing_service import BillingService, InsufficientBalanceError
 from app.services.background_service import BackgroundService
 from app.services.job_service import JobService
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _check_backpressure(job_service: JobService, user_id: str) -> None:
+    await revive_orphaned_queued_jobs(user_id=user_id)
     await job_service.fail_stale_active_jobs(user_id=user_id)
 
     active_for_user = await job_service._jobs.count_active_for_user(user_id)
@@ -56,6 +59,7 @@ async def process_photo(
     session_service: SessionService = Depends(get_session_service),
     job_service: JobService = Depends(get_job_service),
     backgrounds: BackgroundService = Depends(get_background_service),
+    db: AsyncSession = Depends(get_db),
 ) -> ProcessJobResponse:
     if not settings.openrouter_api_key or settings.openrouter_api_key == "your_key_here":
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is not configured.")
@@ -104,6 +108,7 @@ async def process_photo(
         charged_amount=charged_amount,
     )
 
+    await db.commit()
     await enqueue_photo_job(job.id, current_user.id)
     return ProcessJobResponse(job_id=job.id, status=job.status)
 
@@ -120,6 +125,7 @@ async def recomposite_photo(
     billing: BillingService = Depends(get_billing_service),
     job_service: JobService = Depends(get_job_service),
     backgrounds: BackgroundService = Depends(get_background_service),
+    db: AsyncSession = Depends(get_db),
 ) -> ProcessJobResponse:
     """Re-composite a saved cutout onto a different background without re-shooting."""
     await enforce_photo_rate_limit(current_user.id)
@@ -159,6 +165,7 @@ async def recomposite_photo(
         charged_amount=charged_amount,
     )
 
+    await db.commit()
     await enqueue_photo_job(job.id, current_user.id)
     return ProcessJobResponse(job_id=job.id, status=job.status)
 

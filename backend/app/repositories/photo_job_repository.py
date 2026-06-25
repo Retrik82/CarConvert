@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,6 +82,30 @@ class PhotoJobRepository:
         )
         return int(result.scalar_one())
 
+    async def list_stale_active(
+        self,
+        *,
+        queued_older_than: datetime,
+        processing_older_than: datetime,
+        user_id: str | None = None,
+    ) -> list[PhotoJob]:
+        from sqlalchemy import and_, or_
+
+        query = (
+            select(PhotoJob)
+            .where(
+                or_(
+                    and_(PhotoJob.status == "queued", PhotoJob.created_at < queued_older_than),
+                    and_(PhotoJob.status == "processing", PhotoJob.created_at < processing_older_than),
+                )
+            )
+            .order_by(PhotoJob.created_at.asc())
+        )
+        if user_id is not None:
+            query = query.where(PhotoJob.user_id == user_id)
+        result = await self._db.execute(query)
+        return list(result.scalars().all())
+
     async def list_by_status(self, status: str, *, limit: int = 100) -> list[PhotoJob]:
         result = await self._db.execute(
             select(PhotoJob)
@@ -89,15 +113,4 @@ class PhotoJobRepository:
             .order_by(PhotoJob.created_at.asc())
             .limit(limit)
         )
-        return list(result.scalars().all())
-
-    async def list_stale_active(self, *, older_than: datetime, user_id: str | None = None) -> list[PhotoJob]:
-        query = (
-            select(PhotoJob)
-            .where(PhotoJob.status.in_(_ACTIVE_STATUSES), PhotoJob.created_at < older_than)
-            .order_by(PhotoJob.created_at.asc())
-        )
-        if user_id is not None:
-            query = query.where(PhotoJob.user_id == user_id)
-        result = await self._db.execute(query)
         return list(result.scalars().all())
