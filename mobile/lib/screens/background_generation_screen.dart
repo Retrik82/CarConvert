@@ -41,6 +41,7 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
   BackgroundPreset? _result;
   Timer? _progressTimer;
   bool _syncedBalanceAfterRun = false;
+  bool _apiCallStarted = false;
 
   @override
   void initState() {
@@ -57,15 +58,19 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
   void _tickProgress() {
     if (!mounted || _phase != _GenerationPhase.processing) return;
     setState(() {
-      if (_progress < 88) {
-        _progress = (_progress + 2.5).clamp(0, 88);
+      final maxProgress = _apiCallStarted ? 95.0 : 28.0;
+      if (_progress < maxProgress) {
+        final step = _apiCallStarted ? 2.0 : 1.5;
+        _progress = (_progress + step).clamp(0, maxProgress);
       }
     });
   }
 
   Future<void> _startGeneration() async {
     final s = context.strings;
+    final auth = AuthRepository.instance;
     _syncedBalanceAfterRun = false;
+    _apiCallStarted = false;
     _progressTimer?.cancel();
     setState(() {
       _phase = _GenerationPhase.processing;
@@ -78,24 +83,27 @@ class _BackgroundGenerationScreenState extends State<BackgroundGenerationScreen>
     _progressTimer = Timer.periodic(const Duration(milliseconds: 400), (_) => _tickProgress());
 
     try {
-      // Warm up Render (cold start can exceed the default 45s API timeout).
-      await AuthRepository.instance.httpClient.wakeServer(
-        attempts: 5,
-        requestTimeout: const Duration(minutes: 2),
-      );
+      // Short warm-up + auth in parallel. The generation POST has a 15 min timeout
+      // and itself wakes cold hosts — no need for multi-minute blocking here.
+      await Future.wait([
+        auth.ensureSessionReady(),
+        auth.httpClient.wakeServer(
+          attempts: 2,
+          requestTimeout: const Duration(seconds: 60),
+        ),
+      ]);
 
-      final user = AuthRepository.instance.currentUser;
-      if (user == null) {
-        throw Exception('Not logged in');
-      }
+      final user = await auth.refreshCurrentUser();
       if (user.balance < widget.priceUsd) {
         throw Exception(
           'Insufficient balance. Need ${MoneyFormat.usd(widget.priceUsd)}, available ${MoneyFormat.usd(user.balance)}',
         );
       }
 
+      if (!mounted) return;
       setState(() {
-        _progress = 20;
+        _apiCallStarted = true;
+        _progress = 32;
         _status = s.backgroundGeneratingAngles;
       });
 

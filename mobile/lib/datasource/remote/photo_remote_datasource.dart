@@ -38,7 +38,12 @@ class PhotoRemoteDataSource {
   }) async {
     Object? lastError;
     for (var attempt = 0; attempt < 2; attempt++) {
-      if (attempt > 0) await _client.wakeServer();
+      if (attempt > 0) {
+        await _client.wakeServer(
+          attempts: 2,
+          requestTimeout: const Duration(seconds: 60),
+        );
+      }
       try {
         final request = http.MultipartRequest(
           'POST',

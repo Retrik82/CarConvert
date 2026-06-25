@@ -97,6 +97,24 @@ class AuthRepository {
     return user;
   }
 
+  /// Ensures a valid access token before long-running API calls.
+  Future<void> ensureSessionReady({
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    if (_refreshToken == null) {
+      throw Exception('Not logged in');
+    }
+    if (_accessToken != null) return;
+
+    final refreshed = await refreshAccessToken().timeout(
+      timeout,
+      onTimeout: () => false,
+    );
+    if (!refreshed || _accessToken == null) {
+      throw Exception('Not logged in');
+    }
+  }
+
   Future<Map<String, String>> _buildAuthHeaders({bool json = true}) async {
     final headers = <String, String>{};
     if (json) headers['Content-Type'] = 'application/json';

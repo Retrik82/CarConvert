@@ -15,7 +15,11 @@ class PhotoRepository {
   late final PhotoRemoteDataSource _remote;
 
   Future<void> wakeServer({int attempts = 3}) =>
-      AuthRepository.instance.httpClient.wakeServer(attempts: attempts);
+      AuthRepository.instance.httpClient.wakeServer(
+        attempts: attempts,
+        requestTimeout: const Duration(seconds: 60),
+        required: true,
+      );
 
   Future<String> startSession() => _remote.startSession();
 

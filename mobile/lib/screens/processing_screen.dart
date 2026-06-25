@@ -62,8 +62,11 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     _pollTimer?.cancel();
     _jobId = null;
     try {
-      _setProgress(5, 'Connecting to server...');
-      await PhotoRepository.instance.wakeServer();
+      _setProgress(5, context.strings.advisorConnecting);
+      await Future.wait([
+        AuthRepository.instance.ensureSessionReady(),
+        PhotoRepository.instance.wakeServer(attempts: 2),
+      ]);
       _setProgress(15, 'Uploading image...');
       final job = await PhotoRepository.instance.processPhoto(
         widget.imageBytes,
@@ -88,9 +91,9 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     try {
       final result = await PhotoRepository.instance.getResult(_jobId!);
       if (result.status == 'queued') {
-        _setProgress((_progress + 3).clamp(20, 40), context.strings.processingQueued);
+        _setProgress((_progress + 2).clamp(20, 85), context.strings.processingQueued);
       } else if (result.status == 'processing') {
-        _setProgress((_progress + 8).clamp(40, 90), context.strings.processingRendering);
+        _setProgress((_progress + 6).clamp(30, 92), context.strings.processingRendering);
       } else if (result.isCompleted && result.imageBase64 != null) {
         _pollTimer?.cancel();
         _setProgress(100, 'Complete');
@@ -111,7 +114,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         _pollTimer?.cancel();
         _setProgress(_progress, result.error ?? 'Processing failed', isError: true);
       } else {
-        _setProgress((_progress + 5).clamp(40, 85), context.strings.processingRendering);
+        _setProgress((_progress + 4).clamp(30, 90), context.strings.processingRendering);
       }
     } catch (e) {
       _setProgress(_progress, userFacingError(e), isError: true);

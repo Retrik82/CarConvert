@@ -121,7 +121,7 @@ class _BeginnerGuideScreenState extends State<BeginnerGuideScreen> {
                 onPressed: _finish,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

@@ -139,17 +139,34 @@ class HttpClient {
 
   Future<Map<String, String>> authHeaders({bool json = true}) => _buildAuthHeaders(json: json);
 
+  /// Pings `/health` to wake cold-hosted APIs. Throws when [required] and all attempts fail.
   Future<void> wakeServer({
     int attempts = 3,
     Duration requestTimeout = const Duration(seconds: 45),
+    bool required = false,
   }) async {
     final uri = Uri.parse('${Env.apiBaseUrl}/health');
+    Object? lastError;
     for (var i = 0; i < attempts; i++) {
       try {
         final response = await http.get(uri).timeout(requestTimeout);
         if (response.statusCode == 200) return;
-      } catch (_) {}
-      await Future<void>.delayed(Duration(seconds: 2 * (i + 1)));
+        lastError = Exception('Health check returned ${response.statusCode}');
+      } catch (e) {
+        lastError = e;
+      }
+      if (i < attempts - 1) {
+        await Future<void>.delayed(Duration(seconds: 1 + i));
+      }
+    }
+    if (required) {
+      throw Exception(
+        'Сервер не отвечает. Откройте ${Env.apiBaseUrl}/health в браузере.',
+      );
+    }
+    if (lastError != null) {
+      // Best-effort warm-up — caller may still try the main request.
+      return;
     }
   }
 }
