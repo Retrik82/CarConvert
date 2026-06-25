@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.config import get_settings
+from app.utils.debug_log import agent_log
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -134,12 +135,37 @@ class OpenRouterClient:
         attempts = settings.openrouter_max_retries + 1
         for attempt in range(attempts):
             try:
+                # region agent log
+                agent_log(
+                    hypothesis_id="D",
+                    location="openrouter_client.py:chat_completion",
+                    message="http_post_start",
+                    data={
+                        "model": model,
+                        "attempt": attempt + 1,
+                        "api_key_len": len(self.api_key or ""),
+                        "has_modalities": bool(modalities),
+                    },
+                )
+                # endregion
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.post(
                         OPENROUTER_URL,
                         headers=self._headers(),
                         json=payload,
                     )
+                # region agent log
+                agent_log(
+                    hypothesis_id="D",
+                    location="openrouter_client.py:chat_completion",
+                    message="http_post_done",
+                    data={
+                        "model": model,
+                        "status_code": response.status_code,
+                        "body_preview": response.text[:200],
+                    },
+                )
+                # endregion
                 if response.status_code in {429, 500, 502, 503, 504} and attempt < attempts - 1:
                     await asyncio.sleep(0.5 * (2**attempt))
                     continue

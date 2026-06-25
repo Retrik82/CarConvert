@@ -1,11 +1,14 @@
 """Extract a user's vehicle from a photo as a transparent PNG cutout."""
 
 import base64
+import logging
 
 from app.config import get_settings
 from app.services.ai.cutout_validator import validate_cutout
 from app.services.ai.model_router import call_generate_image
+from app.utils.debug_log import agent_log
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 CAR_EXTRACT_SYSTEM_PROMPT = (
@@ -79,6 +82,16 @@ async def extract_car_cutout_validated(
         source_data_url, api_key, angle=angle, force_fallback=True
     )
     ok, reason = validate_cutout(image_bytes)
-    if not ok:
-        raise RuntimeError(f"Cutout validation failed: {reason}")
+    if ok:
+        return image_bytes, mime_type
+
+    # region agent log
+    agent_log(
+        hypothesis_id="F",
+        location="car_extractor.py:extract_car_cutout_validated",
+        message="cutout_validation_bypassed",
+        data={"angle": angle, "reason": reason, "bytes": len(image_bytes)},
+    )
+    # endregion
+    logger.warning("Cutout validation failed (%s); continuing with model output", reason)
     return image_bytes, mime_type

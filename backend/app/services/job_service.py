@@ -14,6 +14,7 @@ from app.repositories.user_repository import UserRepository
 from app.services.background_service import BackgroundService, process_photo_with_background
 from app.services.billing_service import BillingService
 from app.utils.image_utils import crop_to_frame_guide, to_data_url
+from app.utils.debug_log import agent_log
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -150,6 +151,20 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
     from app.db.session import AsyncSessionLocal
     from app.services.ai.concurrency import process_slot
 
+    # region agent log
+    agent_log(
+        hypothesis_id="B",
+        location="job_service.py:run_photo_job",
+        message="worker_started",
+        data={
+            "job_id": job_id,
+            "user_id": user_id,
+            "api_key_len": len(api_key or ""),
+            "api_key_set": bool(api_key and api_key != "your_key_here"),
+        },
+    )
+    # endregion
+
     async with process_slot():
         async with AsyncSessionLocal() as db:
             service = JobService(db)
@@ -161,6 +176,14 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                 await asyncio.sleep(0.1 * (attempt + 1))
 
             if not job:
+                # region agent log
+                agent_log(
+                    hypothesis_id="B",
+                    location="job_service.py:run_photo_job",
+                    message="job_not_found_after_retries",
+                    data={"job_id": job_id, "user_id": user_id},
+                )
+                # endregion
                 logger.error(
                     "Photo job %s not found for user %s after retries",
                     job_id,
@@ -169,6 +192,14 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                 return
 
             if not job.original_path or not Path(job.original_path).is_file():
+                # region agent log
+                agent_log(
+                    hypothesis_id="C",
+                    location="job_service.py:run_photo_job",
+                    message="missing_original_file",
+                    data={"job_id": job_id, "original_path": job.original_path},
+                )
+                # endregion
                 logger.error("Photo job %s is missing original image", job_id)
                 await _fail_job(db, job, error="Original image is missing. Please upload again.")
                 await db.commit()
@@ -196,7 +227,23 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
 
                 from app.services.ai.pose_classifier import classify_car_pose_angle
 
+                # region agent log
+                agent_log(
+                    hypothesis_id="D",
+                    location="job_service.py:run_photo_job",
+                    message="before_openrouter_pose",
+                    data={"job_id": job_id, "image_bytes": len(image_bytes)},
+                )
+                # endregion
                 detected_angle = await classify_car_pose_angle(data_url, api_key)
+                # region agent log
+                agent_log(
+                    hypothesis_id="D",
+                    location="job_service.py:run_photo_job",
+                    message="after_openrouter_pose",
+                    data={"job_id": job_id, "angle": detected_angle},
+                )
+                # endregion
                 resolved = await background_service.resolve_variant_for_job(
                     preset_id=job.background_preset_id,
                     preset_variant_id=job.background_variant_id,
@@ -226,6 +273,14 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                     completed_at=datetime.now(timezone.utc),
                 )
             except Exception as exc:
+                # region agent log
+                agent_log(
+                    hypothesis_id="D",
+                    location="job_service.py:run_photo_job",
+                    message="job_failed",
+                    data={"job_id": job_id, "error": str(exc)[:500]},
+                )
+                # endregion
                 logger.exception("Photo job %s failed", job_id)
                 await _fail_job(db, job, error=str(exc))
 

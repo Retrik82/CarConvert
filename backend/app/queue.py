@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from app.config import get_settings
+from app.utils.debug_log import agent_log
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -36,6 +37,14 @@ async def _local_worker_loop(worker_id: int) -> None:
 
     while True:
         job_id, user_id = await _local_queue.get()
+        # region agent log
+        agent_log(
+            hypothesis_id="B",
+            location="queue.py:_local_worker_loop",
+            message="worker_picked_job",
+            data={"worker_id": worker_id, "job_id": job_id, "user_id": user_id},
+        )
+        # endregion
         try:
             await run_photo_job(job_id, user_id, settings.openrouter_api_key)
         except Exception as exc:

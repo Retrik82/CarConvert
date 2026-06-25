@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.middleware.rate_limit import enforce_photo_rate_limit
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
 from app.queue import enqueue_photo_job, get_queue_depth, revive_orphaned_queued_jobs
+from app.utils.debug_log import agent_log
 from app.services.billing_service import BillingService, InsufficientBalanceError
 from app.services.background_service import BackgroundService
 from app.services.job_service import JobService
@@ -62,10 +63,28 @@ async def process_photo(
     db: AsyncSession = Depends(get_db),
 ) -> ProcessJobResponse:
     if not settings.openrouter_api_key or settings.openrouter_api_key == "your_key_here":
+        # region agent log
+        agent_log(
+            hypothesis_id="E",
+            location="photo.py:process_photo",
+            message="blocked_no_api_key",
+            data={"key_configured": bool(settings.openrouter_api_key)},
+        )
+        # endregion
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is not configured.")
 
     await enforce_photo_rate_limit(current_user.id)
     await _check_backpressure(job_service, current_user.id)
+
+    active_for_log = await job_service._jobs.count_active_for_user(current_user.id)
+    # region agent log
+    agent_log(
+        hypothesis_id="A",
+        location="photo.py:process_photo",
+        message="after_backpressure",
+        data={"user_id": current_user.id, "active_jobs": active_for_log},
+    )
+    # endregion
 
     if session_id:
         session = await session_service.get_active_session(session_id, current_user.id)
@@ -109,7 +128,28 @@ async def process_photo(
     )
 
     await db.commit()
+    # region agent log
+    agent_log(
+        hypothesis_id="B",
+        location="photo.py:process_photo",
+        message="committed_before_enqueue",
+        data={
+            "job_id": job.id,
+            "user_id": current_user.id,
+            "original_exists": bool(job.original_path and Path(job.original_path).is_file()),
+            "original_path": job.original_path,
+        },
+    )
+    # endregion
     await enqueue_photo_job(job.id, current_user.id)
+    # region agent log
+    agent_log(
+        hypothesis_id="B",
+        location="photo.py:process_photo",
+        message="enqueued",
+        data={"job_id": job.id, "queue_depth": await get_queue_depth()},
+    )
+    # endregion
     return ProcessJobResponse(job_id=job.id, status=job.status)
 
 
