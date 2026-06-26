@@ -30,7 +30,7 @@ def test_inplace_user_prompt_includes_identity_and_modification_scope() -> None:
     assert "REQUESTED MODIFICATION" in user_text
     assert "Replace ONLY the background" in user_text
     assert "Preserve every original design feature" in user_text
-    assert "podium" in user_text.lower()
+    assert "studio scene" in user_text.lower()
     assert "small detail" in user_text.lower()
 
 

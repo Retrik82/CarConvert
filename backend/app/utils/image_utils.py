@@ -63,30 +63,19 @@ def to_data_url(image_bytes: bytes, mime_type: str) -> str:
     return f"data:{mime_type};base64,{encoded}"
 
 
-INPLACE_BACKDROP_CONSTRAINTS = (
-    "Backdrop only — replace distant scenery behind the vehicle. "
-    "Do not add a podium, turntable, platform, circular disc, or studio floor geometry. "
-    "Keep the original ground plane and tire contact from the source photograph unchanged. "
-    "Do not clip, crop, or sink the vehicle into any surface."
+SHOWROOM_PLACEMENT_CONSTRAINTS = (
+    "The vehicle must remain fully visible and intact — same model, camera angle, proportions, and fine details. "
+    "Place it naturally on the studio floor or podium with realistic contact shadows and lighting. "
+    "Do not clip, crop, sink, or merge any part of the vehicle into the floor or podium. "
+    "Vehicle body pixels are locked — change only the surrounding environment."
 )
 
 
 def sanitize_inplace_background_prompt(prompt: str) -> str:
-    """Remove scene-generation phrases that conflict with in-place photo editing."""
+    """Remove scene-generation meta phrases that conflict with in-place photo editing."""
     import re
 
     cleaned = prompt.strip()
-    replacements = (
-        (r"minimalist luxury gray automotive showroom studio", "soft gray studio walls and ceiling"),
-        (r"automotive showroom studio", "studio backdrop"),
-        (r"premium presentation space", "professional backdrop"),
-        (r"smooth concrete walls and floor", "smooth gray walls"),
-        (r"concrete floor", "neutral ground"),
-        (r"concrete walls and floor", "gray walls"),
-    )
-    for pattern, replacement in replacements:
-        cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE)
-
     patterns = (
         r"\bEmpty environment[^.]*\.\s*",
         r"\bno car[^.]*\.\s*",
@@ -94,15 +83,6 @@ def sanitize_inplace_background_prompt(prompt: str) -> str:
         r"\bno text[^.]*\.\s*",
         r"\blandscape 16:9[^.]*\.?\s*",
         r"\b16:9[^.]*\.?\s*",
-        r"A single round light-gray podium/platform centered in frame\.?\s*",
-        r"A low circular platform/podium where a car would be displayed\.?\s*",
-        r"\bcentered podium[^.]*\.\s*",
-        r"\bpodium[^.]*\.\s*",
-        r"\bplatform[^.]*\.\s*",
-        r"\bturntable[^.]*\.\s*",
-        r"\bcircular disc[^.]*\.\s*",
-        r"\bwheels touch[^.]*\.\s*",
-        r"\bcentered in frame[^.]*\.\s*",
         r"\bready for a vehicle[^.]*\.\s*",
         r"\bready for a car photoshoot[^.]*\.\s*",
     )

@@ -31,9 +31,10 @@ PRESET_DEFINITIONS = (
         "name": "Gray Showroom",
         "description": "Minimalist gray studio with a central podium",
         "environment_template": (
-            "Soft gray studio walls and ceiling with diffused overhead lighting. "
-            "Neutral monochromatic gray backdrop behind the vehicle. "
-            "Clean professional automotive photography atmosphere."
+            "Minimalist luxury gray automotive showroom studio. Smooth gray concrete walls and floor, "
+            "soft diffused ceiling lighting, monochromatic gray palette, premium presentation space. "
+            "A single round light-gray podium/platform under the vehicle. "
+            "Professional automotive studio photography with soft natural shadows."
         ),
         "prompt_template": (
             "Minimalist luxury gray automotive showroom studio. Smooth concrete walls and floor, "
@@ -50,9 +51,10 @@ PRESET_DEFINITIONS = (
         "name": "Auto Workshop",
         "description": "Modern professional car service garage",
         "environment_template": (
-            "Modern automotive workshop interior with clean industrial walls, "
-            "bright ceiling workshop lights, and tool cabinets in the distant background. "
-            "Organized professional garage atmosphere behind the vehicle."
+            "Modern professional automotive service garage. Clean industrial interior, concrete floor, "
+            "bright ceiling workshop lights, tool cabinets and vehicle lift in the background, "
+            "organized workspace. A low circular platform/podium under the vehicle. "
+            "Professional workshop photography with natural shadows."
         ),
         "prompt_template": (
             "Modern professional automotive service garage. Clean industrial interior, concrete floor, "
@@ -72,7 +74,7 @@ PRESET_ENVIRONMENT_BY_SLUG = {
 
 
 def inplace_environment_for_preset(slug: str, fallback_template: str) -> str:
-    """Return backdrop-only prompt for in-place editing (no podium/floor geometry)."""
+    """Return full studio environment prompt for in-place editing."""
     return PRESET_ENVIRONMENT_BY_SLUG.get(slug, sanitize_inplace_background_prompt(fallback_template))
 
 

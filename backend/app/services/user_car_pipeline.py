@@ -50,11 +50,11 @@ def build_background_replace_prompt(resolved: ResolvedBackground) -> str:
 
 
 def _build_empty_room_prompt(resolved: ResolvedBackground) -> str:
-    """Backdrop-only scene generation for composite fallback — no podium language."""
-    backdrop = build_background_replace_prompt(resolved)
+    """Full studio scene generation for composite fallback."""
+    studio = build_background_replace_prompt(resolved)
     if resolved.angle == "interior":
-        return f"{backdrop} Empty environment outside the windows. No vehicle, no people."
-    return f"{backdrop} Empty backdrop scene behind where a car stands. No vehicle, no people."
+        return f"{studio} Empty environment outside the windows. No vehicle, no people."
+    return f"{studio} Empty gray showroom studio with podium. No vehicle, no people."
 
 
 async def _image_ref_to_base64(image_ref: str) -> tuple[str, str]:

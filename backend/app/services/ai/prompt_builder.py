@@ -10,7 +10,7 @@ from app.services.ai.prompt_blocks import (
     REQUIRED_SYSTEM_MARKERS,
 )
 from app.services.ai.vehicle_descriptor import format_vehicle_identity
-from app.utils.image_utils import INPLACE_BACKDROP_CONSTRAINTS
+from app.utils.image_utils import SHOWROOM_PLACEMENT_CONSTRAINTS
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def build_inplace_edit_user_text(
     else:
         locality = (
             "Keep the vehicle, camera viewpoint, perspective, and framing exactly as photographed. "
-            "Replace only the distant scenery behind the car — not the car itself, not the ground under the tires."
+            "Replace the entire surrounding environment with the described studio scene."
         )
 
     return (
@@ -71,7 +71,7 @@ def build_inplace_edit_user_text(
         f"New background environment: {background_prompt}\n\n"
         f"{modification_block}\n"
         f"{locality} "
-        f"{INPLACE_BACKDROP_CONSTRAINTS} "
+        f"{SHOWROOM_PLACEMENT_CONSTRAINTS} "
         "Do not change the vehicle model, generation, body geometry, proportions, color, wheels, "
         "lights, trim, badges, reflections, or shooting angle. "
         "Preserve every small detail visible in the source photo. "
@@ -153,8 +153,8 @@ def build_background_environment_prompt(environment: str, *, angle: str) -> str:
         )
     return (
         f"{environment} "
-        "Replace ONLY the distant backdrop behind the existing vehicle. "
-        f"{INPLACE_BACKDROP_CONSTRAINTS} "
+        "Replace the full studio environment: walls, floor, podium, ceiling, and lighting. "
+        f"{SHOWROOM_PLACEMENT_CONSTRAINTS} "
         "Keep the vehicle, original camera angle, perspective, and framing unchanged."
     )
 

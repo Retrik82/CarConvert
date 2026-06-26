@@ -19,8 +19,8 @@ def test_background_replace_prompt_preserves_camera_angle() -> None:
     prompt = build_background_replace_prompt(resolved)
 
     assert "original camera angle" in prompt
-    assert "round light-gray podium" not in prompt.lower()
-    assert "circular platform" not in prompt.lower()
+    assert "podium" in prompt.lower()
+    assert "showroom" in prompt.lower()
     for suffix in ANGLE_PROMPT_SUFFIXES.values():
         assert suffix not in prompt
 
@@ -29,6 +29,7 @@ def test_background_replace_prompt_strips_scene_generation_phrases() -> None:
     resolved = ResolvedBackground(
         prompt=(
             "Minimalist luxury gray automotive showroom studio. "
+            "A single round light-gray podium/platform under the vehicle. "
             "Empty environment ready for a vehicle — no car, no people, no text. "
             "Photorealistic, landscape 16:9."
         ),
@@ -39,16 +40,17 @@ def test_background_replace_prompt_strips_scene_generation_phrases() -> None:
     assert "no car" not in prompt.lower()
     assert "16:9" not in prompt
     assert "empty environment" not in prompt.lower()
+    assert "podium" in prompt.lower()
 
 
 def test_sanitize_inplace_background_prompt() -> None:
     raw = (
-        "Modern garage. A low circular platform/podium where a car would be displayed. "
+        "Modern garage. A low circular platform/podium under the vehicle. "
         "Empty environment — no vehicle, no people. Landscape 16:9."
     )
     cleaned = sanitize_inplace_background_prompt(raw)
 
-    assert "podium" not in cleaned.lower()
+    assert "podium" in cleaned.lower()
     assert "no vehicle" not in cleaned.lower()
     assert "16:9" not in cleaned
     assert cleaned.startswith("Modern garage.")
@@ -98,23 +100,22 @@ def test_format_vehicle_identity_omits_null_fields() -> None:
 def test_build_background_environment_prompt_exterior() -> None:
     prompt = build_background_environment_prompt("Desert sunset.", angle="three_quarter_left")
     assert prompt.startswith("Desert sunset.")
-    assert "distant backdrop" in prompt
+    assert "full studio environment" in prompt
     assert "podium" in prompt.lower()
-    assert "turntable" in prompt.lower()
 
 
-def test_preset_environment_has_no_podium() -> None:
+def test_preset_environment_includes_showroom_podium() -> None:
     env = inplace_environment_for_preset("gray-showroom", "fallback")
-    assert "podium" not in env.lower()
-    assert "platform" not in env.lower()
+    assert "podium" in env.lower()
+    assert "showroom" in env.lower()
 
 
-def test_empty_room_fallback_prompt_has_no_podium() -> None:
+def test_empty_room_fallback_prompt_includes_showroom() -> None:
     resolved = ResolvedBackground(
         prompt=inplace_environment_for_preset("gray-showroom", ""),
         angle="three_quarter_left",
         preset_slug="gray-showroom",
     )
     prompt = _build_empty_room_prompt(resolved)
-    assert "round light-gray podium" not in prompt.lower()
+    assert "podium" in prompt.lower()
     assert "No vehicle" in prompt

@@ -89,11 +89,10 @@ PRESERVATION_REMINDER = " ".join(MINIMAL_INTERVENTION_PHRASES)
 BACKGROUND_ONLY_RULES = """\
 Background replacement rules (highest priority after vehicle identity):
 - Vehicle pixels are LOCKED: do not repaint, regenerate, or alter any part of the car, glass, wheels, mirrors, or shadows on the car body.
-- Replace only NON-VEHICLE pixels: sky, distant walls, horizon, scenery behind the car.
-- Forbidden: inserting a studio floor, turntable, podium, platform, or circular disc under the vehicle.
-- Keep the original ground plane and tire-to-surface contact from the source photograph.
-- Do not clip, crop, sink, or merge the vehicle into any new surface geometry.
-- Output must be the same photograph with a swapped backdrop — not a newly generated scene."""
+- Replace the full environment around the vehicle: studio walls, floor, podium, ceiling, and lighting — as described in the user message.
+- The vehicle must sit naturally on the podium or floor with realistic contact shadows — not sunk into, clipped by, or merged with the surface.
+- Do not clip, crop, or cut off any part of the vehicle body against the podium edge.
+- Output must be the same photograph with a new studio environment — the car itself unchanged."""
 
 BACKGROUND_REPLACE_SYSTEM_PROMPT = (
     "You are an automotive photo editor specializing in background replacement.\n\n"
