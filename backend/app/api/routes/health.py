@@ -84,10 +84,15 @@ async def health_redis():
 
 @router.get("/health/queue")
 async def health_queue():
+    from app.queue import _local_workers, _local_started
+
     depth = await get_queue_depth()
+    alive_workers = sum(1 for task in _local_workers if not task.done()) if _local_started else 0
     return {
         "status": "ok",
         "queue_depth": depth,
+        "workers_alive": alive_workers,
+        "workers_expected": settings.process_max_concurrent,
         "backend": "arq" if settings.redis_enabled and settings.use_arq_worker else "local",
         "process_max_concurrent": settings.process_max_concurrent,
     }

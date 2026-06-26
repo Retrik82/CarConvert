@@ -11,7 +11,7 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.middleware.rate_limit import enforce_photo_rate_limit
 from app.models.schemas import HistoryItem, HistoryResponse, PhotoResultResponse, ProcessJobResponse
-from app.queue import enqueue_photo_job, get_queue_depth, revive_orphaned_queued_jobs
+from app.queue import enqueue_photo_job, get_queue_depth, kick_queued_job, revive_orphaned_queued_jobs
 from app.utils.debug_log import agent_log
 from app.services.billing_service import BillingService, InsufficientBalanceError
 from app.services.background_service import BackgroundService
@@ -218,6 +218,12 @@ async def get_result(
     job_service: JobService = Depends(get_job_service),
 ) -> PhotoResultResponse:
     job_before = await job_service.get_user_job(job_id, current_user.id)
+    if job_before and job_before.status == "queued":
+        queued_at = job_before.enqueued_at or job_before.created_at
+        wait_sec = (datetime.now(timezone.utc) - queued_at).total_seconds()
+        if wait_sec > 5:
+            await kick_queued_job(job_before.id, current_user.id, force=True)
+
     if job_before:
         # region agent log
         agent_log(

@@ -10,7 +10,6 @@ from app.config import get_settings
 from app.utils.debug_log import agent_log
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 _arq_pool: Any = None
 _local_queue: asyncio.Queue[tuple[str, str]] | None = None
@@ -22,6 +21,48 @@ _enqueue_lock = asyncio.Lock()
 
 def is_job_enqueued(job_id: str) -> bool:
     return job_id in _enqueued_job_ids
+
+
+async def ensure_workers_running() -> None:
+    """Start workers if needed and replace any worker tasks that have died."""
+    global _local_workers, _local_started, _local_queue
+
+    settings = get_settings()
+    if not _local_started or _local_queue is None:
+        await start_local_queue_workers()
+        return
+
+    alive = [task for task in _local_workers if not task.done()]
+    dead = len(_local_workers) - len(alive)
+    if dead == 0 and len(alive) >= settings.process_max_concurrent:
+        return
+
+    if dead:
+        logger.warning("Restarting %s dead photo queue worker(s)", dead)
+    _local_workers = alive
+    while len(_local_workers) < settings.process_max_concurrent:
+        worker_id = len(_local_workers)
+        _local_workers.append(asyncio.create_task(_local_worker_loop(worker_id)))
+    logger.info(
+        "Photo queue workers healthy (%s active)",
+        len(_local_workers),
+    )
+
+
+async def kick_queued_job(job_id: str, user_id: str, *, force: bool = False) -> bool:
+    """Re-enqueue a queued job during polling when it was lost from the in-memory pipeline."""
+    await ensure_workers_running()
+
+    if job_id in _enqueued_job_ids and not force:
+        return False
+
+    if job_id in _enqueued_job_ids:
+        logger.warning("Force re-enqueue of queued job %s (lost from worker pipeline)", job_id)
+        _enqueued_job_ids.discard(job_id)
+
+    await _enqueue_local(job_id, user_id)
+    logger.info("Kicked queued photo job %s back into workers", job_id)
+    return True
 
 
 async def mark_job_enqueued(job_id: str) -> None:
@@ -56,7 +97,7 @@ async def _get_arq_pool():
     from arq import create_pool
     from arq.connections import RedisSettings
 
-    _arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+    _arq_pool = await create_pool(RedisSettings.from_dsn(get_settings().redis_url))
     return _arq_pool
 
 
@@ -75,7 +116,7 @@ async def _local_worker_loop(worker_id: int) -> None:
         )
         # endregion
         try:
-            await run_photo_job(job_id, user_id, settings.openrouter_api_key)
+            await run_photo_job(job_id, user_id, get_settings().openrouter_api_key)
         except Exception as exc:
             logger.exception("Local worker %s failed job %s: %s", worker_id, job_id, exc)
         finally:
@@ -86,7 +127,9 @@ async def _local_worker_loop(worker_id: int) -> None:
 async def start_local_queue_workers() -> None:
     """Start in-process photo workers inside the API process."""
     global _local_queue, _local_workers, _local_started
+    settings = get_settings()
     if _local_started:
+        await ensure_workers_running()
         return
     _local_queue = asyncio.Queue()
     _local_workers = [
@@ -126,6 +169,9 @@ async def _enqueue_local(job_id: str, user_id: str) -> None:
 
 async def enqueue_photo_job(job_id: str, user_id: str) -> None:
     """Schedule photo processing. Always uses in-process workers; ARQ is optional."""
+    settings = get_settings()
+    await ensure_workers_running()
+
     if settings.redis_enabled and settings.use_arq_worker:
         try:
             pool = await _get_arq_pool()
@@ -178,12 +224,16 @@ async def recover_stuck_queued_jobs() -> int:
     from app.db.session import AsyncSessionLocal
     from app.repositories.photo_job_repository import PhotoJobRepository
 
+    settings = get_settings()
+    await ensure_workers_running()
+
     async with AsyncSessionLocal() as db:
         repo = PhotoJobRepository(db)
         jobs = await repo.list_by_status("queued", limit=settings.max_queue_size)
 
     recovered = 0
     for job in jobs:
+        _enqueued_job_ids.discard(job.id)
         await _enqueue_local(job.id, job.user_id)
         recovered += 1
     if recovered:
@@ -192,6 +242,7 @@ async def recover_stuck_queued_jobs() -> int:
 
 
 async def get_queue_depth() -> int | None:
+    settings = get_settings()
     local_depth = _local_queue.qsize() if _local_queue is not None else 0
     if not settings.redis_enabled or not settings.use_arq_worker:
         return local_depth

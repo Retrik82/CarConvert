@@ -176,7 +176,6 @@ async def _fail_job(
 
 async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
     from app.db.session import AsyncSessionLocal
-    from app.services.ai.concurrency import process_slot
 
     # region agent log
     agent_log(
@@ -192,142 +191,145 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
     )
     # endregion
 
-    async with process_slot():
-        async with AsyncSessionLocal() as db:
-            service = JobService(db)
-            job = None
-            for attempt in range(10):
-                job = await service.get_user_job(job_id, user_id)
-                if job:
-                    break
-                await asyncio.sleep(0.1 * (attempt + 1))
+    async with AsyncSessionLocal() as db:
+        service = JobService(db)
+        job = None
+        for attempt in range(10):
+            job = await service.get_user_job(job_id, user_id)
+            if job:
+                break
+            await asyncio.sleep(0.1 * (attempt + 1))
 
-            if not job:
-                # region agent log
-                agent_log(
-                    hypothesis_id="B",
-                    location="job_service.py:run_photo_job",
-                    message="job_not_found_after_retries",
-                    data={"job_id": job_id, "user_id": user_id},
-                )
-                # endregion
-                logger.error(
-                    "Photo job %s not found for user %s after retries — scheduling re-enqueue",
-                    job_id,
-                    user_id,
-                )
-                from app.queue import schedule_reenqueue
-
-                await schedule_reenqueue(job_id, user_id)
-                return
-
-            if not job.original_path or not Path(job.original_path).is_file():
-                # region agent log
-                agent_log(
-                    hypothesis_id="C",
-                    location="job_service.py:run_photo_job",
-                    message="missing_original_file",
-                    data={"job_id": job_id, "original_path": job.original_path},
-                )
-                # endregion
-                logger.error("Photo job %s is missing original image", job_id)
-                await _fail_job(db, job, error="Original image is missing. Please upload again.")
-                await db.commit()
-                return
-
-            await service._jobs.mark_processing(job, started_at=datetime.now(timezone.utc))
-            await db.commit()
+        if not job:
             # region agent log
             agent_log(
                 hypothesis_id="B",
                 location="job_service.py:run_photo_job",
-                message="status_processing",
-                data={"job_id": job_id},
+                message="job_not_found_after_retries",
+                data={"job_id": job_id, "user_id": user_id},
             )
             # endregion
+            logger.error(
+                "Photo job %s not found for user %s after retries — scheduling re-enqueue",
+                job_id,
+                user_id,
+            )
+            from app.queue import schedule_reenqueue
+
+            await schedule_reenqueue(job_id, user_id)
+            return
+
+        if job.status != "queued":
+            logger.info("Photo job %s already %s — skipping duplicate worker run", job_id, job.status)
+            return
+
+        if not job.original_path or not Path(job.original_path).is_file():
+            # region agent log
+            agent_log(
+                hypothesis_id="C",
+                location="job_service.py:run_photo_job",
+                message="missing_original_file",
+                data={"job_id": job_id, "original_path": job.original_path},
+            )
+            # endregion
+            logger.error("Photo job %s is missing original image", job_id)
+            await _fail_job(db, job, error="Original image is missing. Please upload again.")
+            await db.commit()
+            return
+
+        await service._jobs.mark_processing(job, started_at=datetime.now(timezone.utc))
+        await db.commit()
+        # region agent log
+        agent_log(
+            hypothesis_id="B",
+            location="job_service.py:run_photo_job",
+            message="status_processing",
+            data={"job_id": job_id},
+        )
+        # endregion
+
+        try:
+            image_bytes = Path(job.original_path).read_bytes()
+            mime_type = "image/jpeg"
+            if job.original_path.endswith(".png"):
+                mime_type = "image/png"
+            elif job.original_path.endswith(".webp"):
+                mime_type = "image/webp"
 
             try:
-                image_bytes = Path(job.original_path).read_bytes()
+                image_bytes = crop_to_frame_guide(image_bytes)
                 mime_type = "image/jpeg"
-                if job.original_path.endswith(".png"):
-                    mime_type = "image/png"
-                elif job.original_path.endswith(".webp"):
-                    mime_type = "image/webp"
-
-                try:
-                    image_bytes = crop_to_frame_guide(image_bytes)
-                    mime_type = "image/jpeg"
-                except Exception as exc:
-                    logger.warning("Frame crop skipped for job %s: %s", job_id, exc)
-
-                data_url = to_data_url(image_bytes, mime_type)
-                background_service = BackgroundService(db)
-
-                from app.services.ai.pose_classifier import classify_car_pose_angle
-
-                # region agent log
-                agent_log(
-                    hypothesis_id="D",
-                    location="job_service.py:run_photo_job",
-                    message="before_openrouter_pose",
-                    data={"job_id": job_id, "image_bytes": len(image_bytes)},
-                )
-                # endregion
-                detected_angle = await classify_car_pose_angle(data_url, api_key)
-                # region agent log
-                agent_log(
-                    hypothesis_id="D",
-                    location="job_service.py:run_photo_job",
-                    message="after_openrouter_pose",
-                    data={"job_id": job_id, "angle": detected_angle},
-                )
-                # endregion
-                resolved = await background_service.resolve_variant_for_job(
-                    preset_id=job.background_preset_id,
-                    preset_variant_id=job.background_variant_id,
-                    user_background_id=job.user_background_id,
-                    user_variant_id=job.user_background_variant_id,
-                    user_id=user_id,
-                    angle=detected_angle,
-                )
-                job_dir = _job_dir(user_id, job_id)
-                result_b64, result_mime = await process_photo_with_background(
-                    data_url,
-                    resolved,
-                    api_key,
-                    job_dir=job_dir,
-                )
-
-                ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(result_mime, ".jpg")
-                result_path = job_dir / f"result{ext}"
-                result_path.write_bytes(base64.b64decode(result_b64))
-
-                await service._jobs.update_status(
-                    job,
-                    status="completed",
-                    result_path=str(result_path),
-                    result_mime_type=result_mime,
-                    error=None,
-                    completed_at=datetime.now(timezone.utc),
-                )
-                # region agent log
-                agent_log(
-                    hypothesis_id="D",
-                    location="job_service.py:run_photo_job",
-                    message="job_completed",
-                    data={"job_id": job_id, "result_path": str(result_path)},
-                )
-                # endregion
             except Exception as exc:
-                # region agent log
-                agent_log(
-                    hypothesis_id="D",
-                    location="job_service.py:run_photo_job",
-                    message="job_failed",
-                    data={"job_id": job_id, "error": str(exc)[:500]},
-                )
-                # endregion
-                logger.exception("Photo job %s failed", job_id)
-                await _fail_job(db, job, error=str(exc))
+                logger.warning("Frame crop skipped for job %s: %s", job_id, exc)
 
-            await db.commit()
+            data_url = to_data_url(image_bytes, mime_type)
+            background_service = BackgroundService(db)
+
+            from app.services.ai.pose_classifier import classify_car_pose_angle
+
+            # region agent log
+            agent_log(
+                hypothesis_id="D",
+                location="job_service.py:run_photo_job",
+                message="before_openrouter_pose",
+                data={"job_id": job_id, "image_bytes": len(image_bytes)},
+            )
+            # endregion
+            detected_angle = await classify_car_pose_angle(data_url, api_key)
+            # region agent log
+            agent_log(
+                hypothesis_id="D",
+                location="job_service.py:run_photo_job",
+                message="after_openrouter_pose",
+                data={"job_id": job_id, "angle": detected_angle},
+            )
+            # endregion
+            resolved = await background_service.resolve_variant_for_job(
+                preset_id=job.background_preset_id,
+                preset_variant_id=job.background_variant_id,
+                user_background_id=job.user_background_id,
+                user_variant_id=job.user_background_variant_id,
+                user_id=user_id,
+                angle=detected_angle,
+            )
+            job_dir = _job_dir(user_id, job_id)
+            result_b64, result_mime = await process_photo_with_background(
+                data_url,
+                resolved,
+                api_key,
+                job_dir=job_dir,
+            )
+
+            ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(result_mime, ".jpg")
+            result_path = job_dir / f"result{ext}"
+            result_path.write_bytes(base64.b64decode(result_b64))
+
+            await service._jobs.update_status(
+                job,
+                status="completed",
+                result_path=str(result_path),
+                result_mime_type=result_mime,
+                error=None,
+                completed_at=datetime.now(timezone.utc),
+            )
+            # region agent log
+            agent_log(
+                hypothesis_id="D",
+                location="job_service.py:run_photo_job",
+                message="job_completed",
+                data={"job_id": job_id, "result_path": str(result_path)},
+            )
+            # endregion
+        except Exception as exc:
+            # region agent log
+            agent_log(
+                hypothesis_id="D",
+                location="job_service.py:run_photo_job",
+                message="job_failed",
+                data={"job_id": job_id, "error": str(exc)[:500]},
+            )
+            # endregion
+            logger.exception("Photo job %s failed", job_id)
+            await _fail_job(db, job, error=str(exc))
+
+        await db.commit()

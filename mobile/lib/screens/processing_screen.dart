@@ -47,11 +47,13 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   bool _startInFlight = false;
   bool _pollInFlight = false;
   int _pollTransientErrors = 0;
+  int _queuedPollCount = 0;
   DateTime? _pollStartedAt;
 
   static const _pollInterval = Duration(seconds: 2);
   static const _pollTimeout = Duration(minutes: 6);
   static const _maxPollTransientErrors = 5;
+  static const _queuedStallPolls = 15;
 
   @override
   void initState() {
@@ -74,6 +76,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     _pollTimer?.cancel();
     _pollStartedAt = null;
     _pollTransientErrors = 0;
+    _queuedPollCount = 0;
     _jobId = null;
     _hasError = false;
     try {
@@ -128,8 +131,16 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       final result = await PhotoRepository.instance.getResult(_jobId!);
       _pollTransientErrors = 0;
       if (result.status == 'queued') {
-        _setProgress((_progress + 2).clamp(20, 85), context.strings.processingQueued);
+        _queuedPollCount += 1;
+        final stalled = _queuedPollCount >= _queuedStallPolls;
+        _setProgress(
+          stalled ? 85 : (_progress + 2).clamp(20, 85),
+          stalled
+              ? 'Still waiting for the server to start processing…'
+              : context.strings.processingQueued,
+        );
       } else if (result.status == 'processing') {
+        _queuedPollCount = 0;
         _setProgress((_progress + 6).clamp(30, 92), context.strings.processingRendering);
       } else if (result.isCompleted) {
         _pollTimer?.cancel();
