@@ -1,7 +1,8 @@
-"""Cut out the user's vehicle from a photo and composite onto the selected background scene."""
+"""Replace the photo background while preserving the user's vehicle and camera angle."""
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 from dataclasses import dataclass
@@ -11,7 +12,11 @@ import httpx
 
 from app.config import get_settings
 from app.db.models.background import ANGLE_PROMPT_SUFFIXES
-from app.services.ai.background_processor import generate_empty_room, process_into_scene
+from app.services.ai.background_processor import (
+    generate_empty_room,
+    process_into_scene,
+    replace_car_background_in_place,
+)
 from app.services.ai.car_extractor import extract_car_cutout_validated
 from app.services.ai.model_router import call_image_completion
 from app.services.ai.openrouter_client import _extract_image_reference
@@ -42,6 +47,21 @@ class ResolvedBackground:
     preset_slug: str | None = None
     user_background_id: str | None = None
     scene_image_path: str | None = None
+
+
+def build_background_replace_prompt(resolved: ResolvedBackground) -> str:
+    """Environment description only — never instruct the model to change camera angle."""
+    if resolved.angle == "interior":
+        return (
+            f"{resolved.prompt} "
+            "Replace the environment visible outside the cabin windows. "
+            "Keep the cabin interior and camera viewpoint exactly as photographed."
+        )
+    return (
+        f"{resolved.prompt} "
+        "Replace ONLY the background environment behind and around the existing vehicle. "
+        "Keep the vehicle and original camera angle, perspective, and framing unchanged."
+    )
 
 
 async def _image_ref_to_base64(image_ref: str) -> tuple[str, str]:
@@ -112,35 +132,34 @@ def _load_scene_data_url(resolved: ResolvedBackground) -> str | None:
     return to_data_url(path.read_bytes(), mime)
 
 
-async def process_user_car_photo(
+async def _save_cutout_for_job(
+    source_data_url: str,
+    api_key: str,
+    *,
+    angle: str,
+    job_dir: Path,
+) -> None:
+    try:
+        cutout_bytes, _ = await extract_car_cutout_validated(
+            source_data_url,
+            api_key,
+            angle=angle,
+        )
+        (job_dir / "cutout.png").write_bytes(cutout_bytes)
+    except Exception as exc:
+        logger.warning("Cutout extraction for job archive failed: %s", exc)
+
+
+async def _composite_fallback(
     source_data_url: str,
     resolved: ResolvedBackground,
     api_key: str,
-    *,
-    job_dir: Path | None = None,
 ) -> tuple[str, str]:
-    """
-    Pipeline:
-    1. Extract vehicle (or interior cabin) cutout from user photo.
-    2. Composite onto the selected background reference scene for the detected angle.
-    3. Fall back to generating an empty room only when no reference scene exists.
-    """
-    logger.info(
-        "Processing user car: angle=%s preset=%s custom=%s",
-        resolved.angle,
-        resolved.preset_slug,
-        resolved.user_background_id,
-    )
-
     cutout_bytes, cutout_mime = await extract_car_cutout_validated(
         source_data_url,
         api_key,
         angle=resolved.angle,
     )
-    if job_dir is not None:
-        cutout_path = job_dir / "cutout.png"
-        cutout_path.write_bytes(cutout_bytes)
-
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
 
     scene_data_url = _load_scene_data_url(resolved)
@@ -165,6 +184,61 @@ async def process_user_car_photo(
             scene_data_url,
             api_key,
         )
+
+
+async def process_user_car_photo(
+    source_data_url: str,
+    resolved: ResolvedBackground,
+    api_key: str,
+    *,
+    job_dir: Path | None = None,
+) -> tuple[str, str]:
+    """
+    Pipeline:
+    1. Replace only the background on the original photo (preserves vehicle + camera angle).
+    2. Optionally archive a vehicle cutout for later re-composite.
+    3. Fall back to scene compositing only if in-place replacement fails.
+    """
+    logger.info(
+        "Processing user car: angle=%s preset=%s custom=%s",
+        resolved.angle,
+        resolved.preset_slug,
+        resolved.user_background_id,
+    )
+
+    replace_prompt = build_background_replace_prompt(resolved)
+    style_reference = _load_scene_data_url(resolved)
+
+    cutout_task: asyncio.Task[None] | None = None
+    if job_dir is not None:
+        cutout_task = asyncio.create_task(
+            _save_cutout_for_job(
+                source_data_url,
+                api_key,
+                angle=resolved.angle,
+                job_dir=job_dir,
+            )
+        )
+
+    try:
+        return await replace_car_background_in_place(
+            source_data_url,
+            replace_prompt,
+            angle=resolved.angle,
+            style_reference_data_url=style_reference,
+            api_key=api_key,
+        )
+    except Exception as exc:
+        logger.warning("In-place background replace failed (%s), falling back to composite", exc)
+        if cutout_task is not None:
+            cutout_task.cancel()
+        return await _composite_fallback(source_data_url, resolved, api_key)
+    finally:
+        if cutout_task is not None and not cutout_task.cancelled():
+            try:
+                await cutout_task
+            except asyncio.CancelledError:
+                pass
 
 
 async def recomposite_from_cutout(

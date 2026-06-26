@@ -8,6 +8,24 @@ from app.services.ai.openrouter_client import _extract_image_reference
 
 settings = get_settings()
 
+BACKGROUND_REPLACE_SYSTEM_PROMPT = (
+    "You are an automotive photo editor specializing in background replacement.\n\n"
+    "Goal:\n"
+    "Replace ONLY the background of the photograph. The vehicle must remain identical.\n\n"
+    "Rules:\n"
+    "- KEEP the exact same vehicle: make, model, color, paint finish, wheels, headlights, "
+    "grille, body shape, proportions, reflections, and every visible detail.\n"
+    "- KEEP the exact same camera angle, perspective, focal length, framing, and vehicle "
+    "position in the frame.\n"
+    "- KEEP the exact same vehicle orientation relative to the camera.\n"
+    "- Replace ONLY background pixels: sky, ground, walls, buildings, scenery, and environment.\n"
+    "- Match new background lighting and shadows to the existing vehicle naturally.\n"
+    "- Do not regenerate, restyle, substitute, swap, rotate, reposition, or resize the vehicle.\n"
+    "- Do not copy any vehicle from a reference image — use references for environment style only.\n"
+    "- Do not add text or watermarks.\n"
+    "- Photorealistic seamless result."
+)
+
 SCENE_COMPOSITE_SYSTEM_PROMPT = (
     "You place a user's vehicle into a fixed automotive studio photograph. "
     "The reference image shows the target room, lighting, floor, podium, shadows, and camera angle. "
@@ -57,6 +75,69 @@ async def _composite_messages(
         {"role": "system", "content": SCENE_COMPOSITE_SYSTEM_PROMPT},
         {"role": "user", "content": content},
     ]
+
+
+def _build_background_replace_user_text(
+    background_prompt: str,
+    *,
+    angle: str,
+    style_reference_data_url: str | None = None,
+) -> str:
+    if angle == "interior":
+        vehicle_rule = (
+            "Keep the cabin interior, dashboard, seats, steering wheel, and trim exactly as photographed. "
+            "Replace only the environment visible outside the windows."
+        )
+    else:
+        vehicle_rule = (
+            "Keep the vehicle and original camera viewpoint exactly as photographed. "
+            "Replace only the environment behind and around the car."
+        )
+
+    text = (
+        f"Background instructions: {background_prompt}\n"
+        f"{vehicle_rule} "
+        "Do not change the vehicle model, color, or shooting angle."
+    )
+    if style_reference_data_url:
+        text += (
+            " A reference scene image is attached for environment style, colors, and lighting only. "
+            "Do not copy any vehicle or camera angle from the reference."
+        )
+    return text
+
+
+async def replace_car_background_in_place(
+    source_data_url: str,
+    background_prompt: str,
+    *,
+    angle: str = "three_quarter_left",
+    style_reference_data_url: str | None = None,
+    api_key: str | None = None,
+) -> tuple[str, str]:
+    """Replace only the background while preserving the vehicle and camera angle."""
+    user_text = _build_background_replace_user_text(
+        background_prompt,
+        angle=angle,
+        style_reference_data_url=style_reference_data_url,
+    )
+    content: list[dict] = [{"type": "text", "text": user_text}]
+    if style_reference_data_url:
+        content.append({"type": "image_url", "image_url": {"url": style_reference_data_url}})
+    content.append({"type": "image_url", "image_url": {"url": source_data_url}})
+
+    messages = [
+        {"role": "system", "content": BACKGROUND_REPLACE_SYSTEM_PROMPT},
+        {"role": "user", "content": content},
+    ]
+    body = await call_image_completion(
+        messages,
+        primary=settings.composite_primary,
+        fallback=settings.composite_model_fallback,
+        timeout=float(settings.process_timeout_sec),
+        api_key=api_key,
+    )
+    return await _image_from_openrouter_body(body)
 
 
 async def process_into_scene(

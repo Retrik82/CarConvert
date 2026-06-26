@@ -1,15 +1,8 @@
 from app.config import get_settings
+from app.services.ai.background_processor import BACKGROUND_REPLACE_SYSTEM_PROMPT
 from app.services.ai.model_router import call_generate_image
 
 settings = get_settings()
-
-DESERT_SYSTEM_PROMPT = (
-    "Keep the exact same vehicle. "
-    "Do not modify body shape, wheels, headlights, paint, reflections, or proportions. "
-    "Only replace the background. "
-    "Preserve the exact car. "
-    "Photorealistic result."
-)
 
 DESERT_USER_PROMPT = (
     "Replace the background with a premium cinematic desert ONLY. "
@@ -21,7 +14,7 @@ DESERT_USER_PROMPT = (
 
 async def process_desert_background(source_data_url: str, api_key: str | None = None) -> tuple[str, str]:
     return await call_generate_image(
-        system_prompt=DESERT_SYSTEM_PROMPT,
+        system_prompt=BACKGROUND_REPLACE_SYSTEM_PROMPT,
         user_text=DESERT_USER_PROMPT,
         source_data_url=source_data_url,
         primary=settings.composite_primary,
@@ -35,7 +28,7 @@ async def edit_car_background_custom(
     user_prompt: str, source_data_url: str, api_key: str | None = None
 ) -> tuple[str, str]:
     return await call_generate_image(
-        system_prompt=DESERT_SYSTEM_PROMPT,
+        system_prompt=BACKGROUND_REPLACE_SYSTEM_PROMPT,
         user_text=f"Background instructions: {user_prompt}",
         source_data_url=source_data_url,
         primary=settings.composite_primary,

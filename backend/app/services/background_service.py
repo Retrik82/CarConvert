@@ -135,13 +135,12 @@ class BackgroundService:
         angle: str | None = None,
     ) -> ResolvedBackground:
         selected_angle = angle or "three_quarter_left"
-        angle_suffix = ANGLE_PROMPT_SUFFIXES.get(selected_angle, "")
 
         if user_background_id:
             background = await self._repo.get_user_background(user_background_id, user_id)
             if not background:
                 raise ValueError("Custom background not found.")
-            prompt = f"{background.prompt} {angle_suffix}".strip()
+            prompt = background.prompt.strip()
             scene_path: str | None = None
             for variant in background.variants:
                 if variant.angle == selected_angle and variant.image_path:
@@ -168,7 +167,7 @@ class BackgroundService:
                 raise ValueError("No background presets configured.")
             preset = presets[0]
 
-        prompt = f"{preset.prompt_template} {angle_suffix}".strip()
+        prompt = preset.prompt_template.strip()
         from app.services.background_asset_service import ensure_preset_scene
 
         scene_path = ensure_preset_scene(preset.slug, selected_angle)

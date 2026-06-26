@@ -62,7 +62,7 @@ async def main(image_path: Path) -> int:
         scene_image_path=str(scene_path),
     )
 
-    print("Step 2: cutout + composite (OpenRouter)...")
+    print("Step 2: background replace (OpenRouter)...")
     result_b64, mime = await process_user_car_photo(data_url, resolved, api_key)
     out = ROOT / "data" / "debug_pipeline_result.jpg"
     out.parent.mkdir(parents=True, exist_ok=True)
