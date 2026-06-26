@@ -231,15 +231,20 @@ class OpenRouterClient:
         aspect_ratio: str = "16:9",
         image_size: str = "1K",
         max_tokens: int = 1024,
+        preserve_source_framing: bool = False,
     ) -> dict[str, Any]:
         """Text-to-image or image-edit completion via OpenRouter multimodal models."""
+        if preserve_source_framing:
+            image_config = {"aspect_ratio": aspect_ratio} if aspect_ratio else None
+        else:
+            image_config = {"aspect_ratio": aspect_ratio, "image_size": image_size}
         return await self.chat_completion(
             model,
             messages,
             timeout,
             max_tokens=max_tokens,
             modalities=["image", "text"],
-            image_config={"aspect_ratio": aspect_ratio, "image_size": image_size},
+            image_config=image_config,
         )
 
     async def chat_text(
@@ -284,7 +289,7 @@ class OpenRouterClient:
             },
         ]
         body = await self.generate_image_completion(
-            model, messages, timeout, max_tokens=1024
+            model, messages, timeout, max_tokens=1024, preserve_source_framing=True
         )
         image_ref = _extract_image_reference(body)
         if image_ref.startswith("data:image"):

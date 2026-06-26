@@ -11,17 +11,19 @@ settings = get_settings()
 BACKGROUND_REPLACE_SYSTEM_PROMPT = (
     "You are an automotive photo editor specializing in background replacement.\n\n"
     "Goal:\n"
-    "Replace ONLY the background of the photograph. The vehicle must remain identical.\n\n"
+    "Edit the provided SOURCE PHOTOGRAPH in place. Replace ONLY the background. "
+    "The vehicle must remain pixel-identical.\n\n"
     "Rules:\n"
+    "- The attached user photo is the SOURCE. Output must be an edited version of that photo, "
+    "not a newly generated image.\n"
     "- KEEP the exact same vehicle: make, model, color, paint finish, wheels, headlights, "
     "grille, body shape, proportions, reflections, and every visible detail.\n"
-    "- KEEP the exact same camera angle, perspective, focal length, framing, and vehicle "
+    "- KEEP the exact same camera angle, perspective, focal length, framing, crop, and vehicle "
     "position in the frame.\n"
     "- KEEP the exact same vehicle orientation relative to the camera.\n"
     "- Replace ONLY background pixels: sky, ground, walls, buildings, scenery, and environment.\n"
     "- Match new background lighting and shadows to the existing vehicle naturally.\n"
-    "- Do not regenerate, restyle, substitute, swap, rotate, reposition, or resize the vehicle.\n"
-    "- Do not copy any vehicle from a reference image — use references for environment style only.\n"
+    "- Do not regenerate, restyle, substitute, swap, rotate, reposition, resize, or replace the vehicle.\n"
     "- Do not add text or watermarks.\n"
     "- Photorealistic seamless result."
 )
@@ -81,7 +83,6 @@ def _build_background_replace_user_text(
     background_prompt: str,
     *,
     angle: str,
-    style_reference_data_url: str | None = None,
 ) -> str:
     if angle == "interior":
         vehicle_rule = (
@@ -94,17 +95,13 @@ def _build_background_replace_user_text(
             "Replace only the environment behind and around the car."
         )
 
-    text = (
-        f"Background instructions: {background_prompt}\n"
+    return (
+        "SOURCE PHOTO (attached below): edit this photograph in place.\n"
+        f"New background environment: {background_prompt}\n"
         f"{vehicle_rule} "
-        "Do not change the vehicle model, color, or shooting angle."
+        "Do not change the vehicle model, color, body, wheels, or shooting angle. "
+        "Do not generate a new car or a new camera angle."
     )
-    if style_reference_data_url:
-        text += (
-            " A reference scene image is attached for environment style, colors, and lighting only. "
-            "Do not copy any vehicle or camera angle from the reference."
-        )
-    return text
 
 
 async def replace_car_background_in_place(
@@ -112,19 +109,19 @@ async def replace_car_background_in_place(
     background_prompt: str,
     *,
     angle: str = "three_quarter_left",
-    style_reference_data_url: str | None = None,
     api_key: str | None = None,
 ) -> tuple[str, str]:
     """Replace only the background while preserving the vehicle and camera angle."""
+    from app.utils.image_utils import aspect_ratio_label_from_data_url
+
     user_text = _build_background_replace_user_text(
         background_prompt,
         angle=angle,
-        style_reference_data_url=style_reference_data_url,
     )
-    content: list[dict] = [{"type": "text", "text": user_text}]
-    if style_reference_data_url:
-        content.append({"type": "image_url", "image_url": {"url": style_reference_data_url}})
-    content.append({"type": "image_url", "image_url": {"url": source_data_url}})
+    content: list[dict] = [
+        {"type": "text", "text": user_text},
+        {"type": "image_url", "image_url": {"url": source_data_url}},
+    ]
 
     messages = [
         {"role": "system", "content": BACKGROUND_REPLACE_SYSTEM_PROMPT},
@@ -136,6 +133,8 @@ async def replace_car_background_in_place(
         fallback=settings.composite_model_fallback,
         timeout=float(settings.process_timeout_sec),
         api_key=api_key,
+        preserve_source_framing=True,
+        aspect_ratio=aspect_ratio_label_from_data_url(source_data_url),
     )
     return await _image_from_openrouter_body(body)
 

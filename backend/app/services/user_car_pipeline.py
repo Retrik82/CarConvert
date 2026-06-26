@@ -20,7 +20,7 @@ from app.services.ai.background_processor import (
 from app.services.ai.car_extractor import extract_car_cutout_validated
 from app.services.ai.model_router import call_image_completion
 from app.services.ai.openrouter_client import _extract_image_reference
-from app.utils.image_utils import to_data_url
+from app.utils.image_utils import sanitize_inplace_background_prompt, to_data_url
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -51,14 +51,15 @@ class ResolvedBackground:
 
 def build_background_replace_prompt(resolved: ResolvedBackground) -> str:
     """Environment description only — never instruct the model to change camera angle."""
+    environment = sanitize_inplace_background_prompt(resolved.prompt)
     if resolved.angle == "interior":
         return (
-            f"{resolved.prompt} "
+            f"{environment} "
             "Replace the environment visible outside the cabin windows. "
             "Keep the cabin interior and camera viewpoint exactly as photographed."
         )
     return (
-        f"{resolved.prompt} "
+        f"{environment} "
         "Replace ONLY the background environment behind and around the existing vehicle. "
         "Keep the vehicle and original camera angle, perspective, and framing unchanged."
     )
@@ -207,7 +208,6 @@ async def process_user_car_photo(
     )
 
     replace_prompt = build_background_replace_prompt(resolved)
-    style_reference = _load_scene_data_url(resolved)
 
     cutout_task: asyncio.Task[None] | None = None
     if job_dir is not None:
@@ -225,7 +225,6 @@ async def process_user_car_photo(
             source_data_url,
             replace_prompt,
             angle=resolved.angle,
-            style_reference_data_url=style_reference,
             api_key=api_key,
         )
     except Exception as exc:

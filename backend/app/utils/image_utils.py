@@ -63,6 +63,55 @@ def to_data_url(image_bytes: bytes, mime_type: str) -> str:
     return f"data:{mime_type};base64,{encoded}"
 
 
+def sanitize_inplace_background_prompt(prompt: str) -> str:
+    """Remove scene-generation phrases that conflict with in-place photo editing."""
+    import re
+
+    cleaned = prompt.strip()
+    patterns = (
+        r"\bEmpty environment[^.]*\.\s*",
+        r"\bno car[^.]*\.\s*",
+        r"\bno people[^.]*\.\s*",
+        r"\bno text[^.]*\.\s*",
+        r"\blandscape 16:9[^.]*\.?\s*",
+        r"\b16:9[^.]*\.?\s*",
+        r"A single round light-gray podium/platform centered in frame\.?\s*",
+        r"A low circular platform/podium where a car would be displayed\.?\s*",
+        r"\bcentered podium[^.]*\.\s*",
+        r"\bready for a vehicle[^.]*\.\s*",
+        r"\bready for a car photoshoot[^.]*\.\s*",
+    )
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    return " ".join(cleaned.split())
+
+
+def aspect_ratio_label_from_data_url(data_url: str) -> str | None:
+    """Map source photo dimensions to the closest supported aspect ratio label."""
+    if not data_url.startswith("data:") or ";base64," not in data_url:
+        return None
+    try:
+        _, payload = data_url.split(",", 1)
+        with Image.open(io.BytesIO(base64.b64decode(payload))) as img:
+            width, height = img.size
+    except Exception:
+        return None
+    if width <= 0 or height <= 0:
+        return None
+
+    ratio = width / height
+    candidates = {
+        "1:1": 1.0,
+        "16:9": 16 / 9,
+        "9:16": 9 / 16,
+        "4:3": 4 / 3,
+        "3:4": 3 / 4,
+        "3:2": 3 / 2,
+        "2:3": 2 / 3,
+    }
+    return min(candidates, key=lambda label: abs(candidates[label] - ratio))
+
+
 def parse_data_url(data_url: str) -> Tuple[str, str]:
     if not data_url.startswith("data:") or ";base64," not in data_url:
         raise ValueError("Invalid data URL format.")

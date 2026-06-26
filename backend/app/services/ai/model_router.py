@@ -116,6 +116,8 @@ async def call_image_completion(
     timeout: float,
     max_tokens: int = 1024,
     api_key: str | None = None,
+    preserve_source_framing: bool = False,
+    aspect_ratio: str | None = None,
 ) -> dict[str, Any]:
     client = OpenRouterClient(api_key)
     models = [primary] + ([fallback] if fallback and fallback != primary else [])
@@ -125,11 +127,17 @@ async def call_image_completion(
         try:
 
             async def _call() -> dict[str, Any]:
+                kwargs: dict[str, Any] = {
+                    "max_tokens": max_tokens,
+                    "preserve_source_framing": preserve_source_framing,
+                }
+                if aspect_ratio:
+                    kwargs["aspect_ratio"] = aspect_ratio
                 return await client.generate_image_completion(
                     model,
                     messages,
                     timeout,
-                    max_tokens=max_tokens,
+                    **kwargs,
                 )
 
             return await _with_retries(_call, label=f"image:{model}")
@@ -149,6 +157,8 @@ async def call_generate_image(
     timeout: float,
     api_key: str | None = None,
 ) -> tuple[str, str]:
+    from app.utils.image_utils import aspect_ratio_label_from_data_url
+
     messages = [
         {"role": "system", "content": system_prompt},
         {
@@ -165,6 +175,8 @@ async def call_generate_image(
         fallback=fallback,
         timeout=timeout,
         api_key=api_key,
+        preserve_source_framing=True,
+        aspect_ratio=aspect_ratio_label_from_data_url(source_data_url),
     )
     image_ref = _extract_image_reference(body)
     if image_ref.startswith("data:image"):
