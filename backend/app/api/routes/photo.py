@@ -15,7 +15,8 @@ from app.queue import enqueue_photo_job, get_queue_depth, kick_queued_job, reviv
 from app.utils.debug_log import agent_log
 from app.services.billing_service import BillingService, InsufficientBalanceError
 from app.services.background_service import BackgroundService
-from app.services.job_service import JobService
+from app.services.job_service import JobService, _job_dir
+from app.services.user_car_pipeline import mark_job_as_recomposite
 from app.services.session_service import SessionService
 from app.utils.image_utils import normalize_content_type, read_file_as_base64, to_data_url, validate_image_upload
 
@@ -168,7 +169,7 @@ async def recomposite_photo(
     backgrounds: BackgroundService = Depends(get_background_service),
     db: AsyncSession = Depends(get_db),
 ) -> ProcessJobResponse:
-    """Re-composite a saved cutout onto a different background without re-shooting."""
+    """Re-composite the source photo onto a different background (extracts cutout on demand)."""
     await enforce_photo_rate_limit(current_user.id)
     await _check_backpressure(job_service, current_user.id)
 
@@ -176,9 +177,12 @@ async def recomposite_photo(
     if not source_job:
         raise HTTPException(status_code=404, detail="Job not found.")
 
-    cutout_path = Path(settings.upload_dir) / current_user.id / job_id / "cutout.png"
-    if not cutout_path.is_file():
-        raise HTTPException(status_code=400, detail="No saved cutout for this job. Process a new photo first.")
+    if not source_job.original_path:
+        raise HTTPException(status_code=400, detail="Original photo missing for this job.")
+
+    original_path = Path(source_job.original_path)
+    if not original_path.is_file():
+        raise HTTPException(status_code=400, detail="Original photo file not found.")
 
     try:
         charged_amount = await billing.charge_for_generation(current_user)
@@ -194,10 +198,18 @@ async def recomposite_photo(
         if preset:
             resolved_preset_id = preset.id
 
+    suffix = original_path.suffix.lower()
+    mime_type = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }.get(suffix, "image/jpeg")
+
     job = await job_service.create_photo_job(
         current_user.id,
-        cutout_path.read_bytes(),
-        "image/png",
+        original_path.read_bytes(),
+        mime_type,
         source_job.session_id,
         background_preset_id=resolved_preset_id,
         background_variant_id=background_variant_id,
@@ -205,6 +217,7 @@ async def recomposite_photo(
         user_background_variant_id=user_background_variant_id,
         charged_amount=charged_amount,
     )
+    mark_job_as_recomposite(_job_dir(current_user.id, job.id), job_id)
 
     await db.commit()
     await enqueue_photo_job(job.id, current_user.id)

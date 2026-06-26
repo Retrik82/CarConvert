@@ -18,19 +18,17 @@ def test_generation_estimate_uses_configured_models() -> None:
     estimate = estimate_generation_cost(
         _settings(
             pose_model="google/gemini-2.5-flash-lite",
-            cutout_model="google/gemini-2.5-flash-image",
-            composite_model="google/gemini-3.1-flash-image-preview",
-            cutout_model_fallback="google/gemini-3.1-flash-image-preview",
-            composite_model_fallback="google/gemini-2.5-flash-image",
+            inplace_background_model="google/gemini-2.5-flash-image",
+            inplace_background_model_fallback="google/gemini-3.1-flash-image-preview",
         )
     )
     assert estimate.service_id == "generation"
     assert len(estimate.steps) == 3
     assert estimate.steps[0].model == "google/gemini-2.5-flash-lite"
-    assert estimate.steps[1].model == "google/gemini-2.5-flash-image"
-    assert estimate.actual_cost_min_usd == Decimal("0.11")
-    assert estimate.actual_cost_max_usd == Decimal("0.21")
-    assert estimate.recommended_price_usd == Decimal("0.22")
+    assert estimate.steps[2].model == "google/gemini-2.5-flash-image"
+    assert estimate.actual_cost_min_usd == Decimal("0.04")
+    assert estimate.actual_cost_max_usd == Decimal("0.11")
+    assert estimate.recommended_price_usd == Decimal("0.08")
 
 
 def test_custom_background_estimate_scales_by_angle_count() -> None:

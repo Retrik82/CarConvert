@@ -292,12 +292,15 @@ async def run_photo_job(job_id: str, user_id: str, api_key: str) -> None:
                 user_id=user_id,
                 angle=detected_angle,
             )
+            from app.services.user_car_pipeline import is_recomposite_job
+
             job_dir = _job_dir(user_id, job_id)
             result_b64, result_mime = await process_photo_with_background(
                 data_url,
                 resolved,
                 api_key,
                 job_dir=job_dir,
+                recomposite=is_recomposite_job(job_dir),
             )
 
             ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}.get(result_mime, ".jpg")

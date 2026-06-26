@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     hint_model: str = "rekaai/reka-edge"
     process_model: str = "google/gemini-3.1-flash-image-preview"
 
+    # In-place background replace (primary user render path)
+    inplace_background_model: str = "google/gemini-2.5-flash-image"
+    inplace_background_model_fallback: str = "google/gemini-3.1-flash-image-preview"
+
     # Hints (camera)
     hint_model_primary: str = ""
     hint_model_fallback: str = "google/gemini-2.5-flash-lite"

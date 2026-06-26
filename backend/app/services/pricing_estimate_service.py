@@ -71,11 +71,11 @@ def estimate_generation_cost(settings: Settings | None = None) -> ServiceEstimat
     cfg = settings or get_settings()
     steps = (
         _step("pose", "Ракурс (pose → angle)", cfg.pose_model),
-        _step("cutout", "Обрезка машины (cutout)", cfg.cutout_model),
-        _step("composite", "Композит на фон", cfg.composite_primary),
+        _step("describe", "Анализ машины (vision)", cfg.pose_model),
+        _step("inplace", "Замена фона in-place", cfg.inplace_background_model),
     )
     min_cost = sum((step.cost_usd for step in steps), Decimal("0"))
-    retry_extra = _model_cost(cfg.cutout_model_fallback) + _model_cost(cfg.composite_model_fallback)
+    retry_extra = _model_cost(cfg.inplace_background_model_fallback)
     max_cost = min_cost + retry_extra
     recommended = _quantize_usd(_quantize_usd(min_cost) * RECOMMENDED_MULTIPLIER_GENERATION)
     return ServiceEstimate(

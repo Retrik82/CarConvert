@@ -90,8 +90,8 @@ async def replace_car_background_in_place(
     ]
     body = await call_image_completion(
         messages,
-        primary=settings.composite_primary,
-        fallback=settings.composite_model_fallback,
+        primary=settings.inplace_background_model,
+        fallback=settings.inplace_background_model_fallback,
         timeout=float(settings.process_timeout_sec),
         api_key=api_key,
         preserve_source_framing=True,

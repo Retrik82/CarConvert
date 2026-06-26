@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import logging
 from dataclasses import dataclass
@@ -31,7 +30,7 @@ from app.utils.image_utils import sanitize_inplace_background_prompt, to_data_ur
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-INPLACE_MAX_ATTEMPTS = 3
+RECOMPOSITE_MARKER = "recomposite.source_job_id"
 
 
 @dataclass(frozen=True)
@@ -55,6 +54,14 @@ def _build_empty_room_prompt(resolved: ResolvedBackground) -> str:
     if resolved.angle == "interior":
         return f"{studio} Empty environment outside the windows. No vehicle, no people."
     return f"{studio} Empty gray showroom studio with podium. No vehicle, no people."
+
+
+def mark_job_as_recomposite(job_dir: Path, source_job_id: str) -> None:
+    (job_dir / RECOMPOSITE_MARKER).write_text(source_job_id, encoding="utf-8")
+
+
+def is_recomposite_job(job_dir: Path) -> bool:
+    return (job_dir / RECOMPOSITE_MARKER).is_file()
 
 
 async def _image_ref_to_base64(image_ref: str) -> tuple[str, str]:
@@ -108,69 +115,6 @@ async def _ai_composite_cutout_on_scene(
     return await _image_ref_to_base64(image_ref)
 
 
-def _load_scene_data_url(resolved: ResolvedBackground) -> str | None:
-    if not resolved.scene_image_path:
-        return None
-    path = Path(resolved.scene_image_path)
-    if not path.is_file() or path.stat().st_size < 1000:
-        return None
-    suffix = path.suffix.lower()
-    mime = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/png"
-    return to_data_url(path.read_bytes(), mime)
-
-
-async def _save_cutout_for_job(
-    source_data_url: str,
-    api_key: str,
-    *,
-    angle: str,
-    job_dir: Path,
-    vehicle_descriptor: dict | None,
-) -> None:
-    try:
-        cutout_bytes, _ = await extract_car_cutout_validated(
-            source_data_url,
-            api_key,
-            angle=angle,
-            vehicle_descriptor=vehicle_descriptor,
-        )
-        (job_dir / "cutout.png").write_bytes(cutout_bytes)
-    except Exception as exc:
-        logger.warning("Cutout extraction for job archive failed: %s", exc)
-
-
-async def _replace_background_with_retries(
-    source_data_url: str,
-    replace_prompt: str,
-    *,
-    angle: str,
-    api_key: str,
-    vehicle_descriptor: dict | None,
-) -> tuple[str, str]:
-    last_error: Exception | None = None
-    for attempt in range(1, INPLACE_MAX_ATTEMPTS + 1):
-        try:
-            logger.info("In-place background replace attempt %s/%s", attempt, INPLACE_MAX_ATTEMPTS)
-            return await replace_car_background_in_place(
-                source_data_url,
-                replace_prompt,
-                angle=angle,
-                api_key=api_key,
-                vehicle_descriptor=vehicle_descriptor,
-            )
-        except Exception as exc:
-            last_error = exc
-            logger.warning(
-                "In-place attempt %s/%s failed: %s",
-                attempt,
-                INPLACE_MAX_ATTEMPTS,
-                exc,
-            )
-            if attempt < INPLACE_MAX_ATTEMPTS:
-                await asyncio.sleep(0.75 * attempt)
-    raise RuntimeError(str(last_error or "In-place background replace failed"))
-
-
 async def _composite_fallback(
     source_data_url: str,
     resolved: ResolvedBackground,
@@ -187,7 +131,7 @@ async def _composite_fallback(
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
 
     scene_prompt = _build_empty_room_prompt(resolved)
-    logger.warning("Composite fallback — generating backdrop-only scene (no podium reference)")
+    logger.warning("Composite fallback — generating studio scene")
     scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
     scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
 
@@ -220,9 +164,8 @@ async def process_user_car_photo(
     """
     Pipeline:
     1. Describe the source vehicle for identity-preserving prompts.
-    2. Replace only the background on the original photo (up to 3 attempts).
-    3. Archive a vehicle cutout after success.
-    4. Fall back to scene compositing only if all in-place attempts fail.
+    2. Replace only the background on the original photo (single attempt).
+    3. Fall back to scene compositing only if in-place replacement fails.
     """
     logger.info(
         "Processing user car: angle=%s preset=%s custom=%s",
@@ -239,30 +182,56 @@ async def process_user_car_photo(
     replace_prompt = build_background_replace_prompt(resolved)
 
     try:
-        result = await _replace_background_with_retries(
+        return await replace_car_background_in_place(
             source_data_url,
             replace_prompt,
             angle=resolved.angle,
             api_key=api_key,
             vehicle_descriptor=vehicle_descriptor,
         )
-        if job_dir is not None:
-            await _save_cutout_for_job(
-                source_data_url,
-                api_key,
-                angle=resolved.angle,
-                job_dir=job_dir,
-                vehicle_descriptor=vehicle_descriptor,
-            )
-        return result
     except Exception as exc:
-        logger.warning("All in-place attempts failed (%s), falling back to composite", exc)
+        logger.warning("In-place background replace failed (%s), falling back to composite", exc)
         return await _composite_fallback(
             source_data_url,
             resolved,
             api_key,
             vehicle_descriptor=vehicle_descriptor,
         )
+
+
+async def process_recomposite_photo(
+    source_data_url: str,
+    resolved: ResolvedBackground,
+    api_key: str,
+    *,
+    job_dir: Path | None = None,
+) -> tuple[str, str]:
+    """Extract cutout from source photo and composite onto a new background."""
+    vehicle_descriptor = await describe_vehicle(
+        source_data_url,
+        api_key,
+        angle=resolved.angle,
+    )
+    cutout_bytes, cutout_mime = await extract_car_cutout_validated(
+        source_data_url,
+        api_key,
+        angle=resolved.angle,
+        vehicle_descriptor=vehicle_descriptor,
+    )
+    if job_dir is not None:
+        (job_dir / "cutout.png").write_bytes(cutout_bytes)
+
+    cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
+    scene_prompt = _build_empty_room_prompt(resolved)
+    scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
+    scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
+    return await _ai_composite_cutout_on_scene(
+        cutout_data_url,
+        scene_data_url,
+        scene_prompt,
+        api_key,
+        vehicle_descriptor=vehicle_descriptor,
+    )
 
 
 async def recomposite_from_cutout(

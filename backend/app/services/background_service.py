@@ -375,7 +375,10 @@ async def process_photo_with_background(
     api_key: str,
     *,
     job_dir: Path | None = None,
+    recomposite: bool = False,
 ) -> tuple[str, str]:
-    from app.services.user_car_pipeline import process_user_car_photo
+    from app.services.user_car_pipeline import process_recomposite_photo, process_user_car_photo
 
+    if recomposite:
+        return await process_recomposite_photo(source_data_url, resolved, api_key, job_dir=job_dir)
     return await process_user_car_photo(source_data_url, resolved, api_key, job_dir=job_dir)
