@@ -20,6 +20,7 @@ from app.db.models.background import (
 from app.repositories.background_repository import BackgroundRepository
 from app.services.ai.background_processor import generate_full_scene
 from app.services.user_car_pipeline import ResolvedBackground
+from app.utils.image_utils import sanitize_inplace_background_prompt
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -29,6 +30,11 @@ PRESET_DEFINITIONS = (
         "slug": "gray-showroom",
         "name": "Gray Showroom",
         "description": "Minimalist gray studio with a central podium",
+        "environment_template": (
+            "Soft gray studio walls and ceiling with diffused overhead lighting. "
+            "Neutral monochromatic gray backdrop behind the vehicle. "
+            "Clean professional automotive photography atmosphere."
+        ),
         "prompt_template": (
             "Minimalist luxury gray automotive showroom studio. Smooth concrete walls and floor, "
             "soft diffused ceiling lighting, monochromatic gray palette, premium presentation space. "
@@ -43,6 +49,11 @@ PRESET_DEFINITIONS = (
         "slug": "auto-workshop",
         "name": "Auto Workshop",
         "description": "Modern professional car service garage",
+        "environment_template": (
+            "Modern automotive workshop interior with clean industrial walls, "
+            "bright ceiling workshop lights, and tool cabinets in the distant background. "
+            "Organized professional garage atmosphere behind the vehicle."
+        ),
         "prompt_template": (
             "Modern professional automotive service garage. Clean industrial interior, concrete floor, "
             "bright ceiling workshop lights, tool cabinets and vehicle lift in the background, "
@@ -54,6 +65,15 @@ PRESET_DEFINITIONS = (
         "tint": (120, 130, 145),
     },
 )
+
+PRESET_ENVIRONMENT_BY_SLUG = {
+    definition["slug"]: definition["environment_template"] for definition in PRESET_DEFINITIONS
+}
+
+
+def inplace_environment_for_preset(slug: str, fallback_template: str) -> str:
+    """Return backdrop-only prompt for in-place editing (no podium/floor geometry)."""
+    return PRESET_ENVIRONMENT_BY_SLUG.get(slug, sanitize_inplace_background_prompt(fallback_template))
 
 
 def backgrounds_root() -> Path:
@@ -140,7 +160,7 @@ class BackgroundService:
             background = await self._repo.get_user_background(user_background_id, user_id)
             if not background:
                 raise ValueError("Custom background not found.")
-            prompt = background.prompt.strip()
+            prompt = sanitize_inplace_background_prompt(background.prompt.strip())
             scene_path: str | None = None
             for variant in background.variants:
                 if variant.angle == selected_angle and variant.image_path:
@@ -167,7 +187,7 @@ class BackgroundService:
                 raise ValueError("No background presets configured.")
             preset = presets[0]
 
-        prompt = preset.prompt_template.strip()
+        prompt = inplace_environment_for_preset(preset.slug, preset.prompt_template).strip()
         from app.services.background_asset_service import ensure_preset_scene
 
         scene_path = ensure_preset_scene(preset.slug, selected_angle)

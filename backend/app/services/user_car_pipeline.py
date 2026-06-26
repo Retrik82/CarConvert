@@ -11,7 +11,6 @@ from pathlib import Path
 import httpx
 
 from app.config import get_settings
-from app.db.models.background import ANGLE_PROMPT_SUFFIXES
 from app.services.ai.background_processor import (
     generate_empty_room,
     process_into_scene,
@@ -32,6 +31,8 @@ from app.utils.image_utils import sanitize_inplace_background_prompt, to_data_ur
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+INPLACE_MAX_ATTEMPTS = 3
+
 
 @dataclass(frozen=True)
 class ResolvedBackground:
@@ -46,6 +47,14 @@ def build_background_replace_prompt(resolved: ResolvedBackground) -> str:
     """Environment description only — never instruct the model to change camera angle."""
     environment = sanitize_inplace_background_prompt(resolved.prompt)
     return build_background_environment_prompt(environment, angle=resolved.angle)
+
+
+def _build_empty_room_prompt(resolved: ResolvedBackground) -> str:
+    """Backdrop-only scene generation for composite fallback — no podium language."""
+    backdrop = build_background_replace_prompt(resolved)
+    if resolved.angle == "interior":
+        return f"{backdrop} Empty environment outside the windows. No vehicle, no people."
+    return f"{backdrop} Empty backdrop scene behind where a car stands. No vehicle, no people."
 
 
 async def _image_ref_to_base64(image_ref: str) -> tuple[str, str]:
@@ -99,13 +108,6 @@ async def _ai_composite_cutout_on_scene(
     return await _image_ref_to_base64(image_ref)
 
 
-def _build_scene_generation_prompt(resolved: ResolvedBackground) -> str:
-    angle_suffix = ANGLE_PROMPT_SUFFIXES.get(resolved.angle, "")
-    if resolved.angle == "interior":
-        return f"{resolved.prompt} {angle_suffix} Interior cabin view, no people, no vehicle."
-    return f"{resolved.prompt} {angle_suffix} Empty studio environment, no vehicle, no people."
-
-
 def _load_scene_data_url(resolved: ResolvedBackground) -> str | None:
     if not resolved.scene_image_path:
         return None
@@ -137,6 +139,38 @@ async def _save_cutout_for_job(
         logger.warning("Cutout extraction for job archive failed: %s", exc)
 
 
+async def _replace_background_with_retries(
+    source_data_url: str,
+    replace_prompt: str,
+    *,
+    angle: str,
+    api_key: str,
+    vehicle_descriptor: dict | None,
+) -> tuple[str, str]:
+    last_error: Exception | None = None
+    for attempt in range(1, INPLACE_MAX_ATTEMPTS + 1):
+        try:
+            logger.info("In-place background replace attempt %s/%s", attempt, INPLACE_MAX_ATTEMPTS)
+            return await replace_car_background_in_place(
+                source_data_url,
+                replace_prompt,
+                angle=angle,
+                api_key=api_key,
+                vehicle_descriptor=vehicle_descriptor,
+            )
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "In-place attempt %s/%s failed: %s",
+                attempt,
+                INPLACE_MAX_ATTEMPTS,
+                exc,
+            )
+            if attempt < INPLACE_MAX_ATTEMPTS:
+                await asyncio.sleep(0.75 * attempt)
+    raise RuntimeError(str(last_error or "In-place background replace failed"))
+
+
 async def _composite_fallback(
     source_data_url: str,
     resolved: ResolvedBackground,
@@ -152,18 +186,16 @@ async def _composite_fallback(
     )
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
 
-    scene_data_url = _load_scene_data_url(resolved)
-    if scene_data_url is None:
-        logger.warning("No reference scene for %s — generating empty room", resolved.angle)
-        scene_prompt = _build_scene_generation_prompt(resolved)
-        scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
-        scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
+    scene_prompt = _build_empty_room_prompt(resolved)
+    logger.warning("Composite fallback — generating backdrop-only scene (no podium reference)")
+    scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
+    scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
 
     try:
         return await _ai_composite_cutout_on_scene(
             cutout_data_url,
             scene_data_url,
-            resolved.prompt,
+            scene_prompt,
             api_key,
             vehicle_descriptor=vehicle_descriptor,
         )
@@ -171,7 +203,7 @@ async def _composite_fallback(
         logger.warning("Cutout composite failed (%s), retrying with process_into_scene", exc)
         return await process_into_scene(
             cutout_data_url,
-            resolved.prompt,
+            scene_prompt,
             scene_data_url,
             api_key,
             vehicle_descriptor=vehicle_descriptor,
@@ -188,9 +220,9 @@ async def process_user_car_photo(
     """
     Pipeline:
     1. Describe the source vehicle for identity-preserving prompts.
-    2. Replace only the background on the original photo (preserves vehicle + camera angle).
-    3. Optionally archive a vehicle cutout for later re-composite.
-    4. Fall back to scene compositing only if in-place replacement fails.
+    2. Replace only the background on the original photo (up to 3 attempts).
+    3. Archive a vehicle cutout after success.
+    4. Fall back to scene compositing only if all in-place attempts fail.
     """
     logger.info(
         "Processing user car: angle=%s preset=%s custom=%s",
@@ -206,42 +238,31 @@ async def process_user_car_photo(
     )
     replace_prompt = build_background_replace_prompt(resolved)
 
-    cutout_task: asyncio.Task[None] | None = None
-    if job_dir is not None:
-        cutout_task = asyncio.create_task(
-            _save_cutout_for_job(
-                source_data_url,
-                api_key,
-                angle=resolved.angle,
-                job_dir=job_dir,
-                vehicle_descriptor=vehicle_descriptor,
-            )
-        )
-
     try:
-        return await replace_car_background_in_place(
+        result = await _replace_background_with_retries(
             source_data_url,
             replace_prompt,
             angle=resolved.angle,
             api_key=api_key,
             vehicle_descriptor=vehicle_descriptor,
         )
+        if job_dir is not None:
+            await _save_cutout_for_job(
+                source_data_url,
+                api_key,
+                angle=resolved.angle,
+                job_dir=job_dir,
+                vehicle_descriptor=vehicle_descriptor,
+            )
+        return result
     except Exception as exc:
-        logger.warning("In-place background replace failed (%s), falling back to composite", exc)
-        if cutout_task is not None:
-            cutout_task.cancel()
+        logger.warning("All in-place attempts failed (%s), falling back to composite", exc)
         return await _composite_fallback(
             source_data_url,
             resolved,
             api_key,
             vehicle_descriptor=vehicle_descriptor,
         )
-    finally:
-        if cutout_task is not None and not cutout_task.cancelled():
-            try:
-                await cutout_task
-            except asyncio.CancelledError:
-                pass
 
 
 async def recomposite_from_cutout(
@@ -252,15 +273,13 @@ async def recomposite_from_cutout(
     vehicle_descriptor: dict | None = None,
 ) -> tuple[str, str]:
     """Re-run composite only using a saved cutout and new background."""
-    scene_data_url = _load_scene_data_url(resolved)
-    if scene_data_url is None:
-        scene_prompt = _build_scene_generation_prompt(resolved)
-        scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
-        scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
+    scene_prompt = _build_empty_room_prompt(resolved)
+    scene_b64, scene_mime = await generate_empty_room(scene_prompt, api_key)
+    scene_data_url = f"data:{scene_mime};base64,{scene_b64}"
     return await _ai_composite_cutout_on_scene(
         cutout_data_url,
         scene_data_url,
-        resolved.prompt,
+        scene_prompt,
         api_key,
         vehicle_descriptor=vehicle_descriptor,
     )

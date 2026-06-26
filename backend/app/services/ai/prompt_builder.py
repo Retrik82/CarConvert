@@ -10,6 +10,7 @@ from app.services.ai.prompt_blocks import (
     REQUIRED_SYSTEM_MARKERS,
 )
 from app.services.ai.vehicle_descriptor import format_vehicle_identity
+from app.utils.image_utils import INPLACE_BACKDROP_CONSTRAINTS
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +61,8 @@ def build_inplace_edit_user_text(
         )
     else:
         locality = (
-            "Keep the vehicle and original camera viewpoint exactly as photographed. "
-            "Replace only the environment behind and around the car."
+            "Keep the vehicle, camera viewpoint, perspective, and framing exactly as photographed. "
+            "Replace only the distant scenery behind the car — not the car itself, not the ground under the tires."
         )
 
     return (
@@ -70,8 +71,10 @@ def build_inplace_edit_user_text(
         f"New background environment: {background_prompt}\n\n"
         f"{modification_block}\n"
         f"{locality} "
+        f"{INPLACE_BACKDROP_CONSTRAINTS} "
         "Do not change the vehicle model, generation, body geometry, proportions, color, wheels, "
-        "lights, trim, or shooting angle. "
+        "lights, trim, badges, reflections, or shooting angle. "
+        "Preserve every small detail visible in the source photo. "
         "Do not generate a new car or a new camera angle.\n"
         f"{PRESERVATION_REMINDER}"
     )
@@ -105,6 +108,7 @@ def build_composite_user_text(
         f"Scene description: {scene_prompt}\n\n"
         f"{modification_block}\n"
         "Replace only the placeholder car with the user's vehicle. "
+        "Do not clip the vehicle into a platform or circular disc — preserve the full car silhouette. "
         "Match lighting and scale. Do not change the room, perspective, or vehicle design. "
         f"{PRESERVATION_REMINDER}"
     )
@@ -149,8 +153,9 @@ def build_background_environment_prompt(environment: str, *, angle: str) -> str:
         )
     return (
         f"{environment} "
-        "Replace ONLY the background environment behind and around the existing vehicle. "
-        "Keep the vehicle and original camera angle, perspective, and framing unchanged."
+        "Replace ONLY the distant backdrop behind the existing vehicle. "
+        f"{INPLACE_BACKDROP_CONSTRAINTS} "
+        "Keep the vehicle, original camera angle, perspective, and framing unchanged."
     )
 
 

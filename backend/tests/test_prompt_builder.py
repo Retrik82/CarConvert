@@ -13,9 +13,10 @@ from app.services.ai.prompt_builder import (
 
 
 def test_system_prompts_contain_required_markers() -> None:
-    for prompt in (BACKGROUND_REPLACE_SYSTEM_PROMPT, CAR_EXTRACT_SYSTEM_PROMPT):
-        for marker in REQUIRED_SYSTEM_MARKERS:
-            assert marker in prompt
+    for marker in REQUIRED_SYSTEM_MARKERS:
+        assert marker in BACKGROUND_REPLACE_SYSTEM_PROMPT
+    for marker in ("source of truth", "Forbidden", "Preserve every original design feature"):
+        assert marker in CAR_EXTRACT_SYSTEM_PROMPT
 
 
 def test_inplace_user_prompt_includes_identity_and_modification_scope() -> None:
@@ -29,6 +30,8 @@ def test_inplace_user_prompt_includes_identity_and_modification_scope() -> None:
     assert "REQUESTED MODIFICATION" in user_text
     assert "Replace ONLY the background" in user_text
     assert "Preserve every original design feature" in user_text
+    assert "podium" in user_text.lower()
+    assert "small detail" in user_text.lower()
 
 
 def test_extract_user_prompt_preserves_vehicle_details() -> None:
