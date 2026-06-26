@@ -18,9 +18,10 @@ CAR_EXTRACT_SYSTEM_PROMPT = (
     "Rules:\n"
     "- Output a PNG with a fully transparent background.\n"
     "- Preserve the exact vehicle: body shape, paint, wheels, headlights, grille, "
-    "windows, reflections, and proportions.\n"
+    "windows, reflections, proportions, license plates, badges, and all text on the car.\n"
     "- Remove all background, sky, ground, people, and non-vehicle objects.\n"
-    "- Do not alter, enhance, recolor, or regenerate the car.\n"
+    "- Do not alter, enhance, recolor, blur, or regenerate any car pixel.\n"
+    "- Keep license plate numbers and letters exactly as photographed.\n"
     "- Do not add floor shadows outside the vehicle silhouette.\n"
     "- Do not add text or watermarks.\n"
     "- If no vehicle is visible, return the closest vehicle region only."
@@ -29,7 +30,7 @@ CAR_EXTRACT_SYSTEM_PROMPT = (
 CAR_EXTRACT_USER_PROMPT = (
     "Extract the car from this photo. "
     "Return PNG with transparent background. "
-    "Keep every vehicle detail exactly as photographed."
+    "Keep every vehicle detail exactly as photographed, including license plate text and badges."
 )
 
 INTERIOR_EXTRACT_USER_PROMPT = (
