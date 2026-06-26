@@ -2,7 +2,7 @@ import base64
 import io
 from typing import Tuple
 
-from PIL import Image, ImageFilter
+from PIL import Image
 
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 ALLOWED_MIME_TYPES = {
@@ -110,50 +110,6 @@ def aspect_ratio_label_from_data_url(data_url: str) -> str | None:
         "2:3": 2 / 3,
     }
     return min(candidates, key=lambda label: abs(candidates[label] - ratio))
-
-
-def restore_source_car_on_background(
-    source_bytes: bytes,
-    cutout_bytes: bytes,
-    background_bytes: bytes,
-    *,
-    feather_px: int = 2,
-) -> bytes:
-    """
-    Overlay original car pixels from the source photo onto an AI-generated background.
-
-    Uses the cutout alpha channel only as a mask — RGB always comes from the source
-    so license plates, badges, and micro-details stay untouched.
-    """
-    with Image.open(io.BytesIO(source_bytes)) as src:
-        source = src.convert("RGBA")
-    with Image.open(io.BytesIO(cutout_bytes)) as cut:
-        cutout = cut.convert("RGBA")
-    with Image.open(io.BytesIO(background_bytes)) as bg_img:
-        background = bg_img.convert("RGBA")
-
-    width, height = source.size
-    if cutout.size != (width, height):
-        cutout = cutout.resize((width, height), Image.Resampling.LANCZOS)
-    if background.size != (width, height):
-        background = background.resize((width, height), Image.Resampling.LANCZOS)
-
-    alpha = cutout.getchannel("A")
-    if feather_px > 0:
-        alpha = alpha.filter(ImageFilter.GaussianBlur(radius=feather_px))
-
-    car_layer = source.copy()
-    car_layer.putalpha(alpha)
-    result = Image.alpha_composite(background, car_layer)
-
-    buffer = io.BytesIO()
-    result.convert("RGB").save(buffer, format="JPEG", quality=92, optimize=True)
-    return buffer.getvalue()
-
-
-def data_url_to_bytes(data_url: str) -> bytes:
-    _, payload = parse_data_url(data_url)
-    return base64.b64decode(payload)
 
 
 def parse_data_url(data_url: str) -> Tuple[str, str]:

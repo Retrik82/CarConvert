@@ -54,3 +54,17 @@ def test_background_replace_prompt_interior() -> None:
 
     assert "cabin interior" in prompt
     assert "Camera:" not in prompt
+
+
+def test_legacy_edit_user_prompt_sanitizes_and_preserves_angle() -> None:
+    from app.services.ai.background_processor import build_inplace_edit_user_text
+
+    raw = (
+        "Cinematic desert dunes. Empty environment — no car, no people. "
+        "Landscape 16:9, photorealistic."
+    )
+    user_text = build_inplace_edit_user_text(sanitize_inplace_background_prompt(raw))
+
+    assert "SOURCE PHOTO" in user_text
+    assert "16:9" not in user_text
+    assert "camera angle" in user_text.lower()

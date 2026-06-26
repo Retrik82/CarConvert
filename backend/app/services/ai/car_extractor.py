@@ -6,31 +6,16 @@ import logging
 from app.config import get_settings
 from app.services.ai.cutout_validator import validate_cutout
 from app.services.ai.model_router import call_generate_image
+from app.services.ai.prompt_blocks import CAR_EXTRACT_SYSTEM_PROMPT
 from app.utils.debug_log import agent_log
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-CAR_EXTRACT_SYSTEM_PROMPT = (
-    "You are an automotive photo isolation specialist.\n\n"
-    "Goal:\n"
-    "Extract ONLY the vehicle from the provided photograph.\n\n"
-    "Rules:\n"
-    "- Output a PNG with a fully transparent background.\n"
-    "- Preserve the exact vehicle: body shape, paint, wheels, headlights, grille, "
-    "windows, reflections, proportions, license plates, badges, and all text on the car.\n"
-    "- Remove all background, sky, ground, people, and non-vehicle objects.\n"
-    "- Do not alter, enhance, recolor, blur, or regenerate any car pixel.\n"
-    "- Keep license plate numbers and letters exactly as photographed.\n"
-    "- Do not add floor shadows outside the vehicle silhouette.\n"
-    "- Do not add text or watermarks.\n"
-    "- If no vehicle is visible, return the closest vehicle region only."
-)
-
 CAR_EXTRACT_USER_PROMPT = (
     "Extract the car from this photo. "
     "Return PNG with transparent background. "
-    "Keep every vehicle detail exactly as photographed, including license plate text and badges."
+    "Keep every vehicle detail exactly as photographed."
 )
 
 INTERIOR_EXTRACT_USER_PROMPT = (

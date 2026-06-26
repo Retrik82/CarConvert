@@ -20,31 +20,12 @@ from app.services.ai.background_processor import (
 from app.services.ai.car_extractor import extract_car_cutout_validated
 from app.services.ai.model_router import call_image_completion
 from app.services.ai.openrouter_client import _extract_image_reference
-from app.utils.image_utils import (
-    data_url_to_bytes,
-    restore_source_car_on_background,
-    sanitize_inplace_background_prompt,
-    to_data_url,
-)
+from app.utils.image_utils import sanitize_inplace_background_prompt, to_data_url
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-CUTOUT_COMPOSITE_SYSTEM_PROMPT = (
-    "You are an automotive compositing specialist.\n\n"
-    "Goal:\n"
-    "Place the user's vehicle cutout into the target scene.\n\n"
-    "Rules:\n"
-    "- Image 1 is the BACKGROUND SCENE — keep walls, floor, podium, lighting, "
-    "perspective, and camera angle exactly unchanged.\n"
-    "- Image 2 is the USER VEHICLE CUTOUT (transparent PNG) — preserve it exactly.\n"
-    "- Replace any placeholder car in the scene with the user's vehicle.\n"
-    "- Match scene lighting, scale, and contact shadows for a seamless photorealistic result.\n"
-    "- Do not modify the vehicle body, paint, wheels, or proportions.\n"
-    "- Do not add text or watermarks."
-)
-
-
+from app.services.ai.prompt_blocks import CUTOUT_COMPOSITE_SYSTEM_PROMPT
 @dataclass(frozen=True)
 class ResolvedBackground:
     prompt: str
@@ -139,37 +120,21 @@ def _load_scene_data_url(resolved: ResolvedBackground) -> str | None:
 
 
 async def _save_cutout_for_job(
-    cutout_bytes: bytes,
-    job_dir: Path,
-) -> None:
-    try:
-        (job_dir / "cutout.png").write_bytes(cutout_bytes)
-    except Exception as exc:
-        logger.warning("Cutout archive failed: %s", exc)
-
-
-async def _extract_cutout(
     source_data_url: str,
     api_key: str,
     *,
     angle: str,
-) -> tuple[bytes, str]:
-    return await extract_car_cutout_validated(
-        source_data_url,
-        api_key,
-        angle=angle,
-    )
-
-
-def _restore_car_pixels(
-    source_data_url: str,
-    cutout_bytes: bytes,
-    ai_base64: str,
-) -> tuple[str, str]:
-    source_bytes = data_url_to_bytes(source_data_url)
-    background_bytes = base64.b64decode(ai_base64)
-    restored = restore_source_car_on_background(source_bytes, cutout_bytes, background_bytes)
-    return base64.b64encode(restored).decode("utf-8"), "image/jpeg"
+    job_dir: Path,
+) -> None:
+    try:
+        cutout_bytes, _ = await extract_car_cutout_validated(
+            source_data_url,
+            api_key,
+            angle=angle,
+        )
+        (job_dir / "cutout.png").write_bytes(cutout_bytes)
+    except Exception as exc:
+        logger.warning("Cutout extraction for job archive failed: %s", exc)
 
 
 async def _composite_fallback(
@@ -217,9 +182,9 @@ async def process_user_car_photo(
 ) -> tuple[str, str]:
     """
     Pipeline:
-    1. In parallel: AI background replace + vehicle cutout (mask).
-    2. Restore original car pixels from the source photo onto the new background.
-    3. Fall back to scene compositing only if the primary path fails.
+    1. Replace only the background on the original photo (preserves vehicle + camera angle).
+    2. Optionally archive a vehicle cutout for later re-composite.
+    3. Fall back to scene compositing only if in-place replacement fails.
     """
     logger.info(
         "Processing user car: angle=%s preset=%s custom=%s",
@@ -230,35 +195,35 @@ async def process_user_car_photo(
 
     replace_prompt = build_background_replace_prompt(resolved)
 
-    cutout_task = asyncio.create_task(
-        _extract_cutout(source_data_url, api_key, angle=resolved.angle)
-    )
+    cutout_task: asyncio.Task[None] | None = None
+    if job_dir is not None:
+        cutout_task = asyncio.create_task(
+            _save_cutout_for_job(
+                source_data_url,
+                api_key,
+                angle=resolved.angle,
+                job_dir=job_dir,
+            )
+        )
 
     try:
-        ai_base64, ai_mime = await replace_car_background_in_place(
+        return await replace_car_background_in_place(
             source_data_url,
             replace_prompt,
             angle=resolved.angle,
             api_key=api_key,
         )
-        try:
-            cutout_bytes, _ = await cutout_task
-        except Exception as cutout_exc:
-            logger.warning("Cutout extraction failed (%s), using AI result without pixel restore", cutout_exc)
-            return ai_base64, ai_mime
-
-        if job_dir is not None:
-            await _save_cutout_for_job(cutout_bytes, job_dir)
-        try:
-            return _restore_car_pixels(source_data_url, cutout_bytes, ai_base64)
-        except Exception as exc:
-            logger.warning("Car pixel restore failed (%s), using AI background only", exc)
-            return ai_base64, ai_mime
     except Exception as exc:
         logger.warning("In-place background replace failed (%s), falling back to composite", exc)
-        if not cutout_task.done():
+        if cutout_task is not None:
             cutout_task.cancel()
         return await _composite_fallback(source_data_url, resolved, api_key)
+    finally:
+        if cutout_task is not None and not cutout_task.cancelled():
+            try:
+                await cutout_task
+            except asyncio.CancelledError:
+                pass
 
 
 async def recomposite_from_cutout(

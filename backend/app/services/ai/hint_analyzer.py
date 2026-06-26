@@ -4,7 +4,7 @@ from typing import Any
 
 from app.config import get_settings
 from app.models.schemas import HintOverlay, HintResponse, HintScores, HintType
-from app.services.ai.model_router import call_image_completion, call_vision_json
+from app.services.ai.model_router import call_vision_json
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -42,19 +42,25 @@ HINT_TO_COLOR: dict[str, str] = {
 
 HINT_SYSTEM_PROMPT = """You are an expert automotive photography coach helping a user position their car inside a live camera guide frame.
 
-The on-screen guide is a rounded rectangle in the CENTER of the image (roughly 84% width, 48% height in portrait).
+The on-screen guide is a rounded rectangle in the CENTER of the image:
+- Portrait: roughly 84% width, 48% height
+- Landscape: roughly 80% width, 70% height
+
 The user must move the PHONE so the entire car fits inside this rectangle and is well centered.
 
 Your job: give ONE clear next-step instruction to improve framing.
 
 Respond ONLY with valid JSON (no markdown):
 {
-  "hint": "move_left|move_right|move_closer|move_back|raise_phone|lower_phone|align_car|rotate_slightly|perfect_frame|no_car_detected",
+  "hint": "move_left",
   "message": "short actionable instruction in Russian (max 8 words)",
   "confidence": 0.85,
-  "scores": {"centering": 0.0-1.0, "distance": 0.0-1.0, "angle": 0.0-1.0},
-  "overlay": {"arrow": "left|right|up|down|none", "color": "yellow|green|red"}
+  "scores": {"centering": 0.0, "distance": 0.0, "angle": 0.0}
 }
+
+Allowed hint values:
+move_left, move_right, move_closer, move_back, raise_phone, lower_phone,
+align_car, rotate_slightly, perfect_frame, no_car_detected
 
 Decision rules (apply in order):
 1. No car or only a tiny part visible → no_car_detected
@@ -64,15 +70,12 @@ Decision rules (apply in order):
 5. Car center clearly right of guide center → move_right
 6. Car too low in guide / roof cut off → raise_phone
 7. Car too high / wheels cut off → lower_phone
-8. Car roughly centered but yaw/roll off → rotate_slightly or align_car
-9. Car fills ~70-90% of guide, centered, fully visible → perfect_frame
+8. Car 55-70% of guide and off-center → move_left, move_right, move_closer, or move_back
+9. Car roughly centered but yaw/roll off → rotate_slightly or align_car
+10. Car fills ~70-90% of guide, centered, fully visible → perfect_frame
 
 Formatting rules:
 - confidence and scores MUST be decimals 0.0-1.0 (never 0-100)
-- move_left → arrow left; move_right → arrow right
-- move_closer / raise_phone → arrow up; move_back / lower_phone → arrow down
-- perfect_frame → color green, arrow none
-- no_car_detected → color red
 - Prefer move_left/move_right/move_closer/move_back over align_car when possible
 - message examples: "Сместись левее", "Подойди ближе", "Отойди назад", "Центрируй машину", "Идеально! Снимай"
 """

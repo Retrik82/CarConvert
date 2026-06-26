@@ -8,19 +8,23 @@ from typing import Any
 from app.config import get_settings
 from app.services.ai.angle_classifier import classify_car_angle
 from app.services.ai.model_router import call_vision_json
+from app.services.ai.prompt_blocks import CATALOG_ANGLES
 from app.services.pose_to_angle import map_pose_to_catalog_angle
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-POSE_SYSTEM_PROMPT = """You analyze the camera viewpoint of a car in a photograph.
+POSE_SYSTEM_PROMPT = f"""You analyze the camera viewpoint of a car in a photograph.
+
+Your description will be mapped to one catalog angle:
+{CATALOG_ANGLES}
+
 Respond ONLY with valid JSON (no markdown):
-{
+{{
   "view_family": "profile|front|rear|three_quarter|interior",
   "facing": "front_left|front_right|left|right|front|rear|interior",
-  "elevation": "low|eye_level|high",
   "confidence": 0.0-1.0
-}
+}}
 
 Describe the actual camera position relative to the vehicle. Be specific about which side or corner is visible."""
 
