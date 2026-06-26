@@ -1,4 +1,6 @@
 from app.db.models.background import ANGLE_PROMPT_SUFFIXES
+from app.services.ai.prompt_builder import build_background_environment_prompt, build_inplace_edit_user_text
+from app.services.ai.vehicle_descriptor import format_vehicle_identity
 from app.services.user_car_pipeline import ResolvedBackground, build_background_replace_prompt
 from app.utils.image_utils import sanitize_inplace_background_prompt
 
@@ -57,8 +59,6 @@ def test_background_replace_prompt_interior() -> None:
 
 
 def test_legacy_edit_user_prompt_sanitizes_and_preserves_angle() -> None:
-    from app.services.ai.background_processor import build_inplace_edit_user_text
-
     raw = (
         "Cinematic desert dunes. Empty environment — no car, no people. "
         "Landscape 16:9, photorealistic."
@@ -66,5 +66,29 @@ def test_legacy_edit_user_prompt_sanitizes_and_preserves_angle() -> None:
     user_text = build_inplace_edit_user_text(sanitize_inplace_background_prompt(raw))
 
     assert "SOURCE PHOTO" in user_text
+    assert "SOURCE VEHICLE IDENTITY" in user_text
+    assert "REQUESTED MODIFICATION" in user_text
     assert "16:9" not in user_text
-    assert "camera angle" in user_text.lower()
+    assert "camera angle" in user_text.lower() or "camera viewpoint" in user_text.lower()
+
+
+def test_format_vehicle_identity_omits_null_fields() -> None:
+    text = format_vehicle_identity(
+        {
+            "make": "BMW",
+            "model": "M4",
+            "generation": None,
+            "body_color": "Alpine White",
+        }
+    )
+
+    assert "Make: BMW" in text
+    assert "Model: M4" in text
+    assert "Body color: Alpine White" in text
+    assert "Generation:" not in text
+
+
+def test_build_background_environment_prompt_exterior() -> None:
+    prompt = build_background_environment_prompt("Desert sunset.", angle="three_quarter_left")
+    assert prompt.startswith("Desert sunset.")
+    assert "ONLY the background" in prompt

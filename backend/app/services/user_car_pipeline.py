@@ -20,12 +20,19 @@ from app.services.ai.background_processor import (
 from app.services.ai.car_extractor import extract_car_cutout_validated
 from app.services.ai.model_router import call_image_completion
 from app.services.ai.openrouter_client import _extract_image_reference
+from app.services.ai.prompt_blocks import CUTOUT_COMPOSITE_SYSTEM_PROMPT
+from app.services.ai.prompt_builder import (
+    build_background_environment_prompt,
+    build_composite_user_text,
+    ensure_prompt_compliance,
+)
+from app.services.ai.vehicle_descriptor import describe_vehicle
 from app.utils.image_utils import sanitize_inplace_background_prompt, to_data_url
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-from app.services.ai.prompt_blocks import CUTOUT_COMPOSITE_SYSTEM_PROMPT
+
 @dataclass(frozen=True)
 class ResolvedBackground:
     prompt: str
@@ -38,17 +45,7 @@ class ResolvedBackground:
 def build_background_replace_prompt(resolved: ResolvedBackground) -> str:
     """Environment description only — never instruct the model to change camera angle."""
     environment = sanitize_inplace_background_prompt(resolved.prompt)
-    if resolved.angle == "interior":
-        return (
-            f"{environment} "
-            "Replace the environment visible outside the cabin windows. "
-            "Keep the cabin interior and camera viewpoint exactly as photographed."
-        )
-    return (
-        f"{environment} "
-        "Replace ONLY the background environment behind and around the existing vehicle. "
-        "Keep the vehicle and original camera angle, perspective, and framing unchanged."
-    )
+    return build_background_environment_prompt(environment, angle=resolved.angle)
 
 
 async def _image_ref_to_base64(image_ref: str) -> tuple[str, str]:
@@ -72,21 +69,22 @@ async def _ai_composite_cutout_on_scene(
     scene_data_url: str,
     scene_prompt: str,
     api_key: str,
+    *,
+    vehicle_descriptor: dict | None = None,
 ) -> tuple[str, str]:
-    user_text = (
-        "Image 1 — BACKGROUND SCENE: target environment. Keep it exactly as shown.\n"
-        "Image 2 — USER VEHICLE: transparent cutout to place into the scene.\n"
-        f"Scene description: {scene_prompt}\n"
-        "Replace the placeholder car (if any) with the user's vehicle. "
-        "Match lighting and scale. Photorealistic composite."
+    user_text = build_composite_user_text(
+        scene_prompt,
+        vehicle_descriptor=vehicle_descriptor,
+        cutout=True,
     )
+    system_prompt, user_text = ensure_prompt_compliance(CUTOUT_COMPOSITE_SYSTEM_PROMPT, user_text)
     content: list[dict] = [
         {"type": "text", "text": user_text},
         {"type": "image_url", "image_url": {"url": scene_data_url}},
         {"type": "image_url", "image_url": {"url": cutout_data_url}},
     ]
     messages = [
-        {"role": "system", "content": CUTOUT_COMPOSITE_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": content},
     ]
     body = await call_image_completion(
@@ -125,12 +123,14 @@ async def _save_cutout_for_job(
     *,
     angle: str,
     job_dir: Path,
+    vehicle_descriptor: dict | None,
 ) -> None:
     try:
         cutout_bytes, _ = await extract_car_cutout_validated(
             source_data_url,
             api_key,
             angle=angle,
+            vehicle_descriptor=vehicle_descriptor,
         )
         (job_dir / "cutout.png").write_bytes(cutout_bytes)
     except Exception as exc:
@@ -141,11 +141,14 @@ async def _composite_fallback(
     source_data_url: str,
     resolved: ResolvedBackground,
     api_key: str,
+    *,
+    vehicle_descriptor: dict | None,
 ) -> tuple[str, str]:
     cutout_bytes, cutout_mime = await extract_car_cutout_validated(
         source_data_url,
         api_key,
         angle=resolved.angle,
+        vehicle_descriptor=vehicle_descriptor,
     )
     cutout_data_url = to_data_url(cutout_bytes, cutout_mime or "image/png")
 
@@ -162,6 +165,7 @@ async def _composite_fallback(
             scene_data_url,
             resolved.prompt,
             api_key,
+            vehicle_descriptor=vehicle_descriptor,
         )
     except Exception as exc:
         logger.warning("Cutout composite failed (%s), retrying with process_into_scene", exc)
@@ -170,6 +174,7 @@ async def _composite_fallback(
             resolved.prompt,
             scene_data_url,
             api_key,
+            vehicle_descriptor=vehicle_descriptor,
         )
 
 
@@ -182,9 +187,10 @@ async def process_user_car_photo(
 ) -> tuple[str, str]:
     """
     Pipeline:
-    1. Replace only the background on the original photo (preserves vehicle + camera angle).
-    2. Optionally archive a vehicle cutout for later re-composite.
-    3. Fall back to scene compositing only if in-place replacement fails.
+    1. Describe the source vehicle for identity-preserving prompts.
+    2. Replace only the background on the original photo (preserves vehicle + camera angle).
+    3. Optionally archive a vehicle cutout for later re-composite.
+    4. Fall back to scene compositing only if in-place replacement fails.
     """
     logger.info(
         "Processing user car: angle=%s preset=%s custom=%s",
@@ -193,6 +199,11 @@ async def process_user_car_photo(
         resolved.user_background_id,
     )
 
+    vehicle_descriptor = await describe_vehicle(
+        source_data_url,
+        api_key,
+        angle=resolved.angle,
+    )
     replace_prompt = build_background_replace_prompt(resolved)
 
     cutout_task: asyncio.Task[None] | None = None
@@ -203,6 +214,7 @@ async def process_user_car_photo(
                 api_key,
                 angle=resolved.angle,
                 job_dir=job_dir,
+                vehicle_descriptor=vehicle_descriptor,
             )
         )
 
@@ -212,12 +224,18 @@ async def process_user_car_photo(
             replace_prompt,
             angle=resolved.angle,
             api_key=api_key,
+            vehicle_descriptor=vehicle_descriptor,
         )
     except Exception as exc:
         logger.warning("In-place background replace failed (%s), falling back to composite", exc)
         if cutout_task is not None:
             cutout_task.cancel()
-        return await _composite_fallback(source_data_url, resolved, api_key)
+        return await _composite_fallback(
+            source_data_url,
+            resolved,
+            api_key,
+            vehicle_descriptor=vehicle_descriptor,
+        )
     finally:
         if cutout_task is not None and not cutout_task.cancelled():
             try:
@@ -230,6 +248,8 @@ async def recomposite_from_cutout(
     cutout_data_url: str,
     resolved: ResolvedBackground,
     api_key: str,
+    *,
+    vehicle_descriptor: dict | None = None,
 ) -> tuple[str, str]:
     """Re-run composite only using a saved cutout and new background."""
     scene_data_url = _load_scene_data_url(resolved)
@@ -242,4 +262,5 @@ async def recomposite_from_cutout(
         scene_data_url,
         resolved.prompt,
         api_key,
+        vehicle_descriptor=vehicle_descriptor,
     )

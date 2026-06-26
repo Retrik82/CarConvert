@@ -9,6 +9,11 @@ from app.services.ai.prompt_blocks import (
     BACKGROUND_REPLACE_SYSTEM_PROMPT,
     SCENE_COMPOSITE_SYSTEM_PROMPT,
 )
+from app.services.ai.prompt_builder import (
+    build_composite_user_text,
+    build_inplace_edit_user_text,
+    ensure_prompt_compliance,
+)
 
 settings = get_settings()
 
@@ -34,49 +39,24 @@ async def _composite_messages(
     user_photo_data_url: str,
     scene_prompt: str,
     scene_reference_data_url: str,
+    *,
+    vehicle_descriptor: dict | None = None,
 ) -> list[dict]:
-    user_text = (
-        "Image 1 — REFERENCE SCENE: fixed studio room with a placeholder car. "
-        "Keep this room, camera angle, lighting, floor, podium, and shadows exactly as shown. "
-        "Image 2 — USER VEHICLE: the car to place into the reference scene. "
-        f"Scene description: {scene_prompt} "
-        "Replace only the car in the reference with the user's vehicle. "
-        "Do not change the room or perspective. Photorealistic result."
-    )
+    user_text = build_composite_user_text(scene_prompt, vehicle_descriptor=vehicle_descriptor)
     content: list[dict] = [
         {"type": "text", "text": user_text},
         {"type": "image_url", "image_url": {"url": scene_reference_data_url}},
         {"type": "image_url", "image_url": {"url": user_photo_data_url}},
     ]
+    system_prompt, user_text = ensure_prompt_compliance(
+        SCENE_COMPOSITE_SYSTEM_PROMPT,
+        user_text,
+    )
+    content[0] = {"type": "text", "text": user_text}
     return [
-        {"role": "system", "content": SCENE_COMPOSITE_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": content},
     ]
-
-
-def build_inplace_edit_user_text(
-    background_prompt: str,
-    *,
-    angle: str = "three_quarter_left",
-) -> str:
-    if angle == "interior":
-        vehicle_rule = (
-            "Keep the cabin interior, dashboard, seats, steering wheel, and trim exactly as photographed. "
-            "Replace only the environment visible outside the windows."
-        )
-    else:
-        vehicle_rule = (
-            "Keep the vehicle and original camera viewpoint exactly as photographed. "
-            "Replace only the environment behind and around the car."
-        )
-
-    return (
-        "SOURCE PHOTO (attached below): edit this photograph in place.\n"
-        f"New background environment: {background_prompt}\n"
-        f"{vehicle_rule} "
-        "Do not change the vehicle model, color, body, wheels, or shooting angle. "
-        "Do not generate a new car or a new camera angle."
-    )
 
 
 async def replace_car_background_in_place(
@@ -85,6 +65,7 @@ async def replace_car_background_in_place(
     *,
     angle: str = "three_quarter_left",
     api_key: str | None = None,
+    vehicle_descriptor: dict | None = None,
 ) -> tuple[str, str]:
     """Replace only the background while preserving the vehicle and camera angle."""
     from app.utils.image_utils import aspect_ratio_label_from_data_url
@@ -92,6 +73,11 @@ async def replace_car_background_in_place(
     user_text = build_inplace_edit_user_text(
         background_prompt,
         angle=angle,
+        vehicle_descriptor=vehicle_descriptor,
+    )
+    system_prompt, user_text = ensure_prompt_compliance(
+        BACKGROUND_REPLACE_SYSTEM_PROMPT,
+        user_text,
     )
     content: list[dict] = [
         {"type": "text", "text": user_text},
@@ -99,7 +85,7 @@ async def replace_car_background_in_place(
     ]
 
     messages = [
-        {"role": "system", "content": BACKGROUND_REPLACE_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": content},
     ]
     body = await call_image_completion(
@@ -119,9 +105,16 @@ async def process_into_scene(
     scene_prompt: str,
     scene_reference_data_url: str,
     api_key: str | None = None,
+    *,
+    vehicle_descriptor: dict | None = None,
 ) -> tuple[str, str]:
     """Put the user's car into the reference composed scene (room + placeholder BMW)."""
-    messages = await _composite_messages(user_photo_data_url, scene_prompt, scene_reference_data_url)
+    messages = await _composite_messages(
+        user_photo_data_url,
+        scene_prompt,
+        scene_reference_data_url,
+        vehicle_descriptor=vehicle_descriptor,
+    )
     body = await call_image_completion(
         messages,
         primary=settings.composite_primary,

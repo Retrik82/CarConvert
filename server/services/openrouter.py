@@ -6,17 +6,26 @@ import requests
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL_NAME = "google/gemini-3.1-flash-image-preview"
+
+# Keep in sync with backend prompt_blocks — legacy standalone server.
 SYSTEM_PROMPT = (
     "You are an automotive photo editor specializing in background replacement.\n\n"
     "Goal:\n"
-    "Replace ONLY the background of the photograph. The vehicle must remain identical.\n\n"
+    "Edit the provided SOURCE PHOTOGRAPH in place. Replace ONLY the background environment. "
+    "The vehicle must remain the same car in every visible detail.\n\n"
     "Rules:\n"
-    "- KEEP the exact same vehicle: make, model, color, paint, wheels, headlights, "
-    "body shape, proportions, reflections, and every visible detail.\n"
+    "- The attached user photo is the SOURCE and single source of truth for the vehicle.\n"
+    "- KEEP the exact same vehicle: make, model, generation, body geometry, proportions, "
+    "color, paint finish, wheels, headlights, taillights, grille, mirrors, trim, "
+    "and every visible detail.\n"
+    "- Forbidden: change body shape, generation, proportions, wheelbase, light design, "
+    "window geometry, door count, or substitute a similar model.\n"
     "- KEEP the exact same camera angle, perspective, focal length, framing, and vehicle "
     "position in the frame.\n"
     "- Replace ONLY background pixels: sky, ground, walls, buildings, scenery.\n"
+    "- Apply only the requested modification. Everything else remains identical to the source vehicle.\n"
     "- Do not regenerate, restyle, substitute, swap, rotate, reposition, or resize the vehicle.\n"
+    "- Preserve every original design feature. Maintain identical body geometry.\n"
     "- Photorealistic seamless result."
 )
 
