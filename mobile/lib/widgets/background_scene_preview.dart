@@ -4,13 +4,16 @@ import '../core/assets/bundled_assets.dart';
 import '../core/theme/app_tokens.dart';
 import '../models/background.dart';
 import 'authenticated_background_image.dart';
+import 'design_system/car_assets.dart';
+import 'design_system/car_overlay.dart';
 
-/// Bundled or remote studio scene preview.
+/// Bundled or remote studio scene preview with optional BMW overlay at native scale.
 class BackgroundScenePreview extends StatelessWidget {
   final BackgroundPreset preset;
   final String? angle;
   final BorderRadius? borderRadius;
   final BoxFit fit;
+  final bool showCar;
 
   const BackgroundScenePreview({
     super.key,
@@ -18,6 +21,7 @@ class BackgroundScenePreview extends StatelessWidget {
     this.angle,
     this.borderRadius,
     this.fit = BoxFit.cover,
+    this.showCar = true,
   });
 
   BackgroundVariant? _variant() {
@@ -29,11 +33,15 @@ class BackgroundScenePreview extends StatelessWidget {
     return variant?.previewUrl ?? preset.previewUrl;
   }
 
+  String? _resolvedAngle() {
+    final variant = _variant();
+    return variant?.angle ?? angle;
+  }
+
   String? _bundledAssetPath() {
     if (preset.isCustom) return null;
 
-    final variant = _variant();
-    final resolvedAngle = variant?.angle ?? angle;
+    final resolvedAngle = _resolvedAngle();
     if (resolvedAngle == null || !BundledAssets.presetAngles.contains(resolvedAngle)) {
       return null;
     }
@@ -42,6 +50,12 @@ class BackgroundScenePreview extends StatelessWidget {
     if (resolvedSlug == null) return null;
 
     return BundledAssets.presetBackgroundAssetPath(resolvedSlug, resolvedAngle);
+  }
+
+  String? _emptyBackgroundAssetPath() {
+    final resolvedSlug = _resolveBundledSlug();
+    if (resolvedSlug == null) return null;
+    return BundledAssets.sliderAfterBackgroundForPreset(resolvedSlug);
   }
 
   String? _resolveBundledSlug() {
@@ -62,14 +76,11 @@ class BackgroundScenePreview extends StatelessWidget {
     return null;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final assetPath = _bundledAssetPath();
-    final tokens = context.tokens;
+  Widget _buildBackground() {
+    final assetPath = (showCar ? _emptyBackgroundAssetPath() : null) ?? _bundledAssetPath();
 
-    Widget child;
     if (assetPath != null) {
-      child = Image.asset(
+      return Image.asset(
         assetPath,
         fit: fit,
         gaplessPlayback: true,
@@ -81,13 +92,38 @@ class BackgroundScenePreview extends StatelessWidget {
           fit: fit,
         ),
       );
-    } else {
-      child = AuthenticatedBackgroundImage(
-        previewPath: _scenePath(),
-        presetSlug: null,
-        angle: null,
-        fit: fit,
+    }
+
+    return AuthenticatedBackgroundImage(
+      previewPath: _scenePath(),
+      presetSlug: null,
+      angle: null,
+      fit: fit,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedAngle = _resolvedAngle();
+    final displayCar = showCar && CarOverlay.supportsBackgroundAngle(resolvedAngle);
+
+    Widget child;
+    if (displayCar) {
+      final tokens = context.tokens;
+      child = Stack(
+        fit: StackFit.expand,
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: _buildBackground()),
+          CarOverlay(
+            view: CarAssets.fromBackgroundAngle(resolvedAngle),
+            tokens: tokens,
+            style: CarOverlayStyle.backgroundPreview,
+          ),
+        ],
       );
+    } else {
+      child = _buildBackground();
     }
 
     child = SizedBox.expand(child: child);
@@ -96,21 +132,5 @@ class BackgroundScenePreview extends StatelessWidget {
       child = ClipRRect(borderRadius: borderRadius!, child: child);
     }
     return child;
-  }
-}
-
-class _AssetFallback extends StatelessWidget {
-  final AppTokens tokens;
-
-  const _AssetFallback({required this.tokens});
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: tokens.surfaceMuted,
-      child: Center(
-        child: Icon(Icons.image_outlined, color: tokens.textTertiary, size: 28),
-      ),
-    );
   }
 }

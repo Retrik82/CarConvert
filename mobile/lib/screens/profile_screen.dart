@@ -16,7 +16,6 @@ import '../widgets/design_system/app_card.dart';
 import '../widgets/design_system/logout_confirm_dialog.dart';
 import '../widgets/design_system/summary_panel.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
-import 'beginner_guide_screen.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -185,30 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(s.theme, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                            ),
-                            Text(
-                              s.themeLight,
-                              style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w500, color: tokens.textSecondary),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: DesignTokens.spacing32),
-                        Row(
-                          children: [
-                            Expanded(
                               child: Text(s.language, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
                             ),
                             LanguageSwitcher(controller: widget.settings),
                           ],
-                        ),
-                        const Divider(height: DesignTokens.spacing32),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.menu_book_outlined, color: tokens.accent),
-                          title: Text(s.guideReplay, style: tokens.textStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                          trailing: Icon(Icons.chevron_right_rounded, color: tokens.textTertiary),
-                          onTap: () => BeginnerGuideScreen.open(context),
                         ),
                       ],
                     ),

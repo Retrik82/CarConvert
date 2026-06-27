@@ -356,49 +356,6 @@ class StringsRu extends AppStrings {
   String get backgroundTapToExpand => 'Нажмите для просмотра';
 
   @override
-  String get guideTitle => 'Как пользоваться';
-
-  @override
-  String get guideSkip => 'Пропустить';
-
-  @override
-  String get guideNext => 'Далее';
-
-  @override
-  String get guideFinish => 'Начать съёмку';
-
-  @override
-  String get guideReplay => 'Открыть гайд';
-
-  @override
-  String get guideStep1Title => 'Превратите любое фото';
-
-  @override
-  String get guideStep1Body =>
-      'Проведите ползунок — AutoCut покажет, как уличный кадр превращается в студийный рендер.';
-
-  @override
-  String get guideStep2Title => 'Выберите студию';
-
-  @override
-  String get guideStep2Body =>
-      'Выберите фон перед съёмкой. У каждого пресета — 7 согласованных ракурсов для реалистичной композиции.';
-
-  @override
-  String get guideStep3Title => 'Следуйте советчику';
-
-  @override
-  String get guideStep3Body =>
-      'При съёмке двигайтесь левее, правее, ближе или дальше — ИИ подскажет, когда кадр идеален.';
-
-  @override
-  String get guideStep4Title => 'Сохраняйте в Мои авто';
-
-  @override
-  String get guideStep4Body =>
-      'Каждый рендер сохраняется навсегда. Переименовывайте авто, добавляйте фото и выгружайте их.';
-
-  @override
   String get rename => 'Переименовать';
 
   @override

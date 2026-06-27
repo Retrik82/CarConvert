@@ -176,21 +176,6 @@ abstract class AppStrings {
   String get backgroundGenerationPrompt;
   String get backgroundTapToExpand;
 
-  // Beginner guide
-  String get guideTitle;
-  String get guideSkip;
-  String get guideNext;
-  String get guideFinish;
-  String get guideReplay;
-  String get guideStep1Title;
-  String get guideStep1Body;
-  String get guideStep2Title;
-  String get guideStep2Body;
-  String get guideStep3Title;
-  String get guideStep3Body;
-  String get guideStep4Title;
-  String get guideStep4Body;
-
   // Gallery / My Cars
   String get rename;
   String get renameCar;

@@ -356,49 +356,6 @@ class StringsEn extends AppStrings {
   String get backgroundTapToExpand => 'Tap to view details';
 
   @override
-  String get guideTitle => 'Getting started';
-
-  @override
-  String get guideSkip => 'Skip';
-
-  @override
-  String get guideNext => 'Next';
-
-  @override
-  String get guideFinish => 'Start shooting';
-
-  @override
-  String get guideReplay => 'View guide';
-
-  @override
-  String get guideStep1Title => 'Transform any car photo';
-
-  @override
-  String get guideStep1Body =>
-      'Drag the slider to see how AutoCut turns a street shot into a premium studio render.';
-
-  @override
-  String get guideStep2Title => 'Pick your studio';
-
-  @override
-  String get guideStep2Body =>
-      'Choose a background before shooting. Each preset includes 7 consistent camera angles for realistic compositing.';
-
-  @override
-  String get guideStep3Title => 'Follow the advisor';
-
-  @override
-  String get guideStep3Body =>
-      'While shooting, move left, right, closer, or back — the AI coach guides you until the frame is perfect.';
-
-  @override
-  String get guideStep4Title => 'Save to My Cars';
-
-  @override
-  String get guideStep4Body =>
-      'Every render is saved permanently. Rename cars, add new photos, and export images anytime.';
-
-  @override
   String get rename => 'Rename';
 
   @override

@@ -12,7 +12,6 @@ import '../widgets/design_system/logout_confirm_dialog.dart';
 import '../widgets/design_system/theme_language_switcher.dart';
 import '../widgets/design_system/welcome_before_after_slider.dart';
 import 'backgrounds_screen.dart';
-import 'beginner_guide_screen.dart';
 import 'capture_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -38,7 +37,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await BackgroundRepository.instance.loadSavedSelection();
       if (mounted) setState(() {});
-      if (mounted) BeginnerGuideScreen.showIfNeeded(context);
     });
   }
 
@@ -84,21 +82,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           children: [
             PremiumTopBar(
               settings: widget.settings,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu_book_outlined),
-                    tooltip: s.guideReplay,
-                    onPressed: () => BeginnerGuideScreen.open(context),
-                  ),
-                  if (widget.onLogout != null)
-                    IconButton(
+              trailing: widget.onLogout != null
+                  ? IconButton(
                       icon: const Icon(Icons.more_horiz_rounded),
                       onPressed: _showAccountMenu,
-                    ),
-                ],
-              ),
+                    )
+                  : null,
             ),
             Expanded(
               child: CustomScrollView(
@@ -215,14 +204,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.menu_book_outlined),
-              title: Text(s.guideReplay),
-              onTap: () {
-                Navigator.pop(ctx);
-                BeginnerGuideScreen.open(context);
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: Text(s.logout),
