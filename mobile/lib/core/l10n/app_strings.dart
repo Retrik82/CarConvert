@@ -71,17 +71,7 @@ abstract class AppStrings {
   String get yourBackgrounds;
   String get selectBackground;
   String get useThisBackground;
-  String get customBackground;
-  String get createCustomBackground;
-  String get customBackgroundPrice;
-  String get backgroundName;
-  String get backgroundNameHint;
-  String get backgroundPrompt;
-  String get backgroundPromptHint;
-  String get generate;
   String get personal;
-  String get fieldRequired;
-  String get promptMinLength;
 
   // Capture
   String get captureTitle;
@@ -163,14 +153,6 @@ abstract class AppStrings {
   String get afterLabel;
   String get pinchToZoom;
 
-  // Background generation
-  String get backgroundGeneratingTitle;
-  String get backgroundGeneratingStatus;
-  String get backgroundGeneratingAngles;
-  String get backgroundGenerationTimeoutError;
-  String get backgroundGenerated;
-  String get backgroundResultPreview;
-
   // Background picker UX
   String get backgroundAnglesTitle;
   String get backgroundGenerationPrompt;
@@ -179,6 +161,7 @@ abstract class AppStrings {
   // Gallery / My Cars
   String get rename;
   String get renameCar;
+  String get createCar;
   String get renameRender;
   String get renderName;
   String get renderNameHint;

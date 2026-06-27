@@ -34,6 +34,7 @@ class User(Base):
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(back_populates="user")
     camera_sessions: Mapped[list["CameraSession"]] = relationship(back_populates="user")
     photo_jobs: Mapped[list["PhotoJob"]] = relationship(back_populates="user")
+    user_cars: Mapped[list["UserCar"]] = relationship(back_populates="user")
 
     @property
     def role_enum(self) -> Role:
@@ -79,3 +80,4 @@ class PasswordResetToken(Base):
 
 from app.db.models.camera_session import CameraSession  # noqa: E402
 from app.db.models.photo_job import PhotoJob  # noqa: E402
+from app.db.models.user_car import UserCar  # noqa: E402

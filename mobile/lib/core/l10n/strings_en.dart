@@ -95,37 +95,7 @@ class StringsEn extends AppStrings {
   String get useThisBackground => 'Use this background';
 
   @override
-  String get customBackground => 'Custom';
-
-  @override
-  String get createCustomBackground => 'Create custom background';
-
-  @override
-  String get customBackgroundPrice => 'Price:';
-
-  @override
-  String get backgroundName => 'Name';
-
-  @override
-  String get backgroundNameHint => 'My studio';
-
-  @override
-  String get backgroundPrompt => 'Prompt';
-
-  @override
-  String get backgroundPromptHint => 'Describe the empty environment for your car renders…';
-
-  @override
-  String get generate => 'Generate for';
-
-  @override
   String get personal => 'Personal';
-
-  @override
-  String get fieldRequired => 'This field is required';
-
-  @override
-  String get promptMinLength => 'Prompt must be at least 10 characters';
 
   @override
   String get captureTitle => 'Capture';
@@ -328,25 +298,6 @@ class StringsEn extends AppStrings {
   String get pinchToZoom => 'Pinch to zoom';
 
   @override
-  String get backgroundGeneratingTitle => 'Generating background';
-
-  @override
-  String get backgroundGeneratingStatus => 'Creating your studio scene with AI…';
-
-  @override
-  String get backgroundGeneratingAngles => 'Rendering 7 camera angles…';
-
-  @override
-  String get backgroundGenerationTimeoutError =>
-      'Generation took too long. Check your connection and try again. This can take several minutes.';
-
-  @override
-  String get backgroundGenerated => 'Background ready!';
-
-  @override
-  String get backgroundResultPreview => 'Preview — all angles';
-
-  @override
   String get backgroundAnglesTitle => 'All camera angles';
 
   @override
@@ -360,6 +311,9 @@ class StringsEn extends AppStrings {
 
   @override
   String get renameCar => 'Rename car';
+
+  @override
+  String get createCar => 'Create new entry';
 
   @override
   String get renameRender => 'Rename render';

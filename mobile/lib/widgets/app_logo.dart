@@ -18,7 +18,7 @@ class AppLogo extends StatelessWidget {
     this.titleSize = 28,
     this.showTagline = true,
     this.centered = true,
-    this.useImageLogo = false,
+    this.useImageLogo = true,
   });
 
   @override

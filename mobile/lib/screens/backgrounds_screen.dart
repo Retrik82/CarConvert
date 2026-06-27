@@ -8,13 +8,10 @@ import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
 import '../models/background.dart';
 import '../repositories/background_repository.dart';
-import '../utils/money_format.dart';
 import '../widgets/background_preview_grid.dart';
 import '../widgets/background_scene_preview.dart';
 import '../widgets/design_system/app_button.dart';
 import '../widgets/design_system/app_card.dart';
-import '../widgets/form_fields.dart';
-import 'background_generation_screen.dart';
 
 class BackgroundsScreen extends StatefulWidget {
   final VoidCallback? onSelected;
@@ -32,7 +29,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   final List<BackgroundPreset> _sharedPresets = BundledBackgroundCatalog.catalog.presets;
 
   List<BackgroundPreset> _customPresets = const [];
-  double _customPriceUsd = BundledBackgroundCatalog.catalog.customBackgroundPriceUsd;
   bool _loading = false;
   String? _catalogWarning;
 
@@ -46,7 +42,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
   BackgroundCatalog get _screenCatalog => BackgroundCatalog(
         presets: _sharedPresets,
         custom: _customPresets,
-        customBackgroundPriceUsd: _customPriceUsd,
+        customBackgroundPriceUsd: BundledBackgroundCatalog.catalog.customBackgroundPriceUsd,
       );
 
   Future<void> _restoreSelection() async {
@@ -69,13 +65,7 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
 
     try {
       final remote = await _repo.fetchCatalog();
-      final nextCustom = remote.custom;
-      final nextPrice = remote.customBackgroundPriceUsd > 0
-          ? remote.customBackgroundPriceUsd
-          : BundledBackgroundCatalog.catalog.customBackgroundPriceUsd;
-
-      _customPresets = nextCustom;
-      _customPriceUsd = nextPrice;
+      _customPresets = remote.custom;
 
       await _repo.loadSavedSelection(catalog: _screenCatalog);
       if (!mounted) return;
@@ -118,89 +108,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
     Navigator.pop(context, _repo.selected);
   }
 
-  Future<void> _showCreateSheet() async {
-    final s = context.strings;
-    final tokens = context.tokens;
-
-    final nameController = TextEditingController();
-    final promptController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: DesignTokens.screenPaddingH,
-            right: DesignTokens.screenPaddingH,
-            top: DesignTokens.spacing24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + DesignTokens.spacing24,
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(s.createCustomBackground, style: tokens.textStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                const SizedBox(height: DesignTokens.spacing8),
-                Text(
-                  '${s.customBackgroundPrice} ${MoneyFormat.usd(_customPriceUsd)}',
-                  style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w400, color: tokens.textSecondary),
-                ),
-                const SizedBox(height: DesignTokens.spacing16),
-                TextFormField(
-                  controller: nameController,
-                  decoration: appInputDecoration(s.backgroundName, hint: s.backgroundNameHint),
-                  validator: (v) => v == null || v.trim().isEmpty ? s.fieldRequired : null,
-                ),
-                const SizedBox(height: DesignTokens.spacing12),
-                TextFormField(
-                  controller: promptController,
-                  minLines: 4,
-                  maxLines: 6,
-                  decoration: appInputDecoration(s.backgroundPrompt, hint: s.backgroundPromptHint),
-                  validator: (v) => v == null || v.trim().length < 10 ? s.promptMinLength : null,
-                ),
-                const SizedBox(height: DesignTokens.spacing16),
-                AppButton(
-                  label: s.generate,
-                  onPressed: () async {
-                    if (!formKey.currentState!.validate()) return;
-                    Navigator.pop(ctx);
-                    await _createCustom(nameController.text.trim(), promptController.text.trim());
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _createCustom(String name, String prompt) async {
-    final selected = await Navigator.push<SelectedBackground?>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BackgroundGenerationScreen(
-          name: name,
-          prompt: prompt,
-          priceUsd: _customPriceUsd,
-        ),
-      ),
-    );
-
-    if (!mounted) return;
-    if (selected != null) {
-      widget.onSelected?.call();
-      Navigator.pop(context, selected);
-      return;
-    }
-    await _loadRemoteCatalog();
-  }
-
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -211,13 +118,6 @@ class _BackgroundsScreenState extends State<BackgroundsScreen> {
       backgroundColor: tokens.background,
       appBar: AppBar(
         title: Text(s.backgroundsTitle),
-        actions: [
-          TextButton.icon(
-            onPressed: _showCreateSheet,
-            icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-            label: Text(s.customBackground),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadRemoteCatalog,
@@ -383,21 +283,15 @@ class _BackgroundCard extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: onPreviewAngles,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(DesignTokens.radiusCard),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Positioned.fill(
-                        child: _BackgroundCardPreview(
-                          preset: preset,
-                          angle: previewAngle,
-                        ),
-                      ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _BackgroundCardPreview(
+                      preset: preset,
+                      angle: previewAngle,
+                    ),
                     if (isSelected)
                       Positioned(
                         top: DesignTokens.spacing12,
@@ -446,7 +340,6 @@ class _BackgroundCard extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
             ),
             Padding(
               padding: const EdgeInsets.all(DesignTokens.spacing16),

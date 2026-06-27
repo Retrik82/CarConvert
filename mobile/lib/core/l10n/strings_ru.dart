@@ -95,37 +95,7 @@ class StringsRu extends AppStrings {
   String get useThisBackground => 'Использовать этот фон';
 
   @override
-  String get customBackground => 'Свой';
-
-  @override
-  String get createCustomBackground => 'Создать свой фон';
-
-  @override
-  String get customBackgroundPrice => 'Цена:';
-
-  @override
-  String get backgroundName => 'Название';
-
-  @override
-  String get backgroundNameHint => 'Моя студия';
-
-  @override
-  String get backgroundPrompt => 'Промпт';
-
-  @override
-  String get backgroundPromptHint => 'Опишите пустое окружение для рендера автомобиля…';
-
-  @override
-  String get generate => 'Сгенерировать за';
-
-  @override
   String get personal => 'Личный';
-
-  @override
-  String get fieldRequired => 'Обязательное поле';
-
-  @override
-  String get promptMinLength => 'Промпт должен быть не короче 10 символов';
 
   @override
   String get captureTitle => 'Съёмка';
@@ -328,25 +298,6 @@ class StringsRu extends AppStrings {
   String get pinchToZoom => 'Сведите пальцы для увеличения';
 
   @override
-  String get backgroundGeneratingTitle => 'Генерация фона';
-
-  @override
-  String get backgroundGeneratingStatus => 'Создаём студийную сцену с помощью ИИ…';
-
-  @override
-  String get backgroundGeneratingAngles => 'Рендерим 7 ракурсов…';
-
-  @override
-  String get backgroundGenerationTimeoutError =>
-      'Генерация заняла слишком много времени. Проверьте интернет и попробуйте снова — процесс может занять несколько минут.';
-
-  @override
-  String get backgroundGenerated => 'Фон готов!';
-
-  @override
-  String get backgroundResultPreview => 'Превью — все ракурсы';
-
-  @override
   String get backgroundAnglesTitle => 'Все ракурсы';
 
   @override
@@ -360,6 +311,9 @@ class StringsRu extends AppStrings {
 
   @override
   String get renameCar => 'Переименовать авто';
+
+  @override
+  String get createCar => 'Создать новую запись';
 
   @override
   String get renameRender => 'Переименовать рендер';

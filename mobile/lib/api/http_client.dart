@@ -22,7 +22,6 @@ class HttpClient {
   final LogoutCallback _onUnauthorizedLogout;
 
   static const apiTimeout = Duration(seconds: 45);
-  static const backgroundGenerationTimeout = Duration(minutes: 15);
 
   Future<http.Response> authorized(Future<http.Response> Function() request) async {
     var response = await request();
@@ -75,6 +74,29 @@ class HttpClient {
             Uri.parse('${Env.apiBaseUrl}$path'),
             headers: await _buildAuthHeaders(),
             body: jsonEncode(body),
+          )
+          .timeout(apiTimeout);
+    });
+  }
+
+  Future<http.Response> patch(String path, Map<String, dynamic> body) {
+    return authorized(() async {
+      return http
+          .patch(
+            Uri.parse('${Env.apiBaseUrl}$path'),
+            headers: await _buildAuthHeaders(),
+            body: jsonEncode(body),
+          )
+          .timeout(apiTimeout);
+    });
+  }
+
+  Future<http.Response> delete(String path) {
+    return authorized(() async {
+      return http
+          .delete(
+            Uri.parse('${Env.apiBaseUrl}$path'),
+            headers: await _buildAuthHeaders(json: false),
           )
           .timeout(apiTimeout);
     });

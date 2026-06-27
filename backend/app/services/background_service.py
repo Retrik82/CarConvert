@@ -1,5 +1,3 @@
-import asyncio
-import base64
 import logging
 from io import BytesIO
 from pathlib import Path
@@ -199,103 +197,6 @@ class BackgroundService:
             preset_slug=preset.slug,
             scene_image_path=str(scene_path),
         )
-
-    async def create_user_background(
-        self,
-        user_id: str,
-        name: str,
-        prompt: str,
-        api_key: str,
-    ) -> UserBackground:
-        from app.services.ai_scene_generator import generate_custom_scene_ai
-
-        background = UserBackground(user_id=user_id, name=name.strip(), prompt=prompt.strip())
-        await self._repo.add_user_background(background)
-
-        root = backgrounds_root() / "users" / user_id / background.id
-        variants_by_angle: dict[str, UserBackgroundVariant] = {}
-
-        for angle in VARIANT_ANGLES:
-            variant = UserBackgroundVariant(
-                background_id=background.id,
-                angle=angle,
-                prompt_suffix=ANGLE_PROMPT_SUFFIXES[angle],
-            )
-            await self._repo.add_user_variant(variant)
-            variants_by_angle[angle] = variant
-
-        async def generate_angle(angle: str) -> tuple[str, Path | None, Exception | None]:
-            scene_path = root / f"{angle}.jpg"
-            last_error: Exception | None = None
-            for attempt in range(2):
-                try:
-                    await generate_custom_scene_ai(prompt.strip(), angle, scene_path, api_key)
-                    return angle, scene_path, None
-                except Exception as exc:
-                    last_error = exc
-                    logger.warning(
-                        "Custom scene attempt %s for %s failed: %s",
-                        attempt + 1,
-                        angle,
-                        exc,
-                    )
-                    if attempt == 0:
-                        await asyncio.sleep(1.5 * (attempt + 1))
-            return angle, None, last_error
-
-        semaphore = asyncio.Semaphore(2)
-
-        async def generate_angle_limited(angle: str) -> tuple[str, Path | None, Exception | None]:
-            async with semaphore:
-                return await generate_angle(angle)
-
-        results = await asyncio.gather(*(generate_angle_limited(angle) for angle in VARIANT_ANGLES))
-
-        preview_variant: UserBackgroundVariant | None = None
-        failed_angles: list[str] = []
-        for angle, scene_path, error in results:
-            if error is not None or scene_path is None:
-                failed_angles.append(angle)
-                continue
-            variant = variants_by_angle[angle]
-            variant.image_path = str(scene_path)
-            if preview_variant is None or angle == "three_quarter_left":
-                preview_variant = variant
-
-        if preview_variant is None or not preview_variant.image_path:
-            raise RuntimeError(
-                "Background generation failed for all angles. "
-                "Check OPENROUTER_API_KEY, model availability, and provider limits."
-            )
-
-        preview_path = Path(preview_variant.image_path)
-        for angle in failed_angles:
-            if not preview_path.is_file():
-                break
-            fallback_path = root / f"{angle}.jpg"
-            try:
-                fallback_path.parent.mkdir(parents=True, exist_ok=True)
-                fallback_path.write_bytes(preview_path.read_bytes())
-                variants_by_angle[angle].image_path = str(fallback_path)
-            except Exception as exc:
-                logger.warning(
-                    "Failed to apply fallback scene for angle=%s background=%s: %s",
-                    angle,
-                    background.id,
-                    exc,
-                )
-
-        if failed_angles:
-            logger.warning(
-                "Custom background %s generated with partial AI failures; fallback applied for angles: %s",
-                background.id,
-                ", ".join(failed_angles),
-            )
-
-        background.preview_variant_id = preview_variant.id
-
-        await self._db.flush()
-        return background
 
     async def seed_presets(self) -> None:
         from app.services.background_asset_service import ensure_preset_scene

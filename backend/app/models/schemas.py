@@ -135,15 +135,6 @@ class CarCatalogResponse(BaseModel):
     models: list[CarModelOut]
 
 
-class CreateCustomBackgroundRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=120)
-    prompt: str = Field(min_length=10, max_length=2000)
-
-
-class CreateCustomBackgroundResponse(BaseModel):
-    background: BackgroundPresetOut
-
-
 class RegisterRequest(DeviceMeta):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
@@ -229,6 +220,41 @@ class HistoryItem(BaseModel):
 class HistoryResponse(BaseModel):
     items: list[HistoryItem]
     total: int
+
+
+class SavedRenderOut(BaseModel):
+    id: str
+    job_id: str | None = None
+    name: str | None = None
+    created_at: datetime
+    quality_score: float | None = None
+    has_original: bool = False
+    has_rendered: bool = False
+    original_url: str | None = None
+    rendered_url: str | None = None
+
+
+class UserCarOut(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+    renders: list[SavedRenderOut] = Field(default_factory=list)
+
+
+class MyCarsResponse(BaseModel):
+    cars: list[UserCarOut]
+
+
+class CreateUserCarRequest(BaseModel):
+    name: str = Field(default="My Car", max_length=120)
+
+
+class UpdateUserCarRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class UpdateUserRenderRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
 
 
 class EditResponse(BaseModel):

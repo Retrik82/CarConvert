@@ -82,15 +82,18 @@ class _AppButtonState extends State<AppButton> {
               const SizedBox(width: DesignTokens.spacing8),
             ],
             Flexible(
-              child: Text(
-                widget.label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: tokens.textStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: enabled ? fg : fg.withValues(alpha: 0.5),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.visible,
+                  textAlign: TextAlign.center,
+                  style: tokens.textStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: enabled ? fg : fg.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
             ),

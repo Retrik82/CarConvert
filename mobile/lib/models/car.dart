@@ -43,13 +43,17 @@ class RenderResult {
         'quality_score': qualityScore,
       };
 
-  RenderResult copyWith({String? name}) {
+  RenderResult copyWith({
+    String? name,
+    String? originalPath,
+    String? renderedPath,
+  }) {
     return RenderResult(
       id: id,
       jobId: jobId,
       name: name ?? this.name,
-      originalPath: originalPath,
-      renderedPath: renderedPath,
+      originalPath: originalPath ?? this.originalPath,
+      renderedPath: renderedPath ?? this.renderedPath,
       createdAt: createdAt,
       qualityScore: qualityScore,
     );

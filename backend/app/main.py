@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import admin, auth, backgrounds, cars, health, legacy, photo, session
+from app.api.routes import admin, auth, backgrounds, cars, health, legacy, my_cars, photo, session
 from app.api.routes import settings as settings_routes
 from app.config import get_settings
 from app.queue import recover_stuck_queued_jobs, shutdown_queue, start_local_queue_workers
@@ -80,6 +80,7 @@ app.include_router(settings_routes.router)
 app.include_router(admin.router)
 app.include_router(backgrounds.router)
 app.include_router(cars.router)
+app.include_router(my_cars.router)
 app.include_router(session.router)
 app.include_router(photo.router)
 app.include_router(photo.history_router)

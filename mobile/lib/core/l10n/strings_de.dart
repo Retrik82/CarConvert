@@ -95,37 +95,7 @@ class StringsDe extends AppStrings {
   String get useThisBackground => 'Diesen Hintergrund verwenden';
 
   @override
-  String get customBackground => 'Eigener';
-
-  @override
-  String get createCustomBackground => 'Eigenen Hintergrund erstellen';
-
-  @override
-  String get customBackgroundPrice => 'Preis:';
-
-  @override
-  String get backgroundName => 'Name';
-
-  @override
-  String get backgroundNameHint => 'Mein Studio';
-
-  @override
-  String get backgroundPrompt => 'Prompt';
-
-  @override
-  String get backgroundPromptHint => 'Beschreiben Sie die leere Umgebung für Ihre Fahrzeugbilder…';
-
-  @override
-  String get generate => 'Generieren für';
-
-  @override
   String get personal => 'Persönlich';
-
-  @override
-  String get fieldRequired => 'Pflichtfeld';
-
-  @override
-  String get promptMinLength => 'Prompt muss mindestens 10 Zeichen haben';
 
   @override
   String get captureTitle => 'Aufnahme';
@@ -328,25 +298,6 @@ class StringsDe extends AppStrings {
   String get pinchToZoom => 'Zum Zoomen zusammenziehen';
 
   @override
-  String get backgroundGeneratingTitle => 'Hintergrund wird erstellt';
-
-  @override
-  String get backgroundGeneratingStatus => 'Studio-Szene wird mit KI erstellt…';
-
-  @override
-  String get backgroundGeneratingAngles => '7 Kamerawinkel werden gerendert…';
-
-  @override
-  String get backgroundGenerationTimeoutError =>
-      'Die Generierung dauerte zu lange. Prüfen Sie die Verbindung und versuchen Sie es erneut. Dies kann einige Minuten dauern.';
-
-  @override
-  String get backgroundGenerated => 'Hintergrund fertig!';
-
-  @override
-  String get backgroundResultPreview => 'Vorschau — alle Winkel';
-
-  @override
   String get backgroundAnglesTitle => 'Alle Kamerawinkel';
 
   @override
@@ -360,6 +311,9 @@ class StringsDe extends AppStrings {
 
   @override
   String get renameCar => 'Auto umbenennen';
+
+  @override
+  String get createCar => 'Neuen Eintrag erstellen';
 
   @override
   String get renameRender => 'Render umbenennen';

@@ -58,7 +58,7 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
     final s = context.strings;
     final name = await showRenameDialog(
       context,
-      title: s.renameCar,
+      title: s.createCar,
       label: s.carName,
       hint: s.carNameHint,
       initialValue: '',
@@ -87,7 +87,7 @@ class _MyCarsScreenState extends State<MyCarsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
-            tooltip: s.renameCar,
+            tooltip: s.createCar,
             onPressed: _createCar,
           ),
           IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),

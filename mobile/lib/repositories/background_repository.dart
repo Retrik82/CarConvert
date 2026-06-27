@@ -106,12 +106,6 @@ class BackgroundRepository {
     );
   }
 
-  Future<BackgroundPreset> createCustomBackground({
-    required String name,
-    required String prompt,
-  }) =>
-      _remote.createCustomBackground(name: name, prompt: prompt);
-
   Future<Uint8List> fetchImageBytes(
     String previewPath, {
     String? presetSlug,

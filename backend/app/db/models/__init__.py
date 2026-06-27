@@ -3,6 +3,7 @@ from app.db.models.background import BackgroundPreset, BackgroundVariant, UserBa
 from app.db.models.camera_session import CameraSession
 from app.db.models.photo_job import PhotoJob
 from app.db.models.user import PasswordResetToken, RefreshToken, User
+from app.db.models.user_car import SavedRender, UserCar
 
 __all__ = [
     "User",
@@ -15,4 +16,6 @@ __all__ = [
     "BackgroundVariant",
     "UserBackground",
     "UserBackgroundVariant",
+    "UserCar",
+    "SavedRender",
 ]

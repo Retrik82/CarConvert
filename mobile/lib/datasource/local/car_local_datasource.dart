@@ -10,11 +10,20 @@ import '../../models/car.dart';
 
 class CarLocalDataSource {
   static const _storageKey = 'autocut_cars';
+  static const _legacyStorageKey = 'renderwheels_cars';
   final _uuid = const Uuid();
 
   Future<List<Car>> loadCars() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_storageKey);
+    var raw = prefs.getString(_storageKey);
+    if (raw == null) {
+      final legacy = prefs.getString(_legacyStorageKey);
+      if (legacy != null) {
+        await prefs.setString(_storageKey, legacy);
+        await prefs.remove(_legacyStorageKey);
+        raw = legacy;
+      }
+    }
     if (raw == null) return [];
     final list = jsonDecode(raw) as List<dynamic>;
     return list.map((e) => Car.fromJson(e as Map<String, dynamic>)).toList()
@@ -34,9 +43,9 @@ class CarLocalDataSource {
     await prefs.remove(_storageKey);
   }
 
-  Future<Car> createCar({String? name}) async {
+  Future<Car> createCar({String? name, String? id}) async {
     return Car(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       name: name ?? 'My Car',
       createdAt: DateTime.now(),
     );
@@ -44,27 +53,28 @@ class CarLocalDataSource {
 
   Future<({String? originalPath, String? renderedPath, String renderId})> saveRenderFiles({
     required String carId,
+    String? renderId,
     Uint8List? originalBytes,
     Uint8List? renderedBytes,
     String renderedExt = 'png',
   }) async {
     final dir = await getApplicationDocumentsDirectory();
-    final renderId = _uuid.v4();
+    final resolvedRenderId = renderId ?? _uuid.v4();
     String? originalPath;
     String? renderedPath;
 
     if (originalBytes != null && originalBytes.isNotEmpty) {
-      originalPath = '${dir.path}/cars/$carId/$renderId-original.jpg';
+      originalPath = '${dir.path}/cars/$carId/$resolvedRenderId-original.jpg';
       await File(originalPath).create(recursive: true);
       await File(originalPath).writeAsBytes(originalBytes);
     }
     if (renderedBytes != null && renderedBytes.isNotEmpty) {
-      renderedPath = '${dir.path}/cars/$carId/$renderId-rendered.$renderedExt';
+      renderedPath = '${dir.path}/cars/$carId/$resolvedRenderId-rendered.$renderedExt';
       await File(renderedPath).create(recursive: true);
       await File(renderedPath).writeAsBytes(renderedBytes);
     }
 
-    return (originalPath: originalPath, renderedPath: renderedPath, renderId: renderId);
+    return (originalPath: originalPath, renderedPath: renderedPath, renderId: resolvedRenderId);
   }
 
   Future<void> deleteCarFiles(String carId) async {
@@ -79,5 +89,12 @@ class CarLocalDataSource {
         if (await file.exists()) await file.delete();
       }
     }
+  }
+
+  Future<Uint8List?> readFileBytes(String? path) async {
+    if (path == null) return null;
+    final file = File(path);
+    if (!await file.exists()) return null;
+    return file.readAsBytes();
   }
 }

@@ -6,8 +6,6 @@ import 'authenticated_background_image.dart';
 
 /// Bundled or remote studio scene preview (16:9 preset photographs).
 class BackgroundScenePreview extends StatelessWidget {
-  static const previewAspectRatio = 16 / 9;
-
   final BackgroundPreset preset;
   final String? angle;
   final BorderRadius? borderRadius;
@@ -18,7 +16,7 @@ class BackgroundScenePreview extends StatelessWidget {
     required this.preset,
     this.angle,
     this.borderRadius,
-    this.fit = BoxFit.contain,
+    this.fit = BoxFit.cover,
   });
 
   BackgroundVariant? _variant() {
@@ -63,11 +61,13 @@ class BackgroundScenePreview extends StatelessWidget {
     return null;
   }
 
-  Widget _buildImage() {
+  @override
+  Widget build(BuildContext context) {
     final assetPath = _bundledAssetPath();
 
+    Widget child;
     if (assetPath != null) {
-      return Image.asset(
+      child = Image.asset(
         assetPath,
         fit: fit,
         alignment: Alignment.center,
@@ -80,40 +80,16 @@ class BackgroundScenePreview extends StatelessWidget {
           fit: fit,
         ),
       );
+    } else {
+      child = AuthenticatedBackgroundImage(
+        previewPath: _scenePath(),
+        presetSlug: null,
+        angle: null,
+        fit: fit,
+      );
     }
 
-    return AuthenticatedBackgroundImage(
-      previewPath: _scenePath(),
-      presetSlug: null,
-      angle: null,
-      fit: fit,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Widget child = LayoutBuilder(
-      builder: (context, constraints) {
-        final maxW = constraints.maxWidth;
-        final maxH = constraints.maxHeight;
-        if (!maxW.isFinite || !maxH.isFinite || maxW <= 0 || maxH <= 0) {
-          return _buildImage();
-        }
-
-        // Keep 16:9 photographs at native proportions — never stretch or narrow.
-        final widthLimited = maxW <= maxH * previewAspectRatio;
-        final width = widthLimited ? maxW : maxH * previewAspectRatio;
-        final height = widthLimited ? maxW / previewAspectRatio : maxH;
-
-        return Center(
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: _buildImage(),
-          ),
-        );
-      },
-    );
+    child = SizedBox.expand(child: child);
 
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius!, child: child);
