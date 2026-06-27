@@ -521,7 +521,6 @@ class _BackgroundCardPreview extends StatelessWidget {
     return BackgroundScenePreview(
       preset: preset,
       angle: angle,
-      fit: BoxFit.cover,
     );
   }
 }

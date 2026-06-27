@@ -78,6 +78,7 @@ class _AuthenticatedBackgroundImageState extends State<AuthenticatedBackgroundIm
           child = Image.memory(
             snapshot.data!,
             fit: widget.fit,
+            alignment: Alignment.center,
             gaplessPlayback: true,
             filterQuality: FilterQuality.high,
           );

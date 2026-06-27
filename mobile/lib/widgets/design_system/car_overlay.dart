@@ -41,11 +41,16 @@ class CarOverlay extends StatelessWidget {
         final w = constraints.maxWidth;
         final h = constraints.maxHeight;
 
-        if (style == CarOverlayStyle.hero) {
-          return Padding(
-            padding: EdgeInsets.fromLTRB(w * 0.06, h * 0.06, w * 0.06, h * 0.08),
-            child: Align(
-              alignment: Alignment.bottomCenter,
+        final padding = switch (style) {
+          CarOverlayStyle.hero => EdgeInsets.fromLTRB(w * 0.06, h * 0.06, w * 0.06, h * 0.08),
+          CarOverlayStyle.backgroundPreview => EdgeInsets.fromLTRB(w * 0.05, h * 0.06, w * 0.05, h * 0.24),
+        };
+
+        return Padding(
+          padding: padding,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ClipRect(
               child: RemoteCarImage(
                 imagePath: imagePath,
                 fit: BoxFit.contain,
@@ -53,30 +58,7 @@ class CarOverlay extends StatelessWidget {
                 tintColor: bodyColor,
               ),
             ),
-          );
-        }
-
-        // Background picker — use the PNG at its natural aspect ratio, scaled only to fit the frame.
-        final groundY = h * 0.70;
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: groundY,
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: RemoteCarImage(
-                  imagePath: imagePath,
-                  fit: BoxFit.contain,
-                  alignment: Alignment.bottomCenter,
-                  tintColor: bodyColor,
-                ),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );

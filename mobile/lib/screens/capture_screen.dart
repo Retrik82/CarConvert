@@ -642,7 +642,6 @@ class _CaptureTopBar extends StatelessWidget {
                   child: selectedBackground != null
                       ? BackgroundScenePreview(
                           preset: selectedBackground!.preset,
-                          showCar: false,
                         )
                       : Icon(
                           Icons.wallpaper_outlined,

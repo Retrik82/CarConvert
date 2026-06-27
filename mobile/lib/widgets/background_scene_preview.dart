@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../core/assets/bundled_assets.dart';
-import '../core/theme/app_tokens.dart';
 import '../models/background.dart';
 import 'authenticated_background_image.dart';
-import 'design_system/car_assets.dart';
-import 'design_system/car_overlay.dart';
 
-/// Bundled or remote studio scene preview with optional BMW overlay at native scale.
+/// Bundled or remote studio scene preview (16:9 preset photographs).
 class BackgroundScenePreview extends StatelessWidget {
+  static const previewAspectRatio = 16 / 9;
+
   final BackgroundPreset preset;
   final String? angle;
   final BorderRadius? borderRadius;
   final BoxFit fit;
-  final bool showCar;
 
   const BackgroundScenePreview({
     super.key,
     required this.preset,
     this.angle,
     this.borderRadius,
-    this.fit = BoxFit.cover,
-    this.showCar = true,
+    this.fit = BoxFit.contain,
   });
 
   BackgroundVariant? _variant() {
@@ -33,15 +30,11 @@ class BackgroundScenePreview extends StatelessWidget {
     return variant?.previewUrl ?? preset.previewUrl;
   }
 
-  String? _resolvedAngle() {
-    final variant = _variant();
-    return variant?.angle ?? angle;
-  }
-
   String? _bundledAssetPath() {
     if (preset.isCustom) return null;
 
-    final resolvedAngle = _resolvedAngle();
+    final variant = _variant();
+    final resolvedAngle = variant?.angle ?? angle;
     if (resolvedAngle == null || !BundledAssets.presetAngles.contains(resolvedAngle)) {
       return null;
     }
@@ -50,12 +43,6 @@ class BackgroundScenePreview extends StatelessWidget {
     if (resolvedSlug == null) return null;
 
     return BundledAssets.presetBackgroundAssetPath(resolvedSlug, resolvedAngle);
-  }
-
-  String? _emptyBackgroundAssetPath() {
-    final resolvedSlug = _resolveBundledSlug();
-    if (resolvedSlug == null) return null;
-    return BundledAssets.sliderAfterBackgroundForPreset(resolvedSlug);
   }
 
   String? _resolveBundledSlug() {
@@ -76,13 +63,14 @@ class BackgroundScenePreview extends StatelessWidget {
     return null;
   }
 
-  Widget _buildBackground() {
-    final assetPath = (showCar ? _emptyBackgroundAssetPath() : null) ?? _bundledAssetPath();
+  Widget _buildImage() {
+    final assetPath = _bundledAssetPath();
 
     if (assetPath != null) {
       return Image.asset(
         assetPath,
         fit: fit,
+        alignment: Alignment.center,
         gaplessPlayback: true,
         filterQuality: FilterQuality.high,
         errorBuilder: (_, __, ___) => AuthenticatedBackgroundImage(
@@ -104,29 +92,28 @@ class BackgroundScenePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedAngle = _resolvedAngle();
-    final displayCar = showCar && CarOverlay.supportsBackgroundAngle(resolvedAngle);
+    Widget child = LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        final maxH = constraints.maxHeight;
+        if (!maxW.isFinite || !maxH.isFinite || maxW <= 0 || maxH <= 0) {
+          return _buildImage();
+        }
 
-    Widget child;
-    if (displayCar) {
-      final tokens = context.tokens;
-      child = Stack(
-        fit: StackFit.expand,
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(child: _buildBackground()),
-          CarOverlay(
-            view: CarAssets.fromBackgroundAngle(resolvedAngle),
-            tokens: tokens,
-            style: CarOverlayStyle.backgroundPreview,
+        // Keep 16:9 photographs at native proportions — never stretch or narrow.
+        final widthLimited = maxW <= maxH * previewAspectRatio;
+        final width = widthLimited ? maxW : maxH * previewAspectRatio;
+        final height = widthLimited ? maxW / previewAspectRatio : maxH;
+
+        return Center(
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: _buildImage(),
           ),
-        ],
-      );
-    } else {
-      child = _buildBackground();
-    }
-
-    child = SizedBox.expand(child: child);
+        );
+      },
+    );
 
     if (borderRadius != null) {
       child = ClipRRect(borderRadius: borderRadius!, child: child);
