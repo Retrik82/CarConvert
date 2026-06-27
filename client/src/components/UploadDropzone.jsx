@@ -1,54 +1,72 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { useStrings } from "../contexts/SettingsContext";
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 15 * 1024 * 1024;
+const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
 
-export default function UploadDropzone({ file, onFileSelect, disabled }) {
+export default function UploadDropzone({ file, onFileSelect, disabled, compact = false }) {
+  const s = useStrings();
   const inputRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleFiles = (files) => {
-    if (!files?.length) return;
-    const nextFile = files[0];
-    if (!ACCEPTED_TYPES.includes(nextFile.type)) {
-      onFileSelect(null, "Only JPG, PNG, or WEBP are supported.");
-      return;
-    }
-    if (nextFile.size > 10 * 1024 * 1024) {
-      onFileSelect(null, "Max file size is 10MB.");
-      return;
-    }
-    onFileSelect(nextFile, "");
+  const validate = (nextFile) => {
+    if (!nextFile) return null;
+    if (!ACCEPT.includes(nextFile.type)) return "Only JPEG, PNG or WebP images are supported.";
+    if (nextFile.size > MAX_BYTES) return "Image must be under 15 MB.";
+    return null;
+  };
+
+  const handleFile = (nextFile) => {
+    const message = validate(nextFile);
+    onFileSelect(nextFile, message);
   };
 
   return (
     <div
-      className="group rounded-2xl border border-dashed border-sky-300/40 bg-slate-900/40 p-6 transition hover:border-sky-300/70"
-      onDragOver={(e) => e.preventDefault()}
+      className={[
+        "relative rounded-3xl border-2 border-dashed transition",
+        dragOver ? "border-brand-400 bg-brand-50/50" : "border-slate-200 bg-slate-50/60",
+        disabled ? "pointer-events-none opacity-50" : "cursor-pointer hover:border-brand-300 hover:bg-brand-50/30",
+        compact ? "p-4" : "p-8",
+      ].join(" ")}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
-        if (disabled) return;
-        handleFiles(e.dataTransfer.files);
+        setDragOver(false);
+        handleFile(e.dataTransfer.files?.[0]);
+      }}
+      onClick={() => inputRef.current?.click()}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
       }}
     >
       <input
         ref={inputRef}
         type="file"
+        accept={ACCEPT.join(",")}
         className="hidden"
-        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
         disabled={disabled}
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(e) => handleFile(e.target.files?.[0])}
       />
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-        className="w-full rounded-xl border border-sky-200/20 bg-slate-800/50 px-5 py-4 text-left transition hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <p className="text-sm text-slate-200">
-          Drag and drop image here or <span className="text-cyan-300">browse files</span>
-        </p>
-        <p className="mt-1 text-xs text-slate-400">JPG, PNG, WEBP up to 10MB</p>
-        {file ? <p className="mt-2 text-xs text-teal-300">Selected: {file.name}</p> : null}
-      </button>
+
+      <div className="flex flex-col items-center text-center">
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
+          📷
+        </div>
+        <p className="text-sm font-medium text-slate-800">{s.dropPhoto}</p>
+        <p className="mt-1 text-xs text-slate-500">{s.maxFileSize}</p>
+        {file ? (
+          <p className="mt-3 rounded-full bg-white px-3 py-1 text-xs font-medium text-brand-700 shadow-sm">
+            {file.name}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

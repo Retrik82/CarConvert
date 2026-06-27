@@ -4,10 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        panel: "rgba(15,23,42,0.58)",
+        brand: {
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          400: "#60a5fa",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+        },
+      },
+      fontFamily: {
+        sans: ["Inter", "Segoe UI", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 40px rgba(56,189,248,0.16)",
+        glow: "0 0 40px rgba(37, 99, 235, 0.12)",
       },
     },
   },
