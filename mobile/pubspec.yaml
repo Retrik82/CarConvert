@@ -26,6 +26,7 @@ dependencies:
   image_picker: ^1.1.2
   google_fonts: ^6.2.1
   gal: ^2.3.1
+  lucide_icons_svg: ^0.0.4
 
 dev_dependencies:
   flutter_test:

@@ -94,6 +94,37 @@ def test_non_admin_cannot_change_price() -> None:
     assert response.status_code == 403
 
 
+@pytest.mark.parametrize(
+    "price_usd,expected_status",
+    [
+        (0, 422),
+        (-0.5, 422),
+        (0.001, 422),
+        (1000, 422),
+        (0.333, 422),
+    ],
+)
+def test_admin_price_validation(price_usd: float, expected_status: int) -> None:
+    admin = _login("admin", "admin82")
+    headers = {"Authorization": f"Bearer {admin['access_token']}"}
+    response = client.put("/admin/settings/price", headers=headers, json={"price_usd": price_usd})
+    assert response.status_code == expected_status
+
+
+def test_admin_price_update_reflected_in_public_endpoint() -> None:
+    admin = _login("admin", "admin82")
+    headers = {"Authorization": f"Bearer {admin['access_token']}"}
+    update_resp = client.put("/admin/settings/price", headers=headers, json={"price_usd": 0.30})
+    assert update_resp.status_code == 200
+
+    email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+    user = _register(email)
+    user_headers = {"Authorization": f"Bearer {user['access_token']}"}
+    price_resp = client.get("/settings/generation-price", headers=user_headers)
+    assert price_resp.status_code == 200
+    assert float(price_resp.json()["price_usd"]) == 0.30
+
+
 def test_admin_can_read_pricing_estimate() -> None:
     admin = _login("admin", "admin82")
     headers = {"Authorization": f"Bearer {admin['access_token']}"}

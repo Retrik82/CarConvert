@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/l10n/app_strings.dart';
 import '../core/theme/app_tokens.dart';
 import '../core/theme/design_tokens.dart';
 import '../models/pricing_estimate.dart';
@@ -25,14 +26,12 @@ class PricingScreen extends StatefulWidget {
 class _PricingScreenState extends State<PricingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _priceController = TextEditingController();
-  final _customBackgroundPriceController = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _error;
   String? _success;
-  double _currentPrice = 0.10;
-  double _currentCustomBackgroundPrice = 0.50;
-  AdminPricingEstimate? _estimate;
+  double _currentPrice = 0.22;
+  ServicePricingEstimate? _generationEstimate;
 
   @override
   void initState() {
@@ -46,19 +45,16 @@ class _PricingScreenState extends State<PricingScreen> {
       _error = null;
     });
     try {
-      final results = await Future.wait([
-        SettingsRepository.instance.getGenerationPrice(),
-        SettingsRepository.instance.getCustomBackgroundPrice(),
-        SettingsRepository.instance.getPricingEstimate(),
-      ]);
-      final price = results[0] as double;
-      final customPrice = results[1] as double;
-      final estimate = results[2] as AdminPricingEstimate;
+      final price = await SettingsRepository.instance.getGenerationPrice();
+      AdminPricingEstimate? estimate;
+      try {
+        estimate = await SettingsRepository.instance.getPricingEstimate();
+      } catch (_) {
+        estimate = null;
+      }
       _currentPrice = price;
-      _currentCustomBackgroundPrice = customPrice;
-      _estimate = estimate;
+      _generationEstimate = estimate?.generation;
       _priceController.text = price.toStringAsFixed(2);
-      _customBackgroundPriceController.text = customPrice.toStringAsFixed(2);
     } catch (e) {
       _error = userFacingError(e);
     } finally {
@@ -67,42 +63,34 @@ class _PricingScreenState extends State<PricingScreen> {
   }
 
   void _applyRecommendedGenerationPrice() {
-    final recommended = _estimate?.generation.recommendedPriceUsd;
+    final recommended = _generationEstimate?.recommendedPriceUsd;
     if (recommended == null) return;
     _priceController.text = recommended.toStringAsFixed(2);
     setState(() => _success = null);
   }
 
-  void _applyRecommendedCustomBackgroundPrice() {
-    final recommended = _estimate?.customBackground.recommendedPriceUsd;
-    if (recommended == null) return;
-    _customBackgroundPriceController.text = recommended.toStringAsFixed(2);
-    setState(() => _success = null);
-  }
-
-  String _costRange(ServicePricingEstimate estimate) {
+  String _costRange(AppStrings strings, ServicePricingEstimate estimate) {
     if (estimate.actualCostMinUsd == estimate.actualCostMaxUsd) {
       return MoneyFormat.usd(estimate.actualCostMinUsd);
     }
     return '${MoneyFormat.usd(estimate.actualCostMinUsd)} – ${MoneyFormat.usd(estimate.actualCostMaxUsd)}';
   }
 
-  String? _marginLabel(double charged, ServicePricingEstimate estimate) {
+  String? _marginLabel(AppStrings strings, double charged, ServicePricingEstimate estimate) {
     if (estimate.actualCostMaxUsd <= 0) return null;
     final margin = ((charged / estimate.actualCostMaxUsd) - 1) * 100;
     if (margin.isNaN || margin.isInfinite) return null;
     final rounded = margin.round();
-    if (rounded >= 0) return 'Маржа +$rounded% к макс. себестоимости';
-    return 'Ниже себестоимости на ${rounded.abs()}%';
+    if (rounded >= 0) return strings.adminMarginPositive(rounded);
+    return strings.adminMarginNegative(rounded.abs());
   }
 
-  Widget _buildCostInsights({
-    required ServicePricingEstimate estimate,
-    required double chargedPrice,
-    required VoidCallback onApplyRecommended,
-  }) {
+  Widget _buildCostInsights(AppStrings strings) {
+    final estimate = _generationEstimate;
+    if (estimate == null) return const SizedBox.shrink();
+
     final tokens = context.tokens;
-    final margin = _marginLabel(chargedPrice, estimate);
+    final margin = _marginLabel(strings, _currentPrice, estimate);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,21 +107,21 @@ class _PricingScreenState extends State<PricingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Себестоимость OpenRouter',
+                strings.adminCostInsightsTitle,
                 style: tokens.textStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: DesignTokens.spacing4),
               Text(
-                _costRange(estimate),
+                '${strings.adminCostRange}: ${_costRange(strings, estimate)}',
                 style: tokens.textStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.accent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: tokens.textSecondary,
                 ),
               ),
-              const SizedBox(height: DesignTokens.spacing8),
+              const SizedBox(height: DesignTokens.spacing4),
               Text(
-                'Рекомендуемая цена: ${MoneyFormat.usd(estimate.recommendedPriceUsd)}',
+                '${strings.adminRecommended}: ${MoneyFormat.usd(estimate.recommendedPriceUsd)}',
                 style: tokens.textStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               if (margin != null) ...[
@@ -147,24 +135,11 @@ class _PricingScreenState extends State<PricingScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: DesignTokens.spacing8),
-              for (final step in estimate.steps)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: DesignTokens.spacing4),
-                  child: Text(
-                    '• ${step.label}: ${MoneyFormat.usd(step.costUsd)} (${step.model})',
-                    style: tokens.textStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: tokens.textSecondary,
-                    ),
-                  ),
-                ),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton(
-                  onPressed: onApplyRecommended,
-                  child: const Text('Подставить рекомендуемую'),
+                  onPressed: _applyRecommendedGenerationPrice,
+                  child: Text(strings.adminApplyRecommended),
                 ),
               ),
             ],
@@ -175,7 +150,7 @@ class _PricingScreenState extends State<PricingScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
 
     final parsed = double.parse(_priceController.text.replaceAll(',', '.'));
     setState(() {
@@ -185,15 +160,11 @@ class _PricingScreenState extends State<PricingScreen> {
     });
     try {
       final price = await SettingsRepository.instance.setGenerationPrice(parsed);
-      final customPrice = double.parse(_customBackgroundPriceController.text.replaceAll(',', '.'));
-      final savedCustomPrice = await SettingsRepository.instance.setCustomBackgroundPrice(customPrice);
       _currentPrice = price;
-      _currentCustomBackgroundPrice = savedCustomPrice;
       _priceController.text = price.toStringAsFixed(2);
-      _customBackgroundPriceController.text = savedCustomPrice.toStringAsFixed(2);
-      setState(() => _success = 'Цены обновлены для всех пользователей');
+      if (mounted) setState(() => _success = context.strings.adminPriceUpdated);
     } catch (e) {
-      setState(() => _error = userFacingError(e));
+      if (mounted) setState(() => _error = userFacingError(e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -202,24 +173,24 @@ class _PricingScreenState extends State<PricingScreen> {
   @override
   void dispose() {
     _priceController.dispose();
-    _customBackgroundPriceController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final strings = context.strings;
 
     return Scaffold(
       backgroundColor: tokens.background,
       appBar: AppBar(
-        title: const Text('Цены приложения'),
+        title: Text(strings.adminPricingTitle),
         actions: [
           if (widget.onLogout != null)
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: widget.onLogout,
-              tooltip: 'Logout',
+              tooltip: strings.logout,
             ),
         ],
       ),
@@ -235,7 +206,7 @@ class _PricingScreenState extends State<PricingScreen> {
                     const AppLogo(iconSize: 56, titleSize: 24),
                     const SizedBox(height: DesignTokens.spacing8),
                     Text(
-                      'Admin: ${AuthRepository.instance.currentUser?.email ?? ''}',
+                      '${strings.adminAccountLabel}: ${AuthRepository.instance.currentUser?.email ?? ''}',
                       textAlign: TextAlign.center,
                       style: tokens.textStyle(
                         fontSize: 13,
@@ -251,68 +222,29 @@ class _PricingScreenState extends State<PricingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Цена генерации',
+                            strings.adminGenerationPrice,
                             style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: DesignTokens.spacing8),
                           Text(
-                            'Сейчас: ${MoneyFormat.pricePerGeneration(_currentPrice)}',
+                            strings.adminCurrentGenerationPrice(MoneyFormat.usd(_currentPrice)),
                             style: tokens.textStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w400,
                               color: tokens.textSecondary,
                             ),
                           ),
-                          if (_estimate != null)
-                            _buildCostInsights(
-                              estimate: _estimate!.generation,
-                              chargedPrice: _currentPrice,
-                              onApplyRecommended: _applyRecommendedGenerationPrice,
-                            ),
+                          _buildCostInsights(strings),
                           const SizedBox(height: DesignTokens.spacing16),
                           TextFormField(
                             controller: _priceController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: Validators.price,
                             style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w400),
-                            decoration: appInputDecoration('Цена генерации (USD)', hint: '0.22'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: DesignTokens.spacing16),
-                    AppCard(
-                      elevated: true,
-                      padding: const EdgeInsets.all(DesignTokens.spacing24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Цена кастомного фона',
-                            style: tokens.textStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: DesignTokens.spacing8),
-                          Text(
-                            'Сейчас: ${MoneyFormat.usd(_currentCustomBackgroundPrice)}',
-                            style: tokens.textStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: tokens.textSecondary,
+                            decoration: appInputDecoration(
+                              strings.adminGenerationPrice,
+                              hint: strings.adminPriceHint,
                             ),
-                          ),
-                          if (_estimate != null)
-                            _buildCostInsights(
-                              estimate: _estimate!.customBackground,
-                              chargedPrice: _currentCustomBackgroundPrice,
-                              onApplyRecommended: _applyRecommendedCustomBackgroundPrice,
-                            ),
-                          const SizedBox(height: DesignTokens.spacing16),
-                          TextFormField(
-                            controller: _customBackgroundPriceController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            validator: Validators.price,
-                            style: tokens.textStyle(fontSize: 16, fontWeight: FontWeight.w400),
-                            decoration: appInputDecoration('Цена кастомного фона (USD)', hint: '0.50'),
                           ),
                         ],
                       ),
@@ -321,19 +253,9 @@ class _PricingScreenState extends State<PricingScreen> {
                     if (_success != null) appFormMessage(_success!, isError: false, context: context),
                     const SizedBox(height: DesignTokens.spacing32),
                     AppButton(
-                      label: 'Сохранить',
+                      label: strings.adminSave,
                       loading: _saving,
                       onPressed: _saving ? null : _save,
-                    ),
-                    const SizedBox(height: DesignTokens.spacing16),
-                    Text(
-                      'Себестоимость — оценка OpenRouter по текущим моделям на сервере. '
-                      'Рекомендуемая цена = ×2 для генерации и ×1.1 для кастомного фона от типичной себестоимости.',
-                      style: tokens.textStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: tokens.textTertiary,
-                      ),
                     ),
                   ],
                 ),

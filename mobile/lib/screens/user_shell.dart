@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_svg/lucide_icons_svg.dart';
 
 import '../core/l10n/app_strings.dart';
 import '../core/theme/app_theme_builder.dart';
 import '../core/theme/app_tokens.dart';
+import '../widgets/design_system/nav_lucide_icon.dart';
 import 'my_cars_screen.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
@@ -65,18 +67,18 @@ class _UserShellState extends State<UserShell> {
           onDestinationSelected: (i) => setState(() => _index = i),
           destinations: [
             NavigationDestination(
-              icon: const Icon(Icons.home_outlined),
-              selectedIcon: const Icon(Icons.home_rounded),
+              icon: const NavLucideIcon(icon: LucideIcons.home),
+              selectedIcon: const NavLucideIcon(icon: LucideIcons.home, selected: true),
               label: s.navHome,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.directions_car_outlined),
-              selectedIcon: const Icon(Icons.directions_car_rounded),
+              icon: const NavLucideIcon(icon: LucideIcons.car),
+              selectedIcon: const NavLucideIcon(icon: LucideIcons.car, selected: true),
               label: s.navCars,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.person_outline_rounded),
-              selectedIcon: const Icon(Icons.person_rounded),
+              icon: const NavLucideIcon(icon: LucideIcons.user),
+              selectedIcon: const NavLucideIcon(icon: LucideIcons.user, selected: true),
               label: s.navProfile,
             ),
           ],

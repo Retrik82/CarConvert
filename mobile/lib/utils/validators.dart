@@ -41,12 +41,14 @@ class Validators {
 
   static String? price(String? value) {
     if (value == null || value.trim().isEmpty) return 'Price is required';
-    final parsed = double.tryParse(value.replaceAll(',', '.'));
+    final normalized = value.replaceAll(',', '.');
+    final parsed = double.tryParse(normalized);
     if (parsed == null || parsed <= 0) return 'Price must be greater than 0';
-    final parts = value.replaceAll(',', '.').split('.');
+    final parts = normalized.split('.');
     if (parts.length > 1 && parts[1].length > 2) {
       return 'Maximum 2 decimal places';
     }
+    if (parsed > 999.99) return 'Price must not exceed 999.99';
     return null;
   }
 }

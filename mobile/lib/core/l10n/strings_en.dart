@@ -341,4 +341,44 @@ class StringsEn extends AppStrings {
 
   @override
   String get preview => 'Preview';
+
+  @override
+  String get adminPricingTitle => 'Pricing Settings';
+
+  @override
+  String get adminGenerationPrice => 'Generation price (USD)';
+
+  @override
+  String adminCurrentGenerationPrice(String formattedPrice) =>
+      'Current: $formattedPrice per generation';
+
+  @override
+  String get adminPriceHint => '0.22';
+
+  @override
+  String get adminSave => 'Save';
+
+  @override
+  String get adminPriceUpdated => 'Price updated for all users';
+
+  @override
+  String get adminCostRange => 'Cost range';
+
+  @override
+  String get adminRecommended => 'Recommended';
+
+  @override
+  String adminMarginPositive(int percent) => 'Margin +$percent% vs max cost';
+
+  @override
+  String adminMarginNegative(int percent) => '$percent% below max cost';
+
+  @override
+  String get adminApplyRecommended => 'Apply recommended';
+
+  @override
+  String get adminCostInsightsTitle => 'OpenRouter cost estimate';
+
+  @override
+  String get adminAccountLabel => 'Admin';
 }

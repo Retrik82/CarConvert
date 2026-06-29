@@ -341,4 +341,44 @@ class StringsDe extends AppStrings {
 
   @override
   String get preview => 'Vorschau';
+
+  @override
+  String get adminPricingTitle => 'Preiseinstellungen';
+
+  @override
+  String get adminGenerationPrice => 'Generierungspreis (USD)';
+
+  @override
+  String adminCurrentGenerationPrice(String formattedPrice) =>
+      'Aktuell: $formattedPrice pro Generierung';
+
+  @override
+  String get adminPriceHint => '0.22';
+
+  @override
+  String get adminSave => 'Speichern';
+
+  @override
+  String get adminPriceUpdated => 'Preis für alle Nutzer aktualisiert';
+
+  @override
+  String get adminCostRange => 'Kostenbereich';
+
+  @override
+  String get adminRecommended => 'Empfohlen';
+
+  @override
+  String adminMarginPositive(int percent) => 'Marge +$percent% zur max. Kosten';
+
+  @override
+  String adminMarginNegative(int percent) => '$percent% unter max. Kosten';
+
+  @override
+  String get adminApplyRecommended => 'Empfohlenen Preis übernehmen';
+
+  @override
+  String get adminCostInsightsTitle => 'OpenRouter-Kostenschätzung';
+
+  @override
+  String get adminAccountLabel => 'Admin';
 }

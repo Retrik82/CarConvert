@@ -341,4 +341,44 @@ class StringsRu extends AppStrings {
 
   @override
   String get preview => 'Превью';
+
+  @override
+  String get adminPricingTitle => 'Настройки цен';
+
+  @override
+  String get adminGenerationPrice => 'Цена генерации (USD)';
+
+  @override
+  String adminCurrentGenerationPrice(String formattedPrice) =>
+      'Сейчас: $formattedPrice за генерацию';
+
+  @override
+  String get adminPriceHint => '0.22';
+
+  @override
+  String get adminSave => 'Сохранить';
+
+  @override
+  String get adminPriceUpdated => 'Цена обновлена для всех пользователей';
+
+  @override
+  String get adminCostRange => 'Диапазон себестоимости';
+
+  @override
+  String get adminRecommended => 'Рекомендуемая';
+
+  @override
+  String adminMarginPositive(int percent) => 'Маржа +$percent% к макс. себестоимости';
+
+  @override
+  String adminMarginNegative(int percent) => 'Ниже себестоимости на $percent%';
+
+  @override
+  String get adminApplyRecommended => 'Подставить рекомендуемую';
+
+  @override
+  String get adminCostInsightsTitle => 'Себестоимость OpenRouter';
+
+  @override
+  String get adminAccountLabel => 'Админ';
 }

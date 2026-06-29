@@ -3,7 +3,7 @@ from typing import Literal
 
 from decimal import Decimal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 HintType = Literal[
     "move_left",
@@ -59,8 +59,20 @@ class GenerationPriceOut(BaseModel):
     price_usd: Decimal
 
 
+def _validate_price_usd(value: Decimal) -> Decimal:
+    quantized = value.quantize(Decimal("0.01"))
+    if quantized != value:
+        raise ValueError("Maximum 2 decimal places")
+    return value
+
+
 class UpdateGenerationPriceRequest(BaseModel):
-    price_usd: Decimal = Field(gt=0, le=1000)
+    price_usd: Decimal = Field(gt=Decimal("0"), le=Decimal("999.99"))
+
+    @field_validator("price_usd")
+    @classmethod
+    def validate_price_usd(cls, value: Decimal) -> Decimal:
+        return _validate_price_usd(value)
 
 
 class CustomBackgroundPriceOut(BaseModel):
@@ -68,7 +80,12 @@ class CustomBackgroundPriceOut(BaseModel):
 
 
 class UpdateCustomBackgroundPriceRequest(BaseModel):
-    price_usd: Decimal = Field(gt=0, le=1000)
+    price_usd: Decimal = Field(gt=Decimal("0"), le=Decimal("999.99"))
+
+    @field_validator("price_usd")
+    @classmethod
+    def validate_price_usd(cls, value: Decimal) -> Decimal:
+        return _validate_price_usd(value)
 
 
 class PricingStepEstimateOut(BaseModel):

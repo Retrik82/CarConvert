@@ -172,6 +172,21 @@ abstract class AppStrings {
   String get deleteCar;
   String get preview;
 
+  // Admin pricing
+  String get adminPricingTitle;
+  String get adminGenerationPrice;
+  String adminCurrentGenerationPrice(String formattedPrice);
+  String get adminPriceHint;
+  String get adminSave;
+  String get adminPriceUpdated;
+  String get adminCostRange;
+  String get adminRecommended;
+  String adminMarginPositive(int percent);
+  String adminMarginNegative(int percent);
+  String get adminApplyRecommended;
+  String get adminCostInsightsTitle;
+  String get adminAccountLabel;
+
   static AppStrings of(Locale locale) {
     return switch (AppLanguage.fromLocale(locale)) {
       AppLanguage.en => StringsEn(),
