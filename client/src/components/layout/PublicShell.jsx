@@ -4,34 +4,42 @@ import { useStrings } from "../../contexts/SettingsContext";
 import { AppLogo, LanguageSwitcher } from "./AppChrome";
 import Button from "../ui/Button";
 
-export default function PublicShell({ children }) {
+export default function PublicShell({ children, wide = false }) {
   const s = useStrings();
   const { isLoggedIn } = useAuth();
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
-      <header className="mb-6 flex items-center justify-between gap-4">
-        <Link to={isLoggedIn ? "/app" : "/welcome"}>
-          <AppLogo />
-        </Link>
-        <div className="flex items-center gap-2">
-          <LanguageSwitcher />
-          {isLoggedIn ? (
-            <Link to="/app">
-              <Button size="sm" variant="secondary">
-                {s.navHome}
-              </Button>
-            </Link>
-          ) : (
-            <Link to="/login">
-              <Button size="sm" variant="secondary">
-                {s.login}
-              </Button>
-            </Link>
-          )}
+    <div className="page-bg flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 glass-header">
+        <div
+          className={`mx-auto flex w-full items-center justify-between gap-4 px-6 py-4 ${wide ? "max-w-6xl lg:px-8" : "max-w-3xl"}`}
+        >
+          <Link to={isLoggedIn ? "/app" : "/welcome"}>
+            <AppLogo size="sm" linkTo={false} />
+          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitcher />
+            {isLoggedIn ? (
+              <Link to="/app">
+                <Button size="sm" variant="secondary">
+                  {s.navHome}
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/login">
+                <Button size="sm" variant="secondary">
+                  {s.login}
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main
+        className={`mx-auto w-full flex-1 px-6 py-8 page-enter ${wide ? "max-w-6xl lg:px-8" : "max-w-3xl"}`}
+      >
+        {children}
+      </main>
     </div>
   );
 }

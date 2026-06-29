@@ -25,7 +25,7 @@ function PricingBlock({ title, value, onChange, estimate, onApplyRecommended }) 
 
   return (
     <Card className="mb-4">
-      <h3 className="mb-4 font-semibold text-slate-900">{title}</h3>
+      <h3 className="mb-4 font-semibold text-ink">{title}</h3>
       <Input
         type="number"
         step="0.01"
@@ -34,7 +34,7 @@ function PricingBlock({ title, value, onChange, estimate, onApplyRecommended }) 
         onChange={(e) => onChange(e.target.value)}
       />
       {estimate ? (
-        <div className="mt-4 space-y-1 text-sm text-slate-500">
+        <div className="mt-4 space-y-1 text-sm text-ink-secondary">
           <p>
             {s.costRange}: {formatUsd(estimate.actual_cost_min_usd)} – {formatUsd(estimate.actual_cost_max_usd)}
           </p>

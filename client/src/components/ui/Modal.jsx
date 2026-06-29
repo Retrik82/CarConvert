@@ -18,11 +18,11 @@ export default function Modal({ open, title, children, onClose, footer }) {
       <button
         type="button"
         aria-label="Close"
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-        {title ? <h2 className="mb-4 text-lg font-semibold text-slate-900">{title}</h2> : null}
+      <div className="relative z-10 w-full max-w-md rounded-card border border-[var(--border)] bg-surface p-6 shadow-elevated animate-fade-up">
+        {title ? <h2 className="mb-4 text-lg font-semibold text-ink">{title}</h2> : null}
         <div>{children}</div>
         {footer ? <div className="mt-6 flex justify-end gap-3">{footer}</div> : null}
       </div>
@@ -47,7 +47,7 @@ export function ConfirmModal({ open, title, body, confirmLabel, cancelLabel, onC
         </>
       }
     >
-      <p className="text-sm leading-relaxed text-slate-600">{body}</p>
+      <p className="text-sm leading-relaxed text-ink-secondary">{body}</p>
     </Modal>
   );
 }

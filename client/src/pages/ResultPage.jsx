@@ -99,9 +99,9 @@ export default function ResultPage() {
         }
       >
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-slate-700">{s.selectCar}</label>
+          <label className="block text-sm font-medium text-ink">{s.selectCar}</label>
           <select
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            className="w-full rounded-2xl border border-[var(--border)] px-4 py-3 text-sm"
             value={selectedCarId}
             onChange={(e) => setSelectedCarId(e.target.value)}
           >

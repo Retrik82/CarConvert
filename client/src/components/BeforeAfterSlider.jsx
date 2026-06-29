@@ -1,9 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import { useStrings } from "../contexts/SettingsContext";
 
+const DEFAULT_BEFORE = "/images/before-street.jpg";
+const DEFAULT_AFTER = "/images/after-showroom.jpg";
+
 export default function BeforeAfterSlider({
-  beforeUrl,
-  afterUrl,
+  beforeUrl = DEFAULT_BEFORE,
+  afterUrl = DEFAULT_AFTER,
   beforeLabel,
   afterLabel,
   className = "",
@@ -11,6 +14,7 @@ export default function BeforeAfterSlider({
   const s = useStrings();
   const containerRef = useRef(null);
   const [position, setPosition] = useState(50);
+  const [loaded, setLoaded] = useState({ before: false, after: false });
   const dragging = useRef(false);
 
   const updatePosition = useCallback((clientX) => {
@@ -35,45 +39,57 @@ export default function BeforeAfterSlider({
     dragging.current = false;
   };
 
+  const allLoaded = loaded.before && loaded.after;
+
   return (
     <div
       ref={containerRef}
-      className={`relative aspect-[16/10] overflow-hidden rounded-3xl bg-slate-100 shadow-inner ${className}`}
+      className={`relative aspect-[16/10] overflow-hidden rounded-card bg-surface-muted shadow-card ${className}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      role="img"
+      aria-label={`${beforeLabel || s.beforeLabel} / ${afterLabel || s.afterLabel}`}
     >
-      {afterUrl ? (
-        <img src={afterUrl} alt={afterLabel || s.afterLabel} className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-300" />
-      )}
+      {!allLoaded ? (
+        <div className="absolute inset-0 skeleton rounded-card" aria-hidden="true" />
+      ) : null}
+
+      <img
+        src={afterUrl}
+        alt={afterLabel || s.afterLabel}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${loaded.after ? "opacity-100" : "opacity-0"}`}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded((p) => ({ ...p, after: true }))}
+      />
 
       <div className="absolute inset-0 overflow-hidden" style={{ width: `${position}%` }}>
-        {beforeUrl ? (
-          <img
-            src={beforeUrl}
-            alt={beforeLabel || s.beforeLabel}
-            className="h-full w-full max-w-none object-cover"
-            style={{ width: containerRef.current?.offsetWidth || "100%" }}
-          />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-amber-100 to-orange-200" />
-        )}
+        <img
+          src={beforeUrl}
+          alt={beforeLabel || s.beforeLabel}
+          className={`h-full w-full max-w-none object-cover transition-opacity duration-500 ${loaded.before ? "opacity-100" : "opacity-0"}`}
+          style={{ width: containerRef.current?.offsetWidth || "100%" }}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded((p) => ({ ...p, before: true }))}
+        />
       </div>
 
       <div className="pointer-events-none absolute inset-y-0 z-10" style={{ left: `${position}%` }}>
         <div className="relative -ml-px h-full w-0.5 bg-white shadow-lg" />
-        <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-white/90 shadow-lg backdrop-blur">
-          <span className="text-slate-600">↔</span>
+        <div className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-white/95 shadow-elevated backdrop-blur">
+          <svg className="h-4 w-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+          </svg>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+      <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-ink/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
         {beforeLabel || s.beforeLabel}
       </div>
-      <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+      <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-ink/60 px-3 py-1 text-xs font-medium text-white backdrop-blur">
         {afterLabel || s.afterLabel}
       </div>
     </div>

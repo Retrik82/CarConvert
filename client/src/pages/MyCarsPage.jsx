@@ -97,8 +97,8 @@ export default function MyCarsPage() {
                 <div className="mb-4 flex aspect-[16/10] items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 text-5xl">
                   {car.renders?.[0]?.has_rendered ? "🖼️" : "🚘"}
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900">{car.name}</h3>
-                <p className="mt-1 text-sm text-slate-500">
+                <h3 className="text-lg font-semibold text-ink">{car.name}</h3>
+                <p className="mt-1 text-sm text-ink-secondary">
                   {car.renders?.length || 0} renders · {formatDate(car.created_at)}
                 </p>
                 <div className="mt-4 flex gap-2" onClick={(e) => e.preventDefault()}>

@@ -23,7 +23,7 @@ function BackgroundCard({ preset, selected, onSelect }) {
       className={isSelected ? "ring-2 ring-brand-500" : ""}
       elevated={isSelected}
     >
-      <div className="mb-4 aspect-[16/10] overflow-hidden rounded-2xl bg-slate-100">
+      <div className="mb-4 aspect-[16/10] overflow-hidden rounded-2xl bg-surface-muted">
         {imageUrl ? (
           <AuthenticatedImage src={imageUrl} alt={preset.name} className="h-full w-full object-cover" />
         ) : (
@@ -32,8 +32,8 @@ function BackgroundCard({ preset, selected, onSelect }) {
           </div>
         )}
       </div>
-      <h3 className="font-semibold text-slate-900">{preset.name}</h3>
-      {preset.description ? <p className="mt-1 text-sm text-slate-500">{preset.description}</p> : null}
+      <h3 className="font-semibold text-ink">{preset.name}</h3>
+      {preset.description ? <p className="mt-1 text-sm text-ink-secondary">{preset.description}</p> : null}
       {isSelected ? (
         <span className="mt-3 inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
           ✓ Selected
@@ -62,7 +62,7 @@ export default function BackgroundsPage() {
         </div>
       ) : (
         <>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-tertiary">
             {s.sharedBackgrounds}
           </h2>
           <div className="mb-8 grid gap-4 sm:grid-cols-2">
@@ -78,7 +78,7 @@ export default function BackgroundsPage() {
 
           {custom.length > 0 ? (
             <>
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-tertiary">
                 {s.yourBackgrounds}
               </h2>
               <div className="mb-8 grid gap-4 sm:grid-cols-2">

@@ -122,7 +122,9 @@ SCENE_COMPOSITE_SYSTEM_PROMPT = (
     f"  {VEHICLE_IDENTITY_ATTRIBUTES}\n"
     f"- {ANTI_HALLUCINATION_RULES}\n"
     "- Replace only the placeholder car in the reference with the user's vehicle.\n"
-    "- Match scene lighting, scale, and contact shadows for a seamless photorealistic result.\n"
+    "- Scale the user's vehicle to match the placeholder's large hero framing in the scene — "
+    "fill roughly 60–75% of frame width without altering room perspective or camera angle.\n"
+    "- Match scene lighting and contact shadows for a seamless photorealistic result.\n"
     "- Do not redesign, restyle, or substitute the user's vehicle.\n"
     f"- {PRESERVATION_REMINDER}\n"
     f"- {PROMPT_SELF_CHECK}\n"
@@ -149,6 +151,13 @@ CAR_EXTRACT_SYSTEM_PROMPT = (
     f"- {PRESERVATION_REMINDER}\n"
     f"- {NO_TEXT_WATERMARKS}\n"
     "- If no vehicle is visible, return a minimal transparent PNG."
+)
+
+HERO_CAR_FRAMING = (
+    "Hero automotive shot: the car fills 60–75% of the frame width. "
+    "Tight framing with minimal empty floor and wall space. "
+    "Car fully visible — wheels and body not cropped. "
+    "Background is secondary; photorealistic studio quality."
 )
 
 CATALOG_ANGLES = (

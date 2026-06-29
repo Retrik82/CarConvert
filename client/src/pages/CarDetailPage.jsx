@@ -63,7 +63,7 @@ export default function CarDetailPage() {
   }
 
   if (!car) {
-    return <p className="text-slate-500">{s.errorGeneric}</p>;
+    return <p className="text-ink-secondary">{s.errorGeneric}</p>;
   }
 
   const active = selectedRender || car.renders?.[0];
@@ -83,8 +83,8 @@ export default function CarDetailPage() {
       {active ? (
         <div className="mb-8">
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl bg-slate-100">
-              <p className="px-3 py-2 text-xs font-medium text-slate-500">{s.beforeLabel}</p>
+            <div className="overflow-hidden rounded-2xl bg-surface-muted">
+              <p className="px-3 py-2 text-xs font-medium text-ink-secondary">{s.beforeLabel}</p>
               {active.original_url ? (
                 <AuthenticatedImage
                   src={active.original_url}
@@ -95,8 +95,8 @@ export default function CarDetailPage() {
                 <div className="flex aspect-[4/3] items-center justify-center text-3xl">📷</div>
               )}
             </div>
-            <div className="overflow-hidden rounded-2xl bg-slate-100">
-              <p className="px-3 py-2 text-xs font-medium text-slate-500">{s.afterLabel}</p>
+            <div className="overflow-hidden rounded-2xl bg-surface-muted">
+              <p className="px-3 py-2 text-xs font-medium text-ink-secondary">{s.afterLabel}</p>
               {active.rendered_url ? (
                 <AuthenticatedImage
                   src={active.rendered_url}
@@ -134,10 +134,10 @@ export default function CarDetailPage() {
             onClick={() => setSelectedRender(render)}
             className={[
               "overflow-hidden rounded-2xl border text-left transition",
-              active?.id === render.id ? "border-brand-500 ring-2 ring-brand-200" : "border-slate-200 hover:border-slate-300",
+              active?.id === render.id ? "border-brand-500 ring-2 ring-brand-200" : "border-[var(--border)] hover:border-slate-300",
             ].join(" ")}
           >
-            <div className="aspect-[4/3] bg-slate-100">
+            <div className="aspect-[4/3] bg-surface-muted">
               {render.rendered_url ? (
                 <AuthenticatedImage
                   src={render.rendered_url}
@@ -149,8 +149,8 @@ export default function CarDetailPage() {
               )}
             </div>
             <div className="p-3">
-              <p className="truncate text-sm font-medium text-slate-800">{render.name || "Render"}</p>
-              <p className="text-xs text-slate-400">{formatDateTime(render.created_at)}</p>
+              <p className="truncate text-sm font-medium text-ink">{render.name || "Render"}</p>
+              <p className="text-xs text-ink-tertiary">{formatDateTime(render.created_at)}</p>
             </div>
           </button>
         ))}

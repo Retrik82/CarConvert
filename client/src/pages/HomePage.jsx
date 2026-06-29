@@ -5,32 +5,41 @@ import { useStrings } from "../contexts/SettingsContext";
 import BeforeAfterSlider from "../components/BeforeAfterSlider";
 import Card from "../components/ui/Card";
 import { PageHeader } from "../components/layout/AppChrome";
+import Reveal from "../components/ui/Reveal";
 
-function ActionCard({ icon, title, subtitle, to, highlighted }) {
+function ActionCard({ icon, title, subtitle, to, highlighted, delay = 0 }) {
   return (
-    <Link to={to}>
-      <Card elevated={highlighted} className="group">
-        <div className="flex items-center gap-4">
-          <div
-            className={[
-              "flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl text-2xl",
-              highlighted
-                ? "bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/30"
-                : "bg-brand-50 text-brand-600",
-            ].join(" ")}
-          >
-            {icon}
+    <Reveal delay={delay}>
+      <Link to={to} className="block">
+        <Card elevated={highlighted} className="group">
+          <div className="flex items-center gap-4">
+            <div
+              className={[
+                "flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-input text-2xl transition",
+                highlighted
+                  ? "bg-gradient-primary text-white shadow-button"
+                  : "bg-brand-50 text-brand-600",
+              ].join(" ")}
+            >
+              {icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-ink">{title}</h3>
+              <p className="mt-0.5 text-sm text-ink-secondary">{subtitle}</p>
+            </div>
+            <svg
+              className="h-4 w-4 shrink-0 text-ink-tertiary transition group-hover:translate-x-0.5 group-hover:text-brand-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-slate-900">{title}</h3>
-            <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
-          </div>
-          <span className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-400">
-            →
-          </span>
-        </div>
-      </Card>
-    </Link>
+        </Card>
+      </Link>
+    </Reveal>
   );
 }
 
@@ -44,20 +53,24 @@ export default function HomePage() {
     <div>
       <PageHeader title={s.greeting(name)} subtitle={s.dashboardSubtitle} />
 
-      <BeforeAfterSlider className="mb-8 shadow-xl shadow-slate-200/60" />
+      <Reveal>
+        <BeforeAfterSlider className="mb-8 shadow-elevated" />
+      </Reveal>
 
       {selected ? (
-        <Card className="mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-violet-600 text-white">
-              ✓
+        <Reveal delay={50}>
+          <Card className="mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-chip bg-gradient-primary text-white shadow-button">
+                ✓
+              </div>
+              <div>
+                <p className="text-xs text-ink-secondary">{s.backgroundSelected}</p>
+                <p className="font-semibold text-ink">{selected.displayName}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-slate-500">{s.backgroundSelected}</p>
-              <p className="font-semibold text-slate-900">{selected.displayName}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </Reveal>
       ) : null}
 
       <div className="space-y-3">
@@ -73,6 +86,7 @@ export default function HomePage() {
           title={s.configureStudio}
           subtitle={s.configTitle}
           to="/app/configurator"
+          delay={50}
         />
         <ActionCard
           icon="📷"
@@ -80,12 +94,14 @@ export default function HomePage() {
           subtitle={s.startCapture}
           to="/app/capture?mode=camera"
           highlighted
+          delay={100}
         />
         <ActionCard
           icon="🖼️"
           title={s.fromGallery}
           subtitle={s.startCapture}
           to="/app/capture?mode=gallery"
+          delay={150}
         />
       </div>
     </div>

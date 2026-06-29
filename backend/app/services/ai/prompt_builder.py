@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from app.services.ai.prompt_blocks import (
+    HERO_CAR_FRAMING,
     MINIMAL_INTERVENTION_PHRASES,
     PRESERVATION_REMINDER,
     REQUIRED_SYSTEM_MARKERS,
@@ -108,8 +109,11 @@ def build_composite_user_text(
         f"Scene description: {scene_prompt}\n\n"
         f"{modification_block}\n"
         "Replace only the placeholder car with the user's vehicle. "
+        "Scale and place the vehicle large in the frame — matching the placeholder's hero size "
+        "(roughly 60–75% of frame width) — without changing the room camera angle or perspective. "
         "Do not clip the vehicle into a platform or circular disc — preserve the full car silhouette. "
-        "Match lighting and scale. Do not change the room, perspective, or vehicle design. "
+        "Match lighting and contact shadows. Do not change the room, perspective, or vehicle design. "
+        f"{HERO_CAR_FRAMING} "
         f"{PRESERVATION_REMINDER}"
     )
 

@@ -7,6 +7,7 @@ from app.services.ai.model_router import call_image_completion
 from app.services.ai.openrouter_client import _extract_image_reference
 from app.services.ai.prompt_blocks import (
     BACKGROUND_REPLACE_SYSTEM_PROMPT,
+    HERO_CAR_FRAMING,
     SCENE_COMPOSITE_SYSTEM_PROMPT,
 )
 from app.services.ai.prompt_builder import (
@@ -134,6 +135,7 @@ async def generate_full_scene(prompt: str, api_key: str | None = None) -> tuple[
                 "Generate a single unified photorealistic automotive photograph. "
                 "The car, studio/garage environment, podium platform, lighting, and shadows "
                 "must be one coherent realistic image — not a cutout pasted on a background. "
+                f"{HERO_CAR_FRAMING} "
                 "No text, watermarks, or people."
             ),
         },

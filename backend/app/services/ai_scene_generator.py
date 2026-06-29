@@ -11,6 +11,7 @@ from PIL import Image
 
 from app.db.models.background import ANGLE_PROMPT_SUFFIXES, VARIANT_ANGLES
 from app.services.ai.background_processor import generate_full_scene
+from app.services.ai.prompt_blocks import HERO_CAR_FRAMING
 from app.services.background_service import PRESET_DEFINITIONS
 
 logger = logging.getLogger(__name__)
@@ -61,8 +62,8 @@ def build_full_scene_prompt(
         base = PRESET_SCENE_BASE["gray-showroom"]
 
     return (
-        f"{base} {angle_hint} "
-        "The car is fully visible — not cropped. Wheels touch the podium naturally. "
+        f"{base} {angle_hint} {HERO_CAR_FRAMING} "
+        "Wheels touch the podium naturally. "
         "Unified photorealistic photograph, professional automotive studio quality, "
         "natural lighting and soft ground shadows. Landscape 16:9 aspect ratio. "
         "No people, no text, no watermarks, no cutout collage look."

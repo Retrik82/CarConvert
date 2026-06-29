@@ -24,8 +24,8 @@ export default function UploadDropzone({ file, onFileSelect, disabled, compact =
   return (
     <div
       className={[
-        "relative rounded-3xl border-2 border-dashed transition",
-        dragOver ? "border-brand-400 bg-brand-50/50" : "border-slate-200 bg-slate-50/60",
+        "relative rounded-card border-2 border-dashed transition",
+        dragOver ? "border-brand-400 bg-brand-50/50" : "border-[var(--border)] bg-surface-muted/60",
         disabled ? "pointer-events-none opacity-50" : "cursor-pointer hover:border-brand-300 hover:bg-brand-50/30",
         compact ? "p-4" : "p-8",
       ].join(" ")}
@@ -59,8 +59,8 @@ export default function UploadDropzone({ file, onFileSelect, disabled, compact =
         <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
           📷
         </div>
-        <p className="text-sm font-medium text-slate-800">{s.dropPhoto}</p>
-        <p className="mt-1 text-xs text-slate-500">{s.maxFileSize}</p>
+        <p className="text-sm font-medium text-ink">{s.dropPhoto}</p>
+        <p className="mt-1 text-xs text-ink-secondary">{s.maxFileSize}</p>
         {file ? (
           <p className="mt-3 rounded-full bg-white px-3 py-1 text-xs font-medium text-brand-700 shadow-sm">
             {file.name}

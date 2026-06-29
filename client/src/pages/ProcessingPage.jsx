@@ -57,7 +57,7 @@ export default function ProcessingPage() {
       <PageHeader title={s.processingTitle} />
       <Card className="relative min-h-[280px]">
         <LoadingOverlay active={loading} progress={progress} label={statusLabel} />
-        <p className="text-center text-sm text-slate-500">{statusLabel}</p>
+        <p className="text-center text-sm text-ink-secondary">{statusLabel}</p>
       </Card>
       <Toast message={error} onClose={() => setError("")} />
       {error ? (

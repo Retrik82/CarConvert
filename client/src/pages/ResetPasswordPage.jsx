@@ -7,6 +7,7 @@ import { AppLogo } from "../components/layout/AppChrome";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Toast from "../components/ui/Toast";
+import Reveal from "../components/ui/Reveal";
 
 export default function ResetPasswordPage() {
   const s = useStrings();
@@ -32,35 +33,37 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="page-enter">
+      <Reveal>
         <AppLogo />
-        <h1 className="mt-8 text-2xl font-bold text-slate-900">{s.resetPassword}</h1>
-        <p className="mt-2 text-sm text-slate-500">{s.resetPasswordHint}</p>
-      </div>
+        <h1 className="mt-8 text-3xl font-bold tracking-tight text-ink">{s.resetPassword}</h1>
+        <p className="mt-2 text-ink-secondary">{s.resetPasswordHint}</p>
+      </Reveal>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input label={s.resetToken} value={token} onChange={(e) => setToken(e.target.value)} required />
-        <Input
-          label={s.newPassword}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={6}
-          required
-        />
-        <Button type="submit" className="w-full" size="lg" disabled={loading}>
-          {loading ? s.loading : s.resetPassword}
-        </Button>
-      </form>
+      <Reveal delay={100}>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <Input label={s.resetToken} value={token} onChange={(e) => setToken(e.target.value)} required />
+          <Input
+            label={s.newPassword}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
+            required
+          />
+          <Button type="submit" className="w-full" size="lg" loading={loading} disabled={loading}>
+            {s.resetPassword}
+          </Button>
+        </form>
+      </Reveal>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-ink-secondary">
         <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
           {s.backToLogin}
         </Link>
       </p>
 
       <Toast message={error} onClose={() => setError("")} />
-    </>
+    </div>
   );
 }

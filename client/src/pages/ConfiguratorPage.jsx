@@ -43,16 +43,16 @@ function OptionGrid({ options, value, onChange, colorKey }) {
             "rounded-2xl border p-4 text-left transition",
             value === opt.id
               ? "border-brand-500 bg-brand-50 ring-2 ring-brand-200"
-              : "border-slate-200 hover:border-slate-300",
+              : "border-[var(--border)] hover:border-slate-300",
           ].join(" ")}
         >
           {colorKey && opt.swatch ? (
             <span
-              className="mb-2 inline-block h-8 w-8 rounded-full border border-slate-200"
+              className="mb-2 inline-block h-8 w-8 rounded-full border border-[var(--border)]"
               style={{ background: opt.swatch }}
             />
           ) : null}
-          <span className="block text-sm font-semibold text-slate-800">{opt.label}</span>
+          <span className="block text-sm font-semibold text-ink">{opt.label}</span>
         </button>
       ))}
     </div>
@@ -106,8 +106,8 @@ export default function ConfiguratorPage() {
           <dl className="space-y-3 text-sm">
             {STEPS.slice(0, -1).map((key) => (
               <div key={key} className="flex justify-between border-b border-slate-100 pb-2">
-                <dt className="text-slate-500">{stepLabels[STEPS.indexOf(key)]}</dt>
-                <dd className="font-medium text-slate-800">
+                <dt className="text-ink-secondary">{stepLabels[STEPS.indexOf(key)]}</dt>
+                <dd className="font-medium text-ink">
                   {OPTIONS[key].find((o) => o.id === config[key])?.label}
                 </dd>
               </div>

@@ -20,7 +20,6 @@ import ConfiguratorPage from "./pages/ConfiguratorPage";
 import AdminPage from "./pages/AdminPage";
 import DownloadAppPage from "./pages/DownloadAppPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import PublicShell from "./components/layout/PublicShell";
 
 function AppRoutes() {
   return (
@@ -52,18 +51,11 @@ function AppRoutes() {
         <Route path="/app/cars" element={<MyCarsPage />} />
         <Route path="/app/cars/:carId" element={<CarDetailPage />} />
         <Route path="/app/profile" element={<ProfilePage />} />
-        <Route path="/app/download" element={<DownloadAppPage />} />
+        <Route path="/app/download" element={<DownloadAppPage embedded />} />
         <Route path="/app/admin" element={<AdminPage />} />
       </Route>
 
-      <Route
-        path="/download"
-        element={
-          <PublicShell>
-            <DownloadAppPage />
-          </PublicShell>
-        }
-      />
+      <Route path="/download" element={<DownloadAppPage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

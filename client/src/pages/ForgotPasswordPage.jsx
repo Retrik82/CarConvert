@@ -7,6 +7,7 @@ import { AppLogo } from "../components/layout/AppChrome";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Toast from "../components/ui/Toast";
+import Reveal from "../components/ui/Reveal";
 
 export default function ForgotPasswordPage() {
   const s = useStrings();
@@ -31,33 +32,35 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <>
-      <div className="mb-8">
+    <div className="page-enter">
+      <Reveal>
         <AppLogo />
-        <h1 className="mt-8 text-2xl font-bold text-slate-900">{s.forgotPassword}</h1>
-        <p className="mt-2 text-sm text-slate-500">{s.forgotPasswordHint}</p>
-      </div>
+        <h1 className="mt-8 text-3xl font-bold tracking-tight text-ink">{s.forgotPassword}</h1>
+        <p className="mt-2 text-ink-secondary">{s.forgotPasswordHint}</p>
+      </Reveal>
 
-      {sent ? (
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-          If the email exists, reset instructions have been sent.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label={s.email}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? s.loading : s.resetPassword}
-          </Button>
-        </form>
-      )}
+      <Reveal delay={100} className="mt-8">
+        {sent ? (
+          <div className="rounded-input border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            If the email exists, reset instructions have been sent.
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label={s.email}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Button type="submit" className="w-full" size="lg" loading={loading} disabled={loading}>
+              {s.resetPassword}
+            </Button>
+          </form>
+        )}
+      </Reveal>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-ink-secondary">
         <Link to="/reset-password" className="font-semibold text-brand-600 hover:text-brand-700">
           {s.resetPassword}
         </Link>
@@ -68,6 +71,6 @@ export default function ForgotPasswordPage() {
       </p>
 
       <Toast message={error} onClose={() => setError("")} />
-    </>
+    </div>
   );
 }

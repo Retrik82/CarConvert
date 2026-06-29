@@ -1,12 +1,25 @@
-export default function Card({ children, className = "", elevated = false, onClick, as: Tag = "div" }) {
+export default function Card({
+  children,
+  className = "",
+  elevated = false,
+  selected = false,
+  onClick,
+  as: Tag = "div",
+  padding = true,
+}) {
   const interactive = Boolean(onClick);
+
   return (
     <Tag
       onClick={onClick}
       className={[
-        "rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6",
-        elevated ? "shadow-xl shadow-slate-200/60" : "shadow-sm shadow-slate-100",
-        interactive ? "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/70" : "",
+        "rounded-card border bg-surface transition-all duration-300 ease-standard",
+        padding ? "p-5 sm:p-6" : "",
+        elevated ? "shadow-elevated" : "shadow-card",
+        selected ? "border-brand-500 ring-1 ring-brand-500/20" : "border-[var(--border)]/80",
+        interactive
+          ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
+          : "",
         className,
       ].join(" ")}
     >

@@ -157,7 +157,7 @@ export default function CapturePage() {
       <PageHeader
         title={s.captureTitle || s.takePhoto}
         subtitle={selected?.displayName}
-        action={price != null ? <span className="text-sm text-slate-500">{formatUsd(price)} {s.estimatedPrice}</span> : null}
+        action={price != null ? <span className="text-sm text-ink-secondary">{formatUsd(price)} {s.estimatedPrice}</span> : null}
       />
 
       {mode === "camera" && !file ? (
@@ -191,7 +191,7 @@ export default function CapturePage() {
 
       {preview ? (
         <Card className="mb-6 overflow-hidden p-0">
-          <img src={preview} alt="Preview" className="max-h-96 w-full object-contain bg-slate-50" />
+          <img src={preview} alt="Preview" className="max-h-96 w-full object-contain bg-surface-muted" />
         </Card>
       ) : null}
 

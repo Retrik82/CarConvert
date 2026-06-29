@@ -41,7 +41,7 @@ export default function AuthenticatedImage({ src, alt = "", className = "", fall
 
   if (failed) return fallback;
   if (!blobUrl) {
-    return <div className={`animate-pulse bg-slate-100 ${className}`} />;
+    return <div className={`animate-pulse bg-surface-muted ${className}`} />;
   }
 
   return <img src={blobUrl} alt={alt} className={className} loading="lazy" />;
