@@ -259,10 +259,16 @@ class _CarGridCard extends StatelessWidget {
                         child: Text(s.addRender, style: const TextStyle(fontSize: 11)),
                       ),
                     ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(Icons.drive_file_rename_outline_rounded, size: 18, color: tokens.textTertiary),
-                      onPressed: onRename,
+                    SizedBox(
+                      width: DesignTokens.minTapTarget,
+                      height: DesignTokens.minTapTarget,
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.drive_file_rename_outline_rounded, size: 18, color: tokens.textTertiary),
+                        tooltip: s.renameCar,
+                        onPressed: onRename,
+                      ),
                     ),
                   ],
                 ),

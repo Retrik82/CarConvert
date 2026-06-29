@@ -155,11 +155,18 @@ export default function DownloadAppPage({ embedded = false }) {
         <Reveal delay={100}>
           <PlatformCard title={s.downloadAndroid}>
             {hasAndroidApk ? (
-              <a href={apkUrl} download className="block">
-                <Button className="w-full" size="lg">
-                  {s.downloadApk}
-                </Button>
-              </a>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = apkUrl;
+                  link.download = "";
+                  link.click();
+                }}
+              >
+                {s.downloadApk}
+              </Button>
             ) : (
               <div className="rounded-input border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 {s.downloadApkUnavailable}
@@ -178,11 +185,14 @@ export default function DownloadAppPage({ embedded = false }) {
         <Reveal delay={150}>
           <PlatformCard title={s.downloadIos}>
             {hasIos ? (
-              <a href={IOS_URL} target="_blank" rel="noopener noreferrer" className="block">
-                <Button variant="secondary" className="w-full" size="lg">
-                  {s.downloadAppStore}
-                </Button>
-              </a>
+              <Button
+                variant="secondary"
+                className="w-full"
+                size="lg"
+                onClick={() => window.open(IOS_URL, "_blank", "noopener,noreferrer")}
+              >
+                {s.downloadAppStore}
+              </Button>
             ) : (
               <div className="rounded-input border border-[var(--border)] bg-surface-muted px-4 py-3 text-sm text-ink-secondary">
                 {s.downloadIosComingSoon}

@@ -1,3 +1,8 @@
+export async function base64ToBlob(base64, mimeType = "image/png") {
+  const response = await fetch(`data:${mimeType};base64,${base64}`);
+  return response.blob();
+}
+
 export function downloadBase64Image(base64, mimeType = "image/png", filename = "autocut-render.png") {
   const link = document.createElement("a");
   link.href = `data:${mimeType};base64,${base64}`;

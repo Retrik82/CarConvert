@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchMyCars, saveRender } from "../api/myCarsApi";
 import { useStrings } from "../contexts/SettingsContext";
-import { downloadBase64Image, shareBase64Image } from "../utils/download";
+import { base64ToBlob, downloadBase64Image, shareBase64Image } from "../utils/download";
 import { formatDateTime } from "../utils/format";
 import BeforeAfterSlider from "../components/BeforeAfterSlider";
 import { FullscreenImageModal } from "../components/ZoomableImage";
@@ -50,7 +50,18 @@ export default function ResultPage() {
     setSaving(true);
     setError("");
     try {
-      await saveRender(selectedCarId, { jobId: result.job_id, name: renderName });
+      const renderedExt = (result.mime_type || "image/png").includes("png") ? "png" : "jpg";
+      const rendered = await base64ToBlob(result.image_base64, result.mime_type || "image/png");
+      const savedRender = await saveRender(selectedCarId, {
+        jobId: result.job_id,
+        name: renderName,
+        original: file,
+        rendered,
+        renderedExt,
+      });
+      if (!savedRender.has_rendered && !savedRender.has_original) {
+        throw new Error(s.errorGeneric);
+      }
       setSaved(true);
       setSaveOpen(false);
     } catch (e) {

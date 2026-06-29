@@ -1,6 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +29,16 @@ def get_user_car_service(db: AsyncSession = Depends(get_db)) -> UserCarService:
 
 def _render_image_url(car_id: str, render_id: str, kind: str) -> str:
     return f"/my-cars/{car_id}/renders/{render_id}/image/{kind}"
+
+
+def _media_type_for(path: Path) -> str:
+    ext = path.suffix.lower()
+    return {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }.get(ext, "application/octet-stream")
 
 
 def _render_to_out(car_id: str, render) -> SavedRenderOut:
@@ -172,5 +184,7 @@ async def get_render_image(
         raise HTTPException(status_code=404, detail="Render not found.")
     path = service.get_render_image_path(render, kind)
     if path is None:
+        path = await service.repair_render_image(render, car_id, current_user.id, kind)
+    if path is None:
         raise HTTPException(status_code=404, detail="Image not found.")
-    return FileResponse(path)
+    return FileResponse(path, media_type=_media_type_for(path))

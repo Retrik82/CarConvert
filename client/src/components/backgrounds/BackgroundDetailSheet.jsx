@@ -1,6 +1,7 @@
 /** Background detail bottom sheet — ported from openBackgroundDetailSheet */
 
 import { useStrings } from "../../contexts/SettingsContext";
+import BackgroundScenePreview from "../capture/BackgroundScenePreview";
 import BackgroundPreviewGrid from "./BackgroundPreviewGrid";
 import Button from "../ui/Button";
 import Modal from "../ui/Modal";

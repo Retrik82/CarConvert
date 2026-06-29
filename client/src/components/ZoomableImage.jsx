@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ZoomIn } from "lucide-react";
-import { fetchAuthenticatedBlob } from "../api/httpClient";
+import { fetchAuthenticatedBlob, getApiBase } from "../api/httpClient";
 import { useStrings } from "../contexts/SettingsContext";
 
 export default function ZoomableImage({ src, alt = "", showHint = true, className = "" }) {
@@ -50,9 +50,8 @@ export function FullscreenImageModal({ open, src, title, onClose }) {
     (async () => {
       try {
         let url = src;
-        if (src.startsWith("/") || src.includes("/api/")) {
-          const path = src.replace(/^https?:\/\/[^/]+/, "");
-          url = await fetchAuthenticatedBlob(path);
+        if (src.startsWith("/") || src.includes("/my-cars/") || src.startsWith(getApiBase())) {
+          url = await fetchAuthenticatedBlob(src);
         }
         if (cancelled) {
           if (url.startsWith("blob:")) URL.revokeObjectURL(url);

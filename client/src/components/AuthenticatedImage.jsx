@@ -12,8 +12,7 @@ export default function AuthenticatedImage({ src, alt = "", className = "", fall
 
     (async () => {
       try {
-        const path = src.replace(/^https?:\/\/[^/]+/, "");
-        const url = await fetchAuthenticatedBlob(path);
+        const url = await fetchAuthenticatedBlob(src);
         if (cancelled) {
           URL.revokeObjectURL(url);
           return;

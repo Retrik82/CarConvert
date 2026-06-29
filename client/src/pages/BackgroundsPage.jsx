@@ -42,12 +42,15 @@ function BackgroundCard({ preset, selected, onSelect, onPreview }) {
 
   return (
     <Card
-      onClick={onPreview}
       className={isSelected ? "ring-2 ring-brand-500" : ""}
       elevated={isSelected}
       padding={false}
     >
-      <div className="relative aspect-[16/9] overflow-hidden rounded-t-[inherit] bg-surface-muted">
+      <button
+        type="button"
+        onClick={onPreview}
+        className="relative block aspect-[16/9] w-full overflow-hidden rounded-t-[inherit] bg-surface-muted text-left"
+      >
         {imageUrl ? (
           imageUrl.startsWith("/backgrounds/presets/") ? (
             <img src={imageUrl} alt={preset.name} className="h-full w-full object-cover" loading="lazy" />
@@ -65,20 +68,13 @@ function BackgroundCard({ preset, selected, onSelect, onPreview }) {
             {s.recommended}
           </span>
         ) : null}
-      </div>
+      </button>
       <div className="p-4">
         <h3 className="font-semibold text-ink">{preset.name}</h3>
         {preset.description ? (
           <p className="mt-1 text-sm text-ink-secondary">{preset.description}</p>
         ) : null}
-        <Button
-          size="sm"
-          className="mt-3"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(preset);
-          }}
-        >
+        <Button size="sm" className="mt-3" onClick={() => onSelect(preset)}>
           {isSelected ? s.useThisBackground : s.selectBackground}
         </Button>
       </div>

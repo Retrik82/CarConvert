@@ -94,7 +94,7 @@ export default function MyCarsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {cars.map((car) => {
-            const coverRender = car.renders?.[0];
+            const coverRender = car.renders?.at(-1);
             const coverUrl = coverRender?.rendered_url || coverRender?.original_url;
 
             return (

@@ -106,8 +106,21 @@ httpClient.interceptors.response.use(
   },
 );
 
+export function resolveApiPath(urlOrPath) {
+  if (!urlOrPath) return "";
+  const base = getApiBase();
+  if (urlOrPath.startsWith(base)) {
+    const path = urlOrPath.slice(base.length);
+    return path.startsWith("/") ? path : `/${path}`;
+  }
+  return urlOrPath.replace(/^https?:\/\/[^/]+/, "");
+}
+
 export async function fetchAuthenticatedBlob(path) {
-  const response = await httpClient.get(path, { responseType: "blob" });
+  const response = await httpClient.get(resolveApiPath(path), { responseType: "blob" });
+  if (!response.data || response.data.size === 0) {
+    throw new Error("Empty image response");
+  }
   return URL.createObjectURL(response.data);
 }
 

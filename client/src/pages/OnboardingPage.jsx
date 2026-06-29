@@ -72,11 +72,16 @@ export default function OnboardingPage() {
                   {s.login}
                 </Button>
               </Link>
-              <a href="#how-it-works" className="w-full sm:w-auto">
-                <Button variant="ghost" size="lg" className="w-full sm:w-auto">
-                  {s.heroSecondaryCta}
-                </Button>
-              </a>
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full sm:w-auto"
+                onClick={() =>
+                  document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                {s.heroSecondaryCta}
+              </Button>
             </div>
 
             <ul className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-3">

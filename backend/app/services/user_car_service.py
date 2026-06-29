@@ -177,3 +177,53 @@ class UserCarService:
             return None
         path = Path(path_str)
         return path if path.is_file() else None
+
+    async def repair_render_image(
+        self,
+        render: SavedRender,
+        car_id: str,
+        user_id: str,
+        kind: str,
+    ) -> Path | None:
+        """Copy missing render files from the source photo job when possible."""
+        existing = self.get_render_image_path(render, kind)
+        if existing is not None:
+            return existing
+
+        if not render.job_id:
+            return None
+
+        job = await self._jobs.get_for_user(render.job_id, user_id)
+        if not job:
+            return None
+
+        source_bytes: bytes | None = None
+        rendered_ext = "png"
+        if kind == "original" and job.original_path:
+            original_file = Path(job.original_path)
+            if original_file.is_file():
+                source_bytes = original_file.read_bytes()
+        elif kind == "rendered" and job.result_path and job.status == "completed":
+            rendered_file = Path(job.result_path)
+            if rendered_file.is_file():
+                source_bytes = rendered_file.read_bytes()
+                rendered_ext = _guess_ext(rendered_file, ".png").lstrip(".")
+
+        if not source_bytes:
+            return None
+
+        render_dir = _render_dir(user_id, car_id)
+        if kind == "original":
+            original_path = render_dir / f"{render.id}-original.jpg"
+            original_path.write_bytes(source_bytes)
+            render.original_path = str(original_path)
+        else:
+            safe_ext = rendered_ext.lower().lstrip(".")
+            if safe_ext not in {"jpg", "jpeg", "png", "webp"}:
+                safe_ext = "png"
+            rendered_path = render_dir / f"{render.id}-rendered.{safe_ext}"
+            rendered_path.write_bytes(source_bytes)
+            render.rendered_path = str(rendered_path)
+
+        await self._db.flush()
+        return self.get_render_image_path(render, kind)
