@@ -101,12 +101,6 @@ export default function AdminPage() {
   }
 
   const generationEstimate = estimate?.generation;
-  const margin =
-    generationEstimate && generationEstimate.actual_cost_max_usd > 0
-      ? Math.round(
-          (Number(genPrice) / Number(generationEstimate.actual_cost_max_usd) - 1) * 100,
-        )
-      : null;
 
   return (
     <div>
@@ -135,24 +129,6 @@ export default function AdminPage() {
               {s.costRange}: {formatUsd(generationEstimate.actual_cost_min_usd)} –{" "}
               {formatUsd(generationEstimate.actual_cost_max_usd)}
             </p>
-            <p>
-              {s.recommended}: {formatUsd(generationEstimate.recommended_price_usd)}
-            </p>
-            {margin != null ? (
-              <p>
-                {s.margin}: {margin >= 0 ? `+${margin}%` : `${margin}%`}
-              </p>
-            ) : null}
-            <Button
-              size="sm"
-              variant="secondary"
-              className="mt-2"
-              onClick={() =>
-                setGenPrice(Number(generationEstimate.recommended_price_usd).toFixed(2))
-              }
-            >
-              {s.applyRecommended}
-            </Button>
           </div>
         ) : null}
       </Card>

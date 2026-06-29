@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchSessions, logoutAllDevices, revokeSession } from "../api/authApi";
 import { getGenerationPrice } from "../api/settingsApi";
 import { useAuth } from "../contexts/AuthContext";
 import { useStrings } from "../contexts/SettingsContext";
@@ -15,14 +14,12 @@ export default function ProfilePage() {
   const s = useStrings();
   const { user, logout, refreshUser } = useAuth();
   const [price, setPrice] = useState(null);
-  const [sessions, setSessions] = useState([]);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
 
   useEffect(() => {
     refreshUser().catch(() => {});
     getGenerationPrice().then(setPrice).catch(() => {});
-    fetchSessions().then(setSessions).catch(() => {});
   }, [refreshUser]);
 
   useEffect(() => {
@@ -74,41 +71,6 @@ export default function ProfilePage() {
         <h3 className="mb-3 font-semibold text-ink">{s.language}</h3>
         <LanguageSwitcher />
       </Card>
-
-      {sessions.length > 0 ? (
-        <Card className="mb-6">
-          <h3 className="mb-4 font-semibold text-ink">{s.sessions}</h3>
-          <ul className="space-y-3">
-            {sessions.map((session) => (
-              <li
-                key={session.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-surface-muted/50 px-4 py-3 text-sm"
-              >
-                <div>
-                  <p className="font-medium text-ink">
-                    {session.device_name || "Unknown device"}
-                    {session.is_current ? " (current)" : ""}
-                  </p>
-                  <p className="text-xs text-ink-tertiary">{formatDate(session.last_used_at || session.created_at)}</p>
-                </div>
-                {!session.is_current ? (
-                  <Button size="sm" variant="ghost" onClick={() => revokeSession(session.id).then(() => fetchSessions().then(setSessions))}>
-                    {s.revokeSession}
-                  </Button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="mt-4"
-            onClick={() => logoutAllDevices(true)}
-          >
-            Logout other devices
-          </Button>
-        </Card>
-      ) : null}
 
       <Button variant="danger" className="w-full" onClick={() => setLogoutOpen(true)}>
         {s.logout}

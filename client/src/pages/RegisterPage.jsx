@@ -24,8 +24,8 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
     try {
-      await register(email.trim(), password, displayName.trim());
-      navigate("/app", { replace: true });
+      const data = await register(email.trim(), password, displayName.trim());
+      navigate(data.user?.is_admin ? "/app/admin" : "/app", { replace: true });
     } catch (err) {
       setError(userFacingError(err));
     } finally {

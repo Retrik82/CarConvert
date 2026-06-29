@@ -5,6 +5,7 @@ import {
   Car,
   Check,
   Download,
+  Home,
   Image,
   Images,
   Palette,
@@ -15,6 +16,7 @@ import {
   Star,
   Tablet,
   ChevronsLeftRight,
+  User,
 } from "lucide-react";
 
 const defaults = {
@@ -36,6 +38,14 @@ export function IconArrowRight(props) {
 
 export function IconDownload(props) {
   return <LucideIcon icon={Download} {...props} />;
+}
+
+export function IconHome(props) {
+  return <LucideIcon icon={Home} {...props} />;
+}
+
+export function IconUser(props) {
+  return <LucideIcon icon={User} {...props} />;
 }
 
 export function IconPalette(props) {

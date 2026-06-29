@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useBackground } from "../contexts/BackgroundContext";
 import { useStrings } from "../contexts/SettingsContext";
@@ -11,7 +11,6 @@ import {
   IconCheck,
   IconGallery,
   IconPalette,
-  IconSettings,
   IconSlot,
 } from "../components/ui/Icons";
 
@@ -46,9 +45,11 @@ function ActionCard({ icon, title, subtitle, to, highlighted, delay = 0 }) {
 
 export default function HomePage() {
   const s = useStrings();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { selected } = useBackground();
   const name = user?.display_name || "there";
+
+  if (isAdmin) return <Navigate to="/app/admin" replace />;
 
   return (
     <div>
@@ -82,9 +83,8 @@ export default function HomePage() {
           to="/app/backgrounds"
           highlighted={!selected}
         />
-        <ActionCard icon={<IconSettings />} title={s.configureStudio} subtitle={s.configTitle} to="/app/configurator" delay={50} />
-        <ActionCard icon={<IconCamera />} title={s.takePhoto} subtitle={s.startCapture} to="/app/capture?mode=camera" highlighted delay={100} />
-        <ActionCard icon={<IconGallery />} title={s.fromGallery} subtitle={s.startCapture} to="/app/capture?mode=gallery" delay={150} />
+        <ActionCard icon={<IconCamera />} title={s.takePhoto} subtitle={s.startCapture} to="/app/capture?mode=camera" highlighted delay={50} />
+        <ActionCard icon={<IconGallery />} title={s.fromGallery} subtitle={s.startCapture} to="/app/capture?mode=gallery" delay={100} />
       </div>
     </div>
   );

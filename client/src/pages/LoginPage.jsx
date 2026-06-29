@@ -23,8 +23,8 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await login(email.trim(), password);
-      navigate("/app", { replace: true });
+      const data = await login(email.trim(), password);
+      navigate(data.user?.is_admin ? "/app/admin" : "/app", { replace: true });
     } catch (err) {
       setError(userFacingError(err));
     } finally {
