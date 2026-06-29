@@ -41,7 +41,7 @@ class BackgroundAnglesGallery extends StatelessWidget {
           final preview = ClipRRect(
             borderRadius: BorderRadius.circular(DesignTokens.radiusChip),
             child: AspectRatio(
-              aspectRatio: 4 / 3,
+              aspectRatio: 16 / 9,
               child: BackgroundScenePreview(preset: preset, angle: angle),
             ),
           );
@@ -84,7 +84,10 @@ Future<void> openFullscreenBackgroundAngle(
             minScale: 1,
             maxScale: 4,
             child: Center(
-              child: BackgroundScenePreview(preset: preset, angle: angle),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: BackgroundScenePreview(preset: preset, angle: angle),
+              ),
             ),
           ),
         ),

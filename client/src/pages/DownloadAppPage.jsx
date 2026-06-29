@@ -213,9 +213,6 @@ export default function DownloadAppPage({ embedded = false }) {
           <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{s.downloadWebOrAppBody}</p>
           {!isLoggedIn ? (
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link to="/login">
-                <Button>{s.login}</Button>
-              </Link>
               <Link to="/welcome">
                 <Button variant="secondary">{s.goHome}</Button>
               </Link>

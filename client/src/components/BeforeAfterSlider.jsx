@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useStrings } from "../contexts/SettingsContext";
+import { IconChevronsLeftRight } from "./ui/Icons";
 
 const DEFAULT_BEFORE = "/images/before-street.jpg";
 const DEFAULT_AFTER = "/images/after-showroom.jpg";
@@ -139,9 +140,7 @@ export default function BeforeAfterSlider({
             isDragging ? "cursor-grabbing" : "cursor-grab",
           ].join(" ")}
         >
-          <svg className="h-4 w-4 text-ink-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-          </svg>
+          <IconChevronsLeftRight className="h-4 w-4 text-ink-secondary" />
         </div>
       </div>
 

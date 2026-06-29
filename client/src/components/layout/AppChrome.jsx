@@ -158,18 +158,7 @@ export function MarketingHeader() {
             <Link to="/app">
               <Button size="sm">{s.dashboard}</Button>
             </Link>
-          ) : (
-            <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  {s.login}
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button size="sm">{s.getStarted}</Button>
-              </Link>
-            </>
-          )}
+          ) : null}
         </div>
 
         <button
@@ -203,18 +192,7 @@ export function MarketingHeader() {
               <Link to="/app" onClick={() => setMobileOpen(false)}>
                 <Button className="w-full">{s.dashboard}</Button>
               </Link>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setMobileOpen(false)}>
-                  <Button variant="secondary" className="w-full">
-                    {s.login}
-                  </Button>
-                </Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full">{s.getStarted}</Button>
-                </Link>
-              </>
-            )}
+            ) : null}
           </div>
         </div>
       ) : null}

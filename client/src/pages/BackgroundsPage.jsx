@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { backgroundImageUrl } from "../api/backgroundsApi";
+import { backgroundImageUrl, bundledPresetImagePath, BUNDLED_PRESET_SLUGS } from "../api/backgroundsApi";
 import { useBackground } from "../contexts/BackgroundContext";
 import { useStrings } from "../contexts/SettingsContext";
 import AuthenticatedImage from "../components/AuthenticatedImage";
@@ -8,11 +8,23 @@ import Card from "../components/ui/Card";
 import { PageHeader, Spinner } from "../components/layout/AppChrome";
 import { IconCheck, IconStudio } from "../components/ui/Icons";
 
+
+function presetPreviewImageUrl(preset) {
+  const variant = preset.variants?.[0];
+  if (!variant) return null;
+
+  const bundledById = bundledPresetImagePath(variant.id);
+  if (bundledById) return bundledById;
+
+  if (!preset.is_custom && BUNDLED_PRESET_SLUGS.includes(preset.slug) && variant.angle) {
+    return `/backgrounds/presets/${preset.slug}/${variant.angle}.jpg`;
+  }
+
+  return backgroundImageUrl(variant.id);
+}
+
 function BackgroundCard({ preset, selected, onSelect }) {
-  const previewVariant = preset.variants?.[0];
-  const imageUrl = previewVariant?.preview_url
-    ? backgroundImageUrl(previewVariant.id)
-    : null;
+  const imageUrl = presetPreviewImageUrl(preset);
 
   const isSelected =
     selected?.presetSlug === preset.slug ||
@@ -24,9 +36,13 @@ function BackgroundCard({ preset, selected, onSelect }) {
       className={isSelected ? "ring-2 ring-brand-500" : ""}
       elevated={isSelected}
     >
-      <div className="mb-4 aspect-[16/10] overflow-hidden rounded-2xl bg-surface-muted">
+      <div className="mb-4 aspect-[16/9] overflow-hidden rounded-2xl bg-surface-muted">
         {imageUrl ? (
-          <AuthenticatedImage src={imageUrl} alt={preset.name} className="h-full w-full object-cover" />
+          imageUrl.startsWith("/backgrounds/presets/") ? (
+            <img src={imageUrl} alt={preset.name} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <AuthenticatedImage src={imageUrl} alt={preset.name} className="h-full w-full object-cover" />
+          )
         ) : (
           <div className="flex h-full items-center justify-center bg-surface-muted text-ink-tertiary">
             <IconStudio className="h-10 w-10" />

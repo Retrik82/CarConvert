@@ -25,13 +25,7 @@ export default function PublicShell({ children, wide = false }) {
                   {s.navHome}
                 </Button>
               </Link>
-            ) : (
-              <Link to="/login">
-                <Button size="sm" variant="secondary">
-                  {s.login}
-                </Button>
-              </Link>
-            )}
+            ) : null}
           </div>
         </div>
       </header>

@@ -7,7 +7,7 @@ import Card from "../components/ui/Card";
 import Reveal from "../components/ui/Reveal";
 import GradientText from "../components/ui/GradientText";
 import Accordion from "../components/ui/Accordion";
-import { IconArrowRight, IconCheck, IconDownload } from "../components/ui/Icons";
+import { IconCheck, IconDownload } from "../components/ui/Icons";
 
 function FeatureCard({ image, title, body, delay = 0 }) {
   return (
@@ -62,9 +62,9 @@ export default function OnboardingPage() {
             <p className="mt-2 text-sm text-ink-tertiary">{s.appTagline}</p>
 
             <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center">
-              <Link to="/register" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto" icon={<IconArrowRight className="h-5 w-5" />}>
-                  {s.heroCta}
+              <Link to="/download" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto" icon={<IconDownload className="h-5 w-5" />}>
+                  {s.getTheApp}
                 </Button>
               </Link>
               <a href="#how-it-works" className="w-full sm:w-auto">
@@ -157,14 +157,9 @@ export default function OnboardingPage() {
             />
             <h2 className="relative text-2xl font-bold sm:text-3xl">{s.ctaBannerTitle}</h2>
             <p className="relative mx-auto mt-3 max-w-lg text-white/85">{s.ctaBannerBody}</p>
-            <div className="relative mt-6 flex flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
-              <Link to="/register" className="w-full sm:w-auto">
-                <Button size="lg" variant="secondary" className="w-full min-w-[180px] border-white/20 bg-white text-brand-600 hover:bg-white/95 sm:w-auto">
-                  {s.createAccount}
-                </Button>
-              </Link>
+            <div className="relative mt-6 flex justify-center sm:mt-8">
               <Link to="/download" className="w-full sm:w-auto">
-                <Button size="lg" variant="ghost" className="w-full min-w-[180px] text-white hover:bg-white/10 sm:w-auto" icon={<IconDownload className="h-5 w-5" />}>
+                <Button size="lg" className="w-full min-w-[200px] sm:w-auto" icon={<IconDownload className="h-5 w-5" />}>
                   {s.getTheApp}
                 </Button>
               </Link>

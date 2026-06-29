@@ -29,11 +29,6 @@ export default function MarketingFooter() {
                   {s.getTheApp}
                 </Link>
               </li>
-              <li>
-                <Link to="/login" className="text-ink-secondary transition hover:text-brand-600">
-                  {s.login}
-                </Link>
-              </li>
             </ul>
           </div>
 
