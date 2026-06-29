@@ -55,7 +55,6 @@ const en = {
     "My Cars garage sync",
   ],
   downloadAndroid: "Android",
-  downloadAndroidSubtitle: "APK for direct install",
   downloadApk: "Download APK",
   downloadApkUnavailable: "APK link is not configured yet. Set VITE_ANDROID_APK_URL or place the file in public/downloads/.",
   downloadAndroidSteps: [
@@ -64,8 +63,7 @@ const en = {
     "Open the file and tap Install",
     "Sign in with the same account as on the web",
   ],
-  downloadIos: "iPhone & iPad",
-  downloadIosSubtitle: "App Store",
+  downloadIos: "iOS",
   downloadAppStore: "Open in App Store",
   downloadIosComingSoon: "iOS build is coming soon. Use the web app or Android APK for now.",
   downloadIosSteps: [
@@ -196,8 +194,10 @@ const en = {
   ctaBannerTitle: "Ready to transform your car photos?",
   ctaBannerBody: "Join AutoCut and create studio-grade visuals in minutes.",
   downloadRecommended: "Recommended for your device",
-  downloadQrTitle: "Scan to download",
-  downloadQrBody: "Point your phone camera at the QR code to get the app instantly.",
+  downloadQrGooglePlay: "Google Play",
+  downloadQrAppStore: "App Store",
+  downloadQrScanHint: "Scan with your phone",
+  downloadQrComingSoon: "QR code coming soon",
   downloadVersion: "Latest version",
   downloadWhatsNew: "What's new",
   downloadWhatsNewItems: [
@@ -269,7 +269,6 @@ const ru = {
     "Синхронизация «Мои авто»",
   ],
   downloadAndroid: "Android",
-  downloadAndroidSubtitle: "APK для прямой установки",
   downloadApk: "Скачать APK",
   downloadApkUnavailable:
     "Ссылка на APK пока не настроена. Укажите VITE_ANDROID_APK_URL или положите файл в public/downloads/.",
@@ -279,8 +278,7 @@ const ru = {
     "Откройте файл и нажмите «Установить»",
     "Войдите тем же аккаунтом, что на сайте",
   ],
-  downloadIos: "iPhone и iPad",
-  downloadIosSubtitle: "App Store",
+  downloadIos: "iOS",
   downloadAppStore: "Открыть в App Store",
   downloadIosComingSoon: "Версия для iOS скоро. Пока используйте сайт или APK для Android.",
   downloadIosSteps: [
@@ -411,8 +409,10 @@ const ru = {
   ctaBannerTitle: "Готовы преобразить фото автомобиля?",
   ctaBannerBody: "Присоединяйтесь к AutoCut и создавайте студийные кадры за минуты.",
   downloadRecommended: "Рекомендуем для вашего устройства",
-  downloadQrTitle: "Сканируйте для скачивания",
-  downloadQrBody: "Наведите камеру телефона на QR-код, чтобы скачать приложение.",
+  downloadQrGooglePlay: "Google Play",
+  downloadQrAppStore: "App Store",
+  downloadQrScanHint: "Сканируйте телефоном",
+  downloadQrComingSoon: "QR-код скоро",
   downloadVersion: "Последняя версия",
   downloadWhatsNew: "Что нового",
   downloadWhatsNewItems: [
@@ -484,7 +484,6 @@ const de = {
     "Meine Autos Sync",
   ],
   downloadAndroid: "Android",
-  downloadAndroidSubtitle: "APK zur direkten Installation",
   downloadApk: "APK herunterladen",
   downloadApkUnavailable:
     "APK-Link ist noch nicht konfiguriert. Setzen Sie VITE_ANDROID_APK_URL oder legen Sie die Datei in public/downloads/ ab.",
@@ -494,8 +493,7 @@ const de = {
     "Datei öffnen und Installieren tippen",
     "Mit demselben Konto wie im Web anmelden",
   ],
-  downloadIos: "iPhone & iPad",
-  downloadIosSubtitle: "App Store",
+  downloadIos: "iOS",
   downloadAppStore: "Im App Store öffnen",
   downloadIosComingSoon: "iOS-Version kommt bald. Nutzen Sie vorerst Web oder Android-APK.",
   downloadIosSteps: [
@@ -626,8 +624,10 @@ const de = {
   ctaBannerTitle: "Bereit, Ihre Autofotos zu transformieren?",
   ctaBannerBody: "Starten Sie mit AutoCut und erstellen Sie Studio-Visuals in Minuten.",
   downloadRecommended: "Empfohlen für Ihr Gerät",
-  downloadQrTitle: "Scannen zum Download",
-  downloadQrBody: "Richten Sie die Handykamera auf den QR-Code.",
+  downloadQrGooglePlay: "Google Play",
+  downloadQrAppStore: "App Store",
+  downloadQrScanHint: "Mit dem Handy scannen",
+  downloadQrComingSoon: "QR-Code demnächst",
   downloadVersion: "Neueste Version",
   downloadWhatsNew: "Neuigkeiten",
   downloadWhatsNewItems: [

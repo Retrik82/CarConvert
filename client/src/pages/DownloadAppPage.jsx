@@ -1,6 +1,6 @@
-import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { QrCode } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useStrings } from "../contexts/SettingsContext";
 import { usePlatform } from "../hooks/usePlatform";
@@ -11,12 +11,13 @@ import Card from "../components/ui/Card";
 import Reveal from "../components/ui/Reveal";
 import { IconCheck, IconShield } from "../components/ui/Icons";
 
-const ANDROID_URL = import.meta.env.VITE_ANDROID_APK_URL || "/downloads/autocut.apk";
+const ANDROID_APK_URL = import.meta.env.VITE_ANDROID_APK_URL || "/downloads/autocut.apk";
+const GOOGLE_PLAY_URL = import.meta.env.VITE_GOOGLE_PLAY_URL || "";
 const IOS_URL = import.meta.env.VITE_IOS_APP_STORE_URL || "";
 
-function resolveDownloadUrl() {
-  if (typeof window === "undefined") return ANDROID_URL;
-  return `${window.location.origin}${ANDROID_URL.startsWith("/") ? ANDROID_URL : `/${ANDROID_URL}`}`;
+function resolveApkUrl() {
+  if (typeof window === "undefined") return ANDROID_APK_URL;
+  return `${window.location.origin}${ANDROID_APK_URL.startsWith("/") ? ANDROID_APK_URL : `/${ANDROID_APK_URL}`}`;
 }
 
 function PlatformBadge({ platform, s }) {
@@ -34,14 +35,40 @@ function PlatformBadge({ platform, s }) {
   );
 }
 
-function PlatformCard({ title, subtitle, children }) {
+function StoreQrBlock({ url, storeLabel, scanHint, comingSoonLabel }) {
+  const hasUrl = Boolean(url);
+
+  return (
+    <div className="flex flex-col items-center rounded-input border border-dashed border-[var(--border)] bg-surface-muted/50 px-4 py-5 text-center">
+      <p className="text-sm font-semibold text-ink">{storeLabel}</p>
+      <p className="mt-1 text-xs text-ink-tertiary">{scanHint}</p>
+
+      <div className="mt-4 flex h-[132px] w-[132px] items-center justify-center rounded-input border border-[var(--border)]/80 bg-white p-2 shadow-sm">
+        {hasUrl ? (
+          <QRCodeSVG
+            value={url}
+            size={116}
+            level="M"
+            includeMargin={false}
+            bgColor="#ffffff"
+            fgColor="#0f172a"
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-ink-tertiary" aria-hidden="true">
+            <QrCode className="h-12 w-12 opacity-40" strokeWidth={1.5} />
+            <span className="text-[10px] font-medium uppercase tracking-wide opacity-60">{comingSoonLabel}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlatformCard({ title, children }) {
   return (
     <Card elevated className="flex h-full flex-col">
-      <div className="mb-5 min-w-0">
-        <h3 className="text-lg font-semibold text-ink">{title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{subtitle}</p>
-      </div>
-      <div className="mt-auto space-y-4">{children}</div>
+      <h3 className="mb-5 text-lg font-semibold text-ink">{title}</h3>
+      <div className="flex flex-1 flex-col gap-4">{children}</div>
     </Card>
   );
 }
@@ -65,13 +92,11 @@ export default function DownloadAppPage({ embedded = false }) {
   const s = useStrings();
   const { isLoggedIn } = useAuth();
   const platform = usePlatform();
-  const hasAndroid = Boolean(ANDROID_URL);
+  const hasAndroidApk = Boolean(ANDROID_APK_URL);
   const hasIos = Boolean(IOS_URL);
-  const downloadPageUrl = useMemo(
-    () => (typeof window !== "undefined" ? `${window.location.origin}/download` : "/download"),
-    [],
-  );
-  const apkUrl = resolveDownloadUrl();
+  const apkUrl = resolveApkUrl();
+  const androidQrUrl = GOOGLE_PLAY_URL || "";
+  const iosQrUrl = IOS_URL;
 
   const content = (
     <div className="page-enter">
@@ -126,57 +151,56 @@ export default function DownloadAppPage({ embedded = false }) {
         </div>
       </Reveal>
 
-      <div className="grid gap-8 xl:grid-cols-[1fr_300px]">
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Reveal delay={100}>
-            <PlatformCard title={s.downloadAndroid} subtitle={s.downloadAndroidSubtitle}>
-              {hasAndroid ? (
-                <a href={apkUrl} download className="block">
-                  <Button className="w-full" size="lg">
-                    {s.downloadApk}
-                  </Button>
-                </a>
-              ) : (
-                <div className="rounded-input border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  {s.downloadApkUnavailable}
-                </div>
-              )}
-              <StepList steps={s.downloadAndroidSteps} />
-            </PlatformCard>
-          </Reveal>
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Reveal delay={100}>
+          <PlatformCard title={s.downloadAndroid}>
+            {hasAndroidApk ? (
+              <a href={apkUrl} download className="block">
+                <Button className="w-full" size="lg">
+                  {s.downloadApk}
+                </Button>
+              </a>
+            ) : (
+              <div className="rounded-input border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {s.downloadApkUnavailable}
+              </div>
+            )}
+            <StoreQrBlock
+              url={androidQrUrl}
+              storeLabel={s.downloadQrGooglePlay}
+              scanHint={s.downloadQrScanHint}
+              comingSoonLabel={s.downloadQrComingSoon}
+            />
+            <StepList steps={s.downloadAndroidSteps} />
+          </PlatformCard>
+        </Reveal>
 
-          <Reveal delay={150}>
-            <PlatformCard title={s.downloadIos} subtitle={s.downloadIosSubtitle}>
-              {hasIos ? (
-                <a href={IOS_URL} target="_blank" rel="noopener noreferrer" className="block">
-                  <Button variant="secondary" className="w-full" size="lg">
-                    {s.downloadAppStore}
-                  </Button>
-                </a>
-              ) : (
-                <div className="rounded-input border border-[var(--border)] bg-surface-muted px-4 py-3 text-sm text-ink-secondary">
-                  {s.downloadIosComingSoon}
-                </div>
-              )}
-              <StepList steps={s.downloadIosSteps} />
-            </PlatformCard>
-          </Reveal>
-        </div>
-
-        <Reveal delay={200}>
-          <Card elevated className="flex h-full flex-col items-center text-center">
-            <h3 className="font-semibold text-ink">{s.downloadQrTitle}</h3>
-            <p className="mt-2 text-sm text-ink-secondary">{s.downloadQrBody}</p>
-            <div className="mt-6 rounded-card border border-[var(--border)] bg-white p-4 shadow-card">
-              <QRCodeSVG value={downloadPageUrl} size={180} level="M" includeMargin bgColor="#ffffff" fgColor="#0f172a" />
-            </div>
-            <p className="mt-4 break-all text-xs text-ink-tertiary">{downloadPageUrl}</p>
-          </Card>
+        <Reveal delay={150}>
+          <PlatformCard title={s.downloadIos}>
+            {hasIos ? (
+              <a href={IOS_URL} target="_blank" rel="noopener noreferrer" className="block">
+                <Button variant="secondary" className="w-full" size="lg">
+                  {s.downloadAppStore}
+                </Button>
+              </a>
+            ) : (
+              <div className="rounded-input border border-[var(--border)] bg-surface-muted px-4 py-3 text-sm text-ink-secondary">
+                {s.downloadIosComingSoon}
+              </div>
+            )}
+            <StoreQrBlock
+              url={iosQrUrl}
+              storeLabel={s.downloadQrAppStore}
+              scanHint={s.downloadQrScanHint}
+              comingSoonLabel={s.downloadQrComingSoon}
+            />
+            <StepList steps={s.downloadIosSteps} />
+          </PlatformCard>
         </Reveal>
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <Reveal delay={250}>
+        <Reveal delay={200}>
           <Card>
             <h3 className="font-semibold text-ink">{s.downloadWhatsNew}</h3>
             <ul className="mt-4 space-y-3">
@@ -192,7 +216,7 @@ export default function DownloadAppPage({ embedded = false }) {
           </Card>
         </Reveal>
 
-        <Reveal delay={300}>
+        <Reveal delay={250}>
           <Card className="border-emerald-200/80 bg-emerald-50/30">
             <div className="flex gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input bg-emerald-100 text-emerald-700">
@@ -207,7 +231,7 @@ export default function DownloadAppPage({ embedded = false }) {
         </Reveal>
       </div>
 
-      <Reveal delay={350}>
+      <Reveal delay={300}>
         <Card className="mt-8">
           <h3 className="font-semibold text-ink">{s.downloadWebOrApp}</h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{s.downloadWebOrAppBody}</p>
