@@ -101,16 +101,15 @@ export default function OnboardingPage() {
       </section>
 
       <section className="relative overflow-hidden bg-surface" aria-hidden="true">
-        <div className="relative mx-auto w-full max-w-4xl">
+        <div className="hero-car-bleed">
           <img
             src="/images/hero-car.jpg"
             alt=""
-            className="aspect-[16/9] w-full max-h-[220px] object-cover object-[center_55%] sm:max-h-[280px] md:max-h-[320px]"
+            className="hero-car-image"
             loading="lazy"
             decoding="async"
-            sizes="(max-width: 768px) 100vw, 896px"
+            sizes="100vw"
           />
-          <div className="pointer-events-none absolute inset-0 hero-car-fade" />
         </div>
       </section>
 

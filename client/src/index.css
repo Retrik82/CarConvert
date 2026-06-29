@@ -63,10 +63,23 @@
 
 @layer components {
   .page-bg {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    background: transparent;
+  }
+
+  .page-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background:
-      radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.06), transparent 42%),
-      radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.05), transparent 38%),
-      linear-gradient(180deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+      radial-gradient(ellipse 70% 55% at 0% 0%, rgba(37, 99, 235, 0.08), transparent 55%),
+      radial-gradient(ellipse 70% 55% at 100% 0%, rgba(124, 58, 237, 0.07), transparent 55%),
+      radial-gradient(ellipse 90% 50% at 50% 100%, rgba(241, 245, 249, 0.95), transparent 60%),
+      linear-gradient(180deg, #ffffff 0%, #f8fafc 48%, #f1f5f9 100%);
   }
 
   .glass-panel {
@@ -91,6 +104,10 @@
     @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
+  .shell-wide {
+    @apply mx-auto w-full max-w-[90rem] px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-20;
+  }
+
   .skeleton {
     @apply animate-shimmer rounded-input bg-gradient-to-r from-surface-muted via-white to-surface-muted bg-[length:200%_100%];
   }
@@ -112,15 +129,47 @@
     transform: translateY(0);
   }
 
-  /* Soft edge fade for hero car — center stays fully opaque */
-  .hero-car-fade {
-    background: linear-gradient(
-      to bottom,
-      var(--bg) 0%,
-      transparent 12%,
-      transparent 88%,
-      var(--bg) 100%
+  /* Hero car — full-bleed, dissolves into page background on all sides */
+  .hero-car-bleed {
+    position: relative;
+    left: 50%;
+    width: 100vw;
+    max-width: 100%;
+    transform: translateX(-50%);
+  }
+
+  .hero-car-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: min(34vh, 320px);
+    min-height: 180px;
+    object-fit: cover;
+    object-position: center 55%;
+    -webkit-mask-image: radial-gradient(
+      ellipse 92% 78% at 50% 52%,
+      #000 42%,
+      rgba(0, 0, 0, 0.55) 68%,
+      transparent 100%
     );
+    mask-image: radial-gradient(
+      ellipse 92% 78% at 50% 52%,
+      #000 42%,
+      rgba(0, 0, 0, 0.55) 68%,
+      transparent 100%
+    );
+  }
+
+  @media (min-width: 640px) {
+    .hero-car-image {
+      max-height: min(38vh, 300px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-car-image {
+      max-height: 320px;
+    }
   }
 }
 

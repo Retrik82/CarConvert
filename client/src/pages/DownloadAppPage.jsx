@@ -9,7 +9,7 @@ import PublicShell from "../components/layout/PublicShell";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Reveal from "../components/ui/Reveal";
-import { IconAndroid, IconApple, IconCheck, IconShield, IconStar } from "../components/ui/Icons";
+import { IconCheck, IconShield } from "../components/ui/Icons";
 
 const ANDROID_URL = import.meta.env.VITE_ANDROID_APK_URL || "/downloads/autocut.apk";
 const IOS_URL = import.meta.env.VITE_IOS_APP_STORE_URL || "";
@@ -34,23 +34,12 @@ function PlatformBadge({ platform, s }) {
   );
 }
 
-function PlatformCard({ icon, title, subtitle, children, accent, recommended }) {
+function PlatformCard({ title, subtitle, children }) {
   return (
-    <Card elevated className={`relative flex h-full flex-col ${recommended ? "ring-2 ring-brand-500/30" : ""}`}>
-      {recommended ? (
-        <span className="absolute -top-3 left-4 flex items-center gap-1 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-white shadow-button sm:left-6">
-          <IconStar className="h-3.5 w-3.5" />
-          Recommended
-        </span>
-      ) : null}
-      <div className="mb-4 flex items-center gap-4">
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-input text-white shadow-lg [&_svg]:h-7 [&_svg]:w-7 ${accent}`}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-lg font-semibold text-ink">{title}</h3>
-          <p className="text-sm text-ink-secondary">{subtitle}</p>
-        </div>
+    <Card elevated className="flex h-full flex-col">
+      <div className="mb-5 min-w-0">
+        <h3 className="text-lg font-semibold text-ink">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-ink-secondary">{subtitle}</p>
       </div>
       <div className="mt-auto space-y-4">{children}</div>
     </Card>
@@ -65,7 +54,7 @@ function StepList({ steps }) {
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">
             {i + 1}
           </span>
-          <span className="pt-0.5">{step}</span>
+          <span className="min-w-0 pt-0.5">{step}</span>
         </li>
       ))}
     </ol>
@@ -101,8 +90,8 @@ export default function DownloadAppPage({ embedded = false }) {
             className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"
             aria-hidden="true"
           />
-          <div className="relative grid items-center gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
-            <div className="max-w-xl">
+          <div className="relative grid items-center gap-6 lg:grid-cols-[1fr_auto] lg:gap-10 xl:gap-12">
+            <div className="min-w-0 max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-wider text-white/75">{s.appName}</p>
               <h1 className="mt-2 text-3xl font-bold sm:text-4xl">{s.downloadAppHero}</h1>
               <p className="mt-4 text-base leading-relaxed text-white/85">{s.downloadAppHeroBody}</p>
@@ -137,16 +126,10 @@ export default function DownloadAppPage({ embedded = false }) {
         </div>
       </Reveal>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
+      <div className="grid gap-8 xl:grid-cols-[1fr_300px]">
         <div className="grid gap-6 sm:grid-cols-2">
           <Reveal delay={100}>
-            <PlatformCard
-              icon={<IconAndroid />}
-              title={s.downloadAndroid}
-              subtitle={s.downloadAndroidSubtitle}
-              accent="bg-gradient-to-br from-emerald-500 to-green-600"
-              recommended={platform === "android" || (platform === "desktop" && hasAndroid)}
-            >
+            <PlatformCard title={s.downloadAndroid} subtitle={s.downloadAndroidSubtitle}>
               {hasAndroid ? (
                 <a href={apkUrl} download className="block">
                   <Button className="w-full" size="lg">
@@ -163,13 +146,7 @@ export default function DownloadAppPage({ embedded = false }) {
           </Reveal>
 
           <Reveal delay={150}>
-            <PlatformCard
-              icon={<IconApple />}
-              title={s.downloadIos}
-              subtitle={s.downloadIosSubtitle}
-              accent="bg-gradient-to-br from-slate-700 to-slate-900"
-              recommended={platform === "ios"}
-            >
+            <PlatformCard title={s.downloadIos} subtitle={s.downloadIosSubtitle}>
               {hasIos ? (
                 <a href={IOS_URL} target="_blank" rel="noopener noreferrer" className="block">
                   <Button variant="secondary" className="w-full" size="lg">
@@ -221,7 +198,7 @@ export default function DownloadAppPage({ embedded = false }) {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input bg-emerald-100 text-emerald-700">
                 <IconShield className="h-5 w-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-semibold text-ink">{s.downloadSecurityTitle}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{s.downloadSecurityBody}</p>
               </div>

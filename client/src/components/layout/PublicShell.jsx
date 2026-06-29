@@ -8,12 +8,12 @@ export default function PublicShell({ children, wide = false }) {
   const s = useStrings();
   const { isLoggedIn } = useAuth();
 
+  const shellClass = wide ? "shell-wide" : "mx-auto w-full max-w-3xl px-4 sm:px-6";
+
   return (
     <div className="page-bg flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 glass-header">
-        <div
-          className={`mx-auto flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 ${wide ? "max-w-6xl lg:px-8" : "max-w-3xl"}`}
-        >
+        <div className={`flex w-full items-center justify-between gap-4 py-4 ${shellClass}`}>
           <Link to={isLoggedIn ? "/app" : "/welcome"}>
             <AppLogo size="sm" linkTo={false} />
           </Link>
@@ -35,11 +35,7 @@ export default function PublicShell({ children, wide = false }) {
           </div>
         </div>
       </header>
-      <main
-        className={`mx-auto w-full flex-1 px-4 py-8 page-enter sm:px-6 ${wide ? "max-w-6xl lg:px-8" : "max-w-3xl"}`}
-      >
-        {children}
-      </main>
+      <main className={`flex-1 py-8 page-enter ${shellClass}`}>{children}</main>
     </div>
   );
 }
