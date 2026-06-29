@@ -88,7 +88,7 @@
   }
 
   .section-container {
-    @apply mx-auto w-full max-w-6xl px-6 lg:px-8;
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
   }
 
   .skeleton {
@@ -112,28 +112,14 @@
     transform: translateY(0);
   }
 
-  .hero-fade-mask {
-    mask-image: linear-gradient(
+  /* Soft edge fade for hero car — center stays fully opaque */
+  .hero-car-fade {
+    background: linear-gradient(
       to bottom,
-      white 0%,
-      rgba(255, 255, 255, 0.95) 5%,
-      rgba(255, 255, 255, 0.8) 16%,
-      transparent 30%,
-      transparent 62%,
-      rgba(255, 255, 255, 0.15) 72%,
-      rgba(255, 255, 255, 0.65) 88%,
-      white 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      white 0%,
-      rgba(255, 255, 255, 0.95) 5%,
-      rgba(255, 255, 255, 0.8) 16%,
-      transparent 30%,
-      transparent 62%,
-      rgba(255, 255, 255, 0.15) 72%,
-      rgba(255, 255, 255, 0.65) 88%,
-      white 100%
+      var(--bg) 0%,
+      transparent 12%,
+      transparent 88%,
+      var(--bg) 100%
     );
   }
 }

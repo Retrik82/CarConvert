@@ -73,7 +73,7 @@ export function ProtectedLayout() {
   if (!isLoggedIn) return <Navigate to="/welcome" replace />;
 
   return (
-    <div className="page-bg mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 pb-28 pt-2 lg:px-8">
+    <div className="page-bg mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-28 pt-2 sm:px-6 lg:px-8">
       <header className="flex items-center justify-between py-4">
         <AppLogo linkTo="/app" />
         <LanguageSwitcher />

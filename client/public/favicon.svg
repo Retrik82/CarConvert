@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="AutoCut">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="48" x2="48" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <line x1="10.405" y1="18.411" x2="9.641" y2="18.054" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/><line x1="9.251" y1="22.016" x2="8.160" y2="21.814" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/><line x1="9.037" y1="25.796" x2="7.665" y2="25.892" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/><line x1="9.775" y1="29.510" x2="8.219" y2="30.030" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/><line x1="11.420" y1="32.920" x2="9.821" y2="33.958" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/><line x1="13.866" y1="35.809" x2="12.399" y2="37.410" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/><line x1="16.958" y1="37.994" x2="15.814" y2="40.146" stroke="url(#brand)" stroke-width="0.80" stroke-linecap="round"/>
+  <circle cx="24.000" cy="24.750" r="12.562" fill="none" stroke="url(#brand)" stroke-width="1.78"/>
+  <path d="M 22.552,25.516 L 16.373,33.942 L 16.926,34.374 L 23.607,26.340 Z" fill="url(#brand)"/><path d="M 24.393,26.340 L 31.074,34.374 L 31.627,33.942 L 25.448,25.516 Z" fill="url(#brand)"/><path d="M 25.448,23.984 L 31.627,15.558 L 31.074,15.126 L 24.393,23.160 Z" fill="url(#brand)"/><path d="M 23.607,23.160 L 16.926,15.126 L 16.373,15.558 L 22.552,23.984 Z" fill="url(#brand)"/><path d="M 22.505,24.081 L 12.061,24.399 L 12.061,25.101 L 22.505,25.419 Z" fill="url(#brand)"/>
+  <circle cx="24.000" cy="24.750" r="2.719" fill="url(#brand)"/>
+  <circle cx="24.000" cy="24.750" r="1.969" fill="#FFFFFF"/>
+  <circle cx="24.000" cy="24.750" r="1.031" fill="#1E1B4B"/>
+  <circle cx="23.578" cy="24.281" r="0.600" fill="#FFFFFF"/>
+</svg>

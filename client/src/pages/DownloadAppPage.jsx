@@ -9,6 +9,7 @@ import PublicShell from "../components/layout/PublicShell";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Reveal from "../components/ui/Reveal";
+import { IconAndroid, IconApple, IconCheck, IconShield, IconStar } from "../components/ui/Icons";
 
 const ANDROID_URL = import.meta.env.VITE_ANDROID_APK_URL || "/downloads/autocut.apk";
 const IOS_URL = import.meta.env.VITE_IOS_APP_STORE_URL || "";
@@ -37,17 +38,16 @@ function PlatformCard({ icon, title, subtitle, children, accent, recommended }) 
   return (
     <Card elevated className={`relative flex h-full flex-col ${recommended ? "ring-2 ring-brand-500/30" : ""}`}>
       {recommended ? (
-        <span className="absolute -top-3 left-6 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-white shadow-button">
-          ★ Recommended
+        <span className="absolute -top-3 left-4 flex items-center gap-1 rounded-full bg-gradient-primary px-3 py-1 text-xs font-semibold text-white shadow-button sm:left-6">
+          <IconStar className="h-3.5 w-3.5" />
+          Recommended
         </span>
       ) : null}
       <div className="mb-4 flex items-center gap-4">
-        <div
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-input text-2xl text-white shadow-lg ${accent}`}
-        >
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-input text-white shadow-lg [&_svg]:h-7 [&_svg]:w-7 ${accent}`}>
           {icon}
         </div>
-        <div>
+        <div className="min-w-0">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <p className="text-sm text-ink-secondary">{subtitle}</p>
         </div>
@@ -96,12 +96,12 @@ export default function DownloadAppPage({ embedded = false }) {
       </Reveal>
 
       <Reveal delay={50}>
-        <div className="relative mb-10 overflow-hidden rounded-card bg-gradient-primary p-6 text-white shadow-elevated sm:p-10">
+        <div className="relative mb-8 overflow-hidden rounded-card bg-gradient-primary p-5 text-white shadow-elevated sm:mb-10 sm:p-10">
           <div
             className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"
             aria-hidden="true"
           />
-          <div className="relative grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+          <div className="relative grid items-center gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
             <div className="max-w-xl">
               <p className="text-sm font-semibold uppercase tracking-wider text-white/75">{s.appName}</p>
               <h1 className="mt-2 text-3xl font-bold sm:text-4xl">{s.downloadAppHero}</h1>
@@ -110,7 +110,7 @@ export default function DownloadAppPage({ embedded = false }) {
               <ul className="mt-6 space-y-2">
                 {s.downloadAppFeatures.map((feature) => (
                   <li key={feature} className="flex items-center gap-2 text-sm text-white/90">
-                    <span aria-hidden="true">✓</span>
+                    <IconCheck className="h-4 w-4 shrink-0" />
                     {feature}
                   </li>
                 ))}
@@ -119,12 +119,13 @@ export default function DownloadAppPage({ embedded = false }) {
 
             <div className="mx-auto flex flex-col items-center gap-4 lg:mx-0">
               <div className="animate-float relative">
-                <div className="h-[280px] w-[140px] overflow-hidden rounded-[2rem] border-4 border-white/25 bg-white/10 shadow-2xl backdrop-blur">
+                <div className="h-[240px] w-[120px] overflow-hidden rounded-[2rem] border-4 border-white/25 bg-white/10 shadow-2xl backdrop-blur sm:h-[280px] sm:w-[140px]">
                   <img
                     src="/images/after-showroom.jpg"
                     alt=""
                     className="h-full w-full object-cover"
                     loading="lazy"
+                    sizes="140px"
                   />
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white/20 px-3 py-1 text-xs backdrop-blur">
@@ -137,10 +138,10 @@ export default function DownloadAppPage({ embedded = false }) {
       </Reveal>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           <Reveal delay={100}>
             <PlatformCard
-              icon="🤖"
+              icon={<IconAndroid />}
               title={s.downloadAndroid}
               subtitle={s.downloadAndroidSubtitle}
               accent="bg-gradient-to-br from-emerald-500 to-green-600"
@@ -163,7 +164,7 @@ export default function DownloadAppPage({ embedded = false }) {
 
           <Reveal delay={150}>
             <PlatformCard
-              icon="🍎"
+              icon={<IconApple />}
               title={s.downloadIos}
               subtitle={s.downloadIosSubtitle}
               accent="bg-gradient-to-br from-slate-700 to-slate-900"
@@ -190,14 +191,7 @@ export default function DownloadAppPage({ embedded = false }) {
             <h3 className="font-semibold text-ink">{s.downloadQrTitle}</h3>
             <p className="mt-2 text-sm text-ink-secondary">{s.downloadQrBody}</p>
             <div className="mt-6 rounded-card border border-[var(--border)] bg-white p-4 shadow-card">
-              <QRCodeSVG
-                value={downloadPageUrl}
-                size={180}
-                level="M"
-                includeMargin
-                bgColor="#ffffff"
-                fgColor="#0f172a"
-              />
+              <QRCodeSVG value={downloadPageUrl} size={180} level="M" includeMargin bgColor="#ffffff" fgColor="#0f172a" />
             </div>
             <p className="mt-4 break-all text-xs text-ink-tertiary">{downloadPageUrl}</p>
           </Card>
@@ -224,9 +218,9 @@ export default function DownloadAppPage({ embedded = false }) {
         <Reveal delay={300}>
           <Card className="border-emerald-200/80 bg-emerald-50/30">
             <div className="flex gap-3">
-              <span className="text-2xl" aria-hidden="true">
-                🛡️
-              </span>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-input bg-emerald-100 text-emerald-700">
+                <IconShield className="h-5 w-5" />
+              </div>
               <div>
                 <h3 className="font-semibold text-ink">{s.downloadSecurityTitle}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-secondary">{s.downloadSecurityBody}</p>
@@ -258,8 +252,8 @@ export default function DownloadAppPage({ embedded = false }) {
   if (embedded) {
     return (
       <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-ink">{s.downloadAppTitle}</h1>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-3xl font-bold text-ink sm:text-4xl">{s.downloadAppTitle}</h1>
           <p className="mt-2 text-ink-secondary">{s.downloadAppSubtitle}</p>
         </div>
         {content}

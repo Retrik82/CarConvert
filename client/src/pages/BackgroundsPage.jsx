@@ -6,6 +6,7 @@ import AuthenticatedImage from "../components/AuthenticatedImage";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import { PageHeader, Spinner } from "../components/layout/AppChrome";
+import { IconCheck, IconStudio } from "../components/ui/Icons";
 
 function BackgroundCard({ preset, selected, onSelect }) {
   const previewVariant = preset.variants?.[0];
@@ -27,16 +28,17 @@ function BackgroundCard({ preset, selected, onSelect }) {
         {imageUrl ? (
           <AuthenticatedImage src={imageUrl} alt={preset.name} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-4xl">
-            🏎️
+          <div className="flex h-full items-center justify-center bg-surface-muted text-ink-tertiary">
+            <IconStudio className="h-10 w-10" />
           </div>
         )}
       </div>
       <h3 className="font-semibold text-ink">{preset.name}</h3>
       {preset.description ? <p className="mt-1 text-sm text-ink-secondary">{preset.description}</p> : null}
       {isSelected ? (
-        <span className="mt-3 inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
-          ✓ Selected
+        <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+          <IconCheck className="h-3.5 w-3.5" />
+          Selected
         </span>
       ) : null}
     </Card>

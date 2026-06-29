@@ -35,14 +35,11 @@ class AppLogo extends StatelessWidget {
       crossAxisAlignment: centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         useImageLogo
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(iconSize * 0.28),
-                child: Image.asset(
-                  BundledAssets.appLogo,
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.cover,
-                ),
+            ? Image.asset(
+                BundledAssets.appLogo,
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.contain,
               )
             : Container(
                 width: iconSize,

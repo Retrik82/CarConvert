@@ -47,7 +47,7 @@ export default function Button({
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
       ) : (
         <>
-          {icon ? <span className="text-lg leading-none">{icon}</span> : null}
+          {icon ? <span className="inline-flex shrink-0">{icon}</span> : null}
           {children}
         </>
       )}

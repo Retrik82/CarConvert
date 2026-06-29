@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useStrings } from "../contexts/SettingsContext";
+import { IconCamera } from "./ui/Icons";
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"];
@@ -56,8 +57,8 @@ export default function UploadDropzone({ file, onFileSelect, disabled, compact =
       />
 
       <div className="flex flex-col items-center text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xl shadow-sm">
-          📷
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-input bg-white text-brand-600 shadow-sm">
+          <IconCamera className="h-6 w-6" />
         </div>
         <p className="text-sm font-medium text-ink">{s.dropPhoto}</p>
         <p className="mt-1 text-xs text-ink-secondary">{s.maxFileSize}</p>

@@ -9,6 +9,7 @@ import Input from "../components/ui/Input";
 import Modal, { ConfirmModal } from "../components/ui/Modal";
 import { PageHeader, Spinner } from "../components/layout/AppChrome";
 import Toast from "../components/ui/Toast";
+import { IconCamera, IconGallery, IconSparkles } from "../components/ui/Icons";
 
 export default function CarDetailPage() {
   const { carId } = useParams();
@@ -92,7 +93,9 @@ export default function CarDetailPage() {
                   className="aspect-[4/3] w-full object-cover"
                 />
               ) : (
-                <div className="flex aspect-[4/3] items-center justify-center text-3xl">📷</div>
+                <div className="flex aspect-[4/3] items-center justify-center bg-surface-muted text-ink-tertiary">
+                  <IconCamera className="h-10 w-10" />
+                </div>
               )}
             </div>
             <div className="overflow-hidden rounded-2xl bg-surface-muted">
@@ -104,7 +107,9 @@ export default function CarDetailPage() {
                   className="aspect-[4/3] w-full object-cover"
                 />
               ) : (
-                <div className="flex aspect-[4/3] items-center justify-center text-3xl">✨</div>
+                <div className="flex aspect-[4/3] items-center justify-center bg-surface-muted text-brand-600">
+                  <IconSparkles className="h-10 w-10" />
+                </div>
               )}
             </div>
           </div>
@@ -145,7 +150,9 @@ export default function CarDetailPage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-3xl">🖼️</div>
+                <div className="flex h-full items-center justify-center bg-surface-muted text-ink-tertiary">
+                  <IconGallery className="h-8 w-8" />
+                </div>
               )}
             </div>
             <div className="p-3">

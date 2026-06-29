@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings, useStrings } from "../../contexts/SettingsContext";
 import Reveal from "../ui/Reveal";
 import Button from "../ui/Button";
+import { AppLogoMark } from "../ui/Icons";
 
 export function LanguageSwitcher({ className = "" }) {
   const { lang, setLang, languages } = useSettings();
@@ -35,6 +36,7 @@ export function LanguageSwitcher({ className = "" }) {
 }
 
 export function AppLogo({ size = "md", linkTo }) {
+  const gradientId = useId();
   const sizes = {
     sm: { icon: "h-8 w-8", title: "text-lg", gap: "gap-2.5" },
     md: { icon: "h-10 w-10", title: "text-xl", gap: "gap-3" },
@@ -44,14 +46,7 @@ export function AppLogo({ size = "md", linkTo }) {
 
   const content = (
     <div className={`flex items-center ${s.gap}`}>
-      <img
-        src="/images/app-logo.png"
-        alt=""
-        className={`${s.icon} rounded-btn object-cover shadow-button`}
-        width={48}
-        height={48}
-        loading="eager"
-      />
+      <AppLogoMark className={`${s.icon} shrink-0`} gradientId={gradientId.replace(/:/g, "")} />
       <span className={`${s.title} font-bold tracking-tight text-ink`}>AutoCut</span>
     </div>
   );
@@ -95,7 +90,11 @@ export function PageHeader({ title, subtitle, action, eyebrow }) {
 export function EmptyState({ icon, title, subtitle, action }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-[var(--border)] bg-surface-muted/40 px-6 py-16 text-center">
-      {icon ? <div className="mb-4 text-4xl opacity-70">{icon}</div> : null}
+      {icon ? (
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-input bg-brand-50 text-brand-600 [&_svg]:h-7 [&_svg]:w-7">
+          {icon}
+        </div>
+      ) : null}
       <h3 className="text-lg font-semibold text-ink">{title}</h3>
       {subtitle ? <p className="mt-2 max-w-sm text-sm leading-relaxed text-ink-secondary">{subtitle}</p> : null}
       {action ? <div className="mt-6">{action}</div> : null}

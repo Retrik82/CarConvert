@@ -9,6 +9,7 @@ import Input from "../components/ui/Input";
 import Modal, { ConfirmModal } from "../components/ui/Modal";
 import { EmptyState, PageHeader, Spinner } from "../components/layout/AppChrome";
 import Toast from "../components/ui/Toast";
+import { IconCar, IconGallery, IconImage } from "../components/ui/Icons";
 
 export default function MyCarsPage() {
   const s = useStrings();
@@ -80,7 +81,7 @@ export default function MyCarsPage() {
         </div>
       ) : cars.length === 0 ? (
         <EmptyState
-          icon="🚗"
+          icon={<IconCar />}
           title={s.emptyCars}
           subtitle={s.emptyCarsSubtitle}
           action={
@@ -94,8 +95,12 @@ export default function MyCarsPage() {
           {cars.map((car) => (
             <Link key={car.id} to={`/app/cars/${car.id}`}>
               <Card elevated className="h-full">
-                <div className="mb-4 flex aspect-[16/10] items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 text-5xl">
-                  {car.renders?.[0]?.has_rendered ? "🖼️" : "🚘"}
+                <div className="mb-4 flex aspect-[16/10] items-center justify-center rounded-input bg-surface-muted text-brand-600">
+                  {car.renders?.[0]?.has_rendered ? (
+                    <IconGallery className="h-12 w-12 opacity-60" />
+                  ) : (
+                    <IconImage className="h-12 w-12 opacity-60" />
+                  )}
                 </div>
                 <h3 className="text-lg font-semibold text-ink">{car.name}</h3>
                 <p className="mt-1 text-sm text-ink-secondary">
