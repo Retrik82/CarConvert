@@ -7,7 +7,7 @@ import Card from "../components/ui/Card";
 import Reveal from "../components/ui/Reveal";
 import GradientText from "../components/ui/GradientText";
 import Accordion from "../components/ui/Accordion";
-import { IconCheck, IconDownload } from "../components/ui/Icons";
+import { IconCheck } from "../components/ui/Icons";
 
 function FeatureCard({ image, title, body, delay = 0 }) {
   return (
@@ -62,13 +62,18 @@ export default function OnboardingPage() {
             <p className="mt-2 text-sm text-ink-tertiary">{s.appTagline}</p>
 
             <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center">
-              <Link to="/download" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto" icon={<IconDownload className="h-5 w-5" />}>
-                  {s.getTheApp}
+              <Link to="/register" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto">
+                  {s.heroCta}
+                </Button>
+              </Link>
+              <Link to="/login" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto">
+                  {s.login}
                 </Button>
               </Link>
               <a href="#how-it-works" className="w-full sm:w-auto">
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto">
+                <Button variant="ghost" size="lg" className="w-full sm:w-auto">
                   {s.heroSecondaryCta}
                 </Button>
               </a>
@@ -157,10 +162,15 @@ export default function OnboardingPage() {
             />
             <h2 className="relative text-2xl font-bold sm:text-3xl">{s.ctaBannerTitle}</h2>
             <p className="relative mx-auto mt-3 max-w-lg text-white/85">{s.ctaBannerBody}</p>
-            <div className="relative mt-6 flex justify-center sm:mt-8">
-              <Link to="/download" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full min-w-[200px] sm:w-auto" icon={<IconDownload className="h-5 w-5" />}>
-                  {s.getTheApp}
+            <div className="relative mt-6 flex flex-col justify-center gap-3 sm:mt-8 sm:flex-row">
+              <Link to="/register" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full min-w-[200px] sm:w-auto">
+                  {s.heroCta}
+                </Button>
+              </Link>
+              <Link to="/login" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full min-w-[200px] sm:w-auto">
+                  {s.login}
                 </Button>
               </Link>
             </div>
