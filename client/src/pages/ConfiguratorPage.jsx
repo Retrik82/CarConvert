@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useBackground } from "../contexts/BackgroundContext";
 import { useStrings } from "../contexts/SettingsContext";
+import CarHero from "../components/configurator/CarHero";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import { PageHeader } from "../components/layout/AppChrome";
@@ -25,15 +27,21 @@ const OPTIONS = {
     { id: "white", label: "Ivory Stitch" },
   ],
   studio: [
-    { id: "showroom", label: "Gray Showroom" },
-    { id: "workshop", label: "Auto Workshop" },
-    { id: "outdoor", label: "Golden Hour" },
+    { id: "gray-showroom", label: "Gray Showroom", slug: "gray-showroom" },
+    { id: "auto-workshop", label: "Auto Workshop", slug: "auto-workshop" },
   ],
+};
+
+const STUDIO_SLUG_MAP = {
+  "gray-showroom": "gray-showroom",
+  "auto-workshop": "auto-workshop",
+  showroom: "gray-showroom",
+  workshop: "auto-workshop",
 };
 
 function OptionGrid({ options, value, onChange, colorKey }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-2 gap-3">
       {options.map((opt) => (
         <button
           key={opt.id}
@@ -62,12 +70,13 @@ function OptionGrid({ options, value, onChange, colorKey }) {
 export default function ConfiguratorPage() {
   const s = useStrings();
   const navigate = useNavigate();
+  const { presets, selectBackground } = useBackground();
   const [stepIndex, setStepIndex] = useState(0);
   const [config, setConfig] = useState({
     color: "black",
     wheels: "sport",
     interior: "black",
-    studio: "showroom",
+    studio: "gray-showroom",
   });
 
   const step = STEPS[stepIndex];
@@ -76,6 +85,9 @@ export default function ConfiguratorPage() {
 
   const next = () => {
     if (stepIndex >= STEPS.length - 1) {
+      const slug = STUDIO_SLUG_MAP[config.studio] || config.studio;
+      const preset = presets.find((p) => p.slug === slug);
+      if (preset) selectBackground(preset);
       navigate("/app/capture?mode=camera");
       return;
     }
@@ -88,7 +100,7 @@ export default function ConfiguratorPage() {
     <div>
       <PageHeader title={s.configTitle} subtitle={stepTitles[stepIndex]} />
 
-      <div className="mb-8 flex gap-2">
+      <div className="mb-6 flex gap-2">
         {stepLabels.map((label, i) => (
           <div
             key={label}
@@ -100,6 +112,14 @@ export default function ConfiguratorPage() {
           />
         ))}
       </div>
+
+      <Card className="mb-4 overflow-hidden p-0" elevated>
+        <CarHero colorId={config.color} height={220} />
+      </Card>
+
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-tertiary">
+        {stepLabels[stepIndex]}
+      </p>
 
       <Card className="mb-6" elevated>
         {step === "summary" ? (

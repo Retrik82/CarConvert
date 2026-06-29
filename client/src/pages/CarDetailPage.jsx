@@ -4,6 +4,7 @@ import { deleteRender, fetchMyCars, updateRenderName } from "../api/myCarsApi";
 import { useStrings } from "../contexts/SettingsContext";
 import { formatDateTime } from "../utils/format";
 import AuthenticatedImage from "../components/AuthenticatedImage";
+import { FullscreenImageModal } from "../components/ZoomableImage";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Modal, { ConfirmModal } from "../components/ui/Modal";
@@ -22,6 +23,7 @@ export default function CarDetailPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [nameInput, setNameInput] = useState("");
   const [error, setError] = useState("");
+  const [fullscreenSrc, setFullscreenSrc] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -84,7 +86,11 @@ export default function CarDetailPage() {
       {active ? (
         <div className="mb-8">
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl bg-surface-muted">
+            <button
+              type="button"
+              className="overflow-hidden rounded-2xl bg-surface-muted text-left"
+              onClick={() => active.original_url && setFullscreenSrc(active.original_url)}
+            >
               <p className="px-3 py-2 text-xs font-medium text-ink-secondary">{s.beforeLabel}</p>
               {active.original_url ? (
                 <AuthenticatedImage
@@ -97,8 +103,12 @@ export default function CarDetailPage() {
                   <IconCamera className="h-10 w-10" />
                 </div>
               )}
-            </div>
-            <div className="overflow-hidden rounded-2xl bg-surface-muted">
+            </button>
+            <button
+              type="button"
+              className="overflow-hidden rounded-2xl bg-surface-muted text-left"
+              onClick={() => active.rendered_url && setFullscreenSrc(active.rendered_url)}
+            >
               <p className="px-3 py-2 text-xs font-medium text-ink-secondary">{s.afterLabel}</p>
               {active.rendered_url ? (
                 <AuthenticatedImage
@@ -111,7 +121,7 @@ export default function CarDetailPage() {
                   <IconSparkles className="h-10 w-10" />
                 </div>
               )}
-            </div>
+            </button>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -195,6 +205,13 @@ export default function CarDetailPage() {
       />
 
       <Toast message={error} onClose={() => setError("")} />
+
+      <FullscreenImageModal
+        open={Boolean(fullscreenSrc)}
+        src={fullscreenSrc}
+        title={active?.name || car.name}
+        onClose={() => setFullscreenSrc(null)}
+      />
     </div>
   );
 }

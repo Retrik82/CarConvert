@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import Button from "./Button";
 
-export default function Modal({ open, title, children, onClose, footer }) {
+export default function Modal({ open, title, children, onClose, footer, wide = false }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -21,7 +21,12 @@ export default function Modal({ open, title, children, onClose, footer }) {
         className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-card border border-[var(--border)] bg-surface p-6 shadow-elevated animate-fade-up">
+      <div
+        className={[
+          "relative z-10 w-full rounded-card border border-[var(--border)] bg-surface p-6 shadow-elevated animate-fade-up",
+          wide ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-md",
+        ].join(" ")}
+      >
         {title ? <h2 className="mb-4 text-lg font-semibold text-ink">{title}</h2> : null}
         <div>{children}</div>
         {footer ? <div className="mt-6 flex justify-end gap-3">{footer}</div> : null}

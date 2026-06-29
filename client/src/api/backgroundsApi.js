@@ -29,6 +29,23 @@ export function backgroundImageUrl(variantId) {
   return `${getApiBase()}/backgrounds/image/${variantId}`;
 }
 
+export const BUNDLED_PRESET_ANGLES = [
+  "three_quarter_left",
+  "three_quarter_right",
+  "left",
+  "right",
+  "front",
+  "rear",
+  "interior",
+];
+
+function bundledVariants(slug) {
+  return BUNDLED_PRESET_ANGLES.map((angle) => ({
+    id: `local-${slug}-${angle}`,
+    angle,
+  }));
+}
+
 export const BUNDLED_PRESETS = [
   {
     id: "local-gray-showroom",
@@ -36,9 +53,7 @@ export const BUNDLED_PRESETS = [
     name: "Gray Showroom",
     description: "Minimalist gray studio with a central podium",
     is_custom: false,
-    variants: [
-      { id: "local-gray-showroom-three_quarter_left", angle: "three_quarter_left" },
-    ],
+    variants: bundledVariants("gray-showroom"),
   },
   {
     id: "local-auto-workshop",
@@ -46,8 +61,6 @@ export const BUNDLED_PRESETS = [
     name: "Auto Workshop",
     description: "Modern professional car service garage",
     is_custom: false,
-    variants: [
-      { id: "local-auto-workshop-three_quarter_left", angle: "three_quarter_left" },
-    ],
+    variants: bundledVariants("auto-workshop"),
   },
 ];

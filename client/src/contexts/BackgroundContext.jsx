@@ -41,15 +41,15 @@ export function BackgroundProvider({ children }) {
       const data = await fetchBackgroundCatalog();
       if (data.presets?.length) setPresets(data.presets);
       setCustom(data.custom || []);
-    } catch {
-      /* keep bundled */
+    } catch (err) {
+      throw err;
     } finally {
       setLoading(false);
     }
   }, [isLoggedIn]);
 
   useEffect(() => {
-    loadCatalog();
+    loadCatalog().catch(() => {});
   }, [loadCatalog]);
 
   useEffect(() => {

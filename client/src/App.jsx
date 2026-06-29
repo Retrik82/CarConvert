@@ -16,6 +16,7 @@ import ResultPage from "./pages/ResultPage";
 import MyCarsPage from "./pages/MyCarsPage";
 import CarDetailPage from "./pages/CarDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import EditProfilePage from "./pages/EditProfilePage";
 import ConfiguratorPage from "./pages/ConfiguratorPage";
 import AdminPage from "./pages/AdminPage";
 import DownloadAppPage from "./pages/DownloadAppPage";
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="/app/cars" element={<MyCarsPage />} />
         <Route path="/app/cars/:carId" element={<CarDetailPage />} />
         <Route path="/app/profile" element={<ProfilePage />} />
+        <Route path="/app/profile/edit" element={<EditProfilePage />} />
         <Route path="/app/download" element={<DownloadAppPage embedded />} />
         <Route path="/app/admin" element={<AdminPage />} />
       </Route>

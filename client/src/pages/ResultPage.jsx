@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchMyCars, saveRender } from "../api/myCarsApi";
 import { useStrings } from "../contexts/SettingsContext";
-import { downloadBase64Image } from "../utils/download";
+import { downloadBase64Image, shareBase64Image } from "../utils/download";
 import { formatDateTime } from "../utils/format";
 import BeforeAfterSlider from "../components/BeforeAfterSlider";
+import { FullscreenImageModal } from "../components/ZoomableImage";
 import Button from "../components/ui/Button";
-import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
 import { PageHeader } from "../components/layout/AppChrome";
@@ -25,6 +25,7 @@ export default function ResultPage() {
   const [selectedCarId, setSelectedCarId] = useState(initialCarId || "");
   const [renderName, setRenderName] = useState(() => formatDateTime(new Date()));
   const [error, setError] = useState("");
+  const [fullscreenSrc, setFullscreenSrc] = useState(null);
 
   useEffect(() => {
     if (!result) navigate("/app", { replace: true });
@@ -59,13 +60,26 @@ export default function ResultPage() {
     }
   };
 
+  const handleShare = async () => {
+    const shared = await shareBase64Image(
+      result.image_base64,
+      result.mime_type || "image/png",
+      s.renderResultTitle,
+    );
+    if (!shared) {
+      downloadBase64Image(result.image_base64, result.mime_type || "image/png", "autocut-render.png");
+    }
+  };
+
   if (!result) return null;
 
   return (
     <div>
       <PageHeader title={s.renderResultTitle} />
 
-      <BeforeAfterSlider beforeUrl={beforeUrl} afterUrl={afterUrl} className="mb-8" />
+      <button type="button" onClick={() => setFullscreenSrc(afterUrl)} className="mb-8 block w-full">
+        <BeforeAfterSlider beforeUrl={beforeUrl} afterUrl={afterUrl} className="pointer-events-none" />
+      </button>
 
       <div className="flex flex-wrap gap-3">
         <Button
@@ -74,6 +88,9 @@ export default function ResultPage() {
           }
         >
           {s.downloadPhoto}
+        </Button>
+        <Button variant="secondary" onClick={handleShare}>
+          {s.sharePhoto}
         </Button>
         <Button variant="secondary" disabled={saved} onClick={() => setSaveOpen(true)}>
           {saved ? s.savedToMyCars : s.saveToMyCars}
@@ -115,6 +132,8 @@ export default function ResultPage() {
           <Input label={s.renderName} value={renderName} onChange={(e) => setRenderName(e.target.value)} />
         </div>
       </Modal>
+
+      <FullscreenImageModal open={Boolean(fullscreenSrc)} src={fullscreenSrc} onClose={() => setFullscreenSrc(null)} />
 
       <Toast message={error} onClose={() => setError("")} />
     </div>
