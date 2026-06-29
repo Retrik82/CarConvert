@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { createCar, deleteCar, fetchMyCars, updateCarName } from "../api/myCarsApi";
 import { useStrings } from "../contexts/SettingsContext";
 import { formatDate } from "../utils/format";
+import AuthenticatedImage from "../components/AuthenticatedImage";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
 import Modal, { ConfirmModal } from "../components/ui/Modal";
 import { EmptyState, PageHeader, Spinner } from "../components/layout/AppChrome";
 import Toast from "../components/ui/Toast";
-import { IconCar, IconGallery, IconImage } from "../components/ui/Icons";
+import { IconCar, IconImage } from "../components/ui/Icons";
 
 export default function MyCarsPage() {
   const s = useStrings();
@@ -92,14 +93,29 @@ export default function MyCarsPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {cars.map((car) => (
+          {cars.map((car) => {
+            const coverRender = car.renders?.[0];
+            const coverUrl = coverRender?.rendered_url || coverRender?.original_url;
+
+            return (
             <Link key={car.id} to={`/app/cars/${car.id}`}>
               <Card elevated className="h-full">
-                <div className="mb-4 flex aspect-[16/10] items-center justify-center rounded-input bg-surface-muted text-brand-600">
-                  {car.renders?.[0]?.has_rendered ? (
-                    <IconGallery className="h-12 w-12 opacity-60" />
+                <div className="mb-4 aspect-[16/10] overflow-hidden rounded-input bg-surface-muted">
+                  {coverUrl ? (
+                    <AuthenticatedImage
+                      src={coverUrl}
+                      alt={car.name}
+                      className="h-full w-full object-cover"
+                      fallback={
+                        <div className="flex h-full items-center justify-center text-brand-600">
+                          <IconImage className="h-12 w-12 opacity-60" />
+                        </div>
+                      }
+                    />
                   ) : (
-                    <IconImage className="h-12 w-12 opacity-60" />
+                    <div className="flex h-full items-center justify-center text-brand-600">
+                      <IconImage className="h-12 w-12 opacity-60" />
+                    </div>
                   )}
                 </div>
                 <h3 className="text-lg font-semibold text-ink">{car.name}</h3>
@@ -131,7 +147,8 @@ export default function MyCarsPage() {
                 </div>
               </Card>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
 
